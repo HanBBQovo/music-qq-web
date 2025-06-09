@@ -43,7 +43,7 @@ export function MiniPlayer() {
   } = usePlayerStore();
 
   // 使用音频播放器hook
-  useAudioPlayer();
+  const { seekTo } = useAudioPlayer();
 
   const [localVolume, setLocalVolume] = useState(volume);
   const [isDragging, setIsDragging] = useState(false);
@@ -84,7 +84,8 @@ export function MiniPlayer() {
   const handleProgressCommit = (value: number[]) => {
     const progress = value[0];
     const newTime = (progress / 100) * duration;
-    setCurrentTime(newTime);
+    // 使用音频播放器的seekTo方法来实际跳转时间
+    seekTo(newTime);
     setIsDragging(false);
   };
 
@@ -208,6 +209,7 @@ export function MiniPlayer() {
                 value={[localProgress]}
                 onValueChange={handleProgressChange}
                 onValueCommit={handleProgressCommit}
+                onPointerDown={handleProgressStart}
                 max={100}
                 step={0.1}
                 className="flex-1"
@@ -292,6 +294,7 @@ export function MiniPlayer() {
                 value={[localProgress]}
                 onValueChange={handleProgressChange}
                 onValueCommit={handleProgressCommit}
+                onPointerDown={handleProgressStart}
                 max={100}
                 step={0.1}
                 className="flex-1"
