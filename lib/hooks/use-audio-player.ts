@@ -63,7 +63,7 @@ export const useAudioPlayer = () => {
     // 创建新的音频元素
     audioRef.current = createAudioElement(currentSong.url);
 
-    // 设置音量
+    // 设置初始音量
     audioRef.current.volume = volume;
 
     // 添加事件监听器
@@ -83,7 +83,7 @@ export const useAudioPlayer = () => {
         audioRef.current.src = "";
       }
     };
-  }, [currentSong?.url, volume]);
+  }, [currentSong?.url]); // 移除volume依赖，避免音量变化时重新创建音频元素
 
   // 事件处理器
   const handleLoadStart = useCallback(() => {
