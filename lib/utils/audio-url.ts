@@ -5,6 +5,7 @@
 
 import type { Song } from "../types/music";
 import type { AudioQuality } from "../api/types";
+import { HTTP_HEADERS, USER_AGENTS } from "@/lib/constants/http-headers";
 
 // 使用现有的API客户端和配置
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
@@ -84,10 +85,9 @@ export async function getAudioUrl(
     const response = await fetch(streamUrl, {
       method: "HEAD",
       headers: {
-        "X-QQ-Cookie": cookie,
+        [HTTP_HEADERS.QQ_COOKIE]: cookie,
         Range: "bytes=0-1023",
-        "User-Agent":
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        "User-Agent": USER_AGENTS.DESKTOP,
       },
     });
 
@@ -153,7 +153,7 @@ export async function getPlayInfo(song: Song): Promise<any> {
       {
         method: "GET",
         headers: {
-          "X-QQ-Cookie": cookie,
+          [HTTP_HEADERS.QQ_COOKIE]: cookie,
           "Content-Type": "application/json",
         },
       }
@@ -253,7 +253,7 @@ export async function checkApiHealth(): Promise<boolean> {
     const response = await fetch(`${API_BASE_URL}/api/play/stats`, {
       method: "GET",
       headers: {
-        "X-QQ-Cookie": cookie,
+        [HTTP_HEADERS.QQ_COOKIE]: cookie,
         "Content-Type": "application/json",
       },
     });
@@ -300,7 +300,7 @@ export async function getPlayStats(mid?: string): Promise<any> {
     const response = await fetch(url, {
       method: "GET",
       headers: {
-        "X-QQ-Cookie": cookie,
+        [HTTP_HEADERS.QQ_COOKIE]: cookie,
         "Content-Type": "application/json",
       },
     });

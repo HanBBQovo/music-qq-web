@@ -5,6 +5,7 @@ import musicApi from "../api/client";
 import { generateId, saveBlob } from "../utils";
 import { toast } from "sonner";
 import { useSettingsStore } from "./useSettingsStore";
+import { HTTP_HEADERS } from "@/lib/constants/http-headers";
 
 interface DownloadState {
   // 下载任务列表
@@ -1266,7 +1267,7 @@ async function downloadSong(task: DownloadTask): Promise<void> {
     // 构建请求头
     const headers: Record<string, string> = {};
     if (storedCookie) {
-      headers["x-qq-cookie"] = storedCookie;
+      headers[HTTP_HEADERS.QQ_COOKIE] = storedCookie;
     }
 
     // 添加Range头实现断点续传

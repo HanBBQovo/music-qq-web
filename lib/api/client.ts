@@ -15,6 +15,7 @@ import type {
   PlaylistParams,
   PlaylistResponse,
 } from "./types";
+import { HTTP_HEADERS } from "@/lib/constants/http-headers";
 
 // API基础URL，指向Cloudflare Workers服务
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
@@ -40,7 +41,7 @@ apiClient.interceptors.request.use(
     // 从localStorage获取Cookie，使用自定义头传递（浏览器不允许直接设置Cookie头）
     const cookie = localStorage.getItem("qqmusic_cookie");
     if (cookie && config.headers) {
-      config.headers["x-qq-cookie"] = cookie;
+      config.headers[HTTP_HEADERS.QQ_COOKIE] = cookie;
     }
 
     // 仅在开发环境记录详细日志
