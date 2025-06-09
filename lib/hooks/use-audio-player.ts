@@ -98,12 +98,38 @@ export const useAudioPlayer = () => {
   }, [setDuration]);
 
   const handleCanPlay = useCallback(() => {
+    console.log("🎵 音频可以播放，状态从", status, "->", PlayerStatus.IDLE);
     setStatus(PlayerStatus.IDLE);
+    // 清除之前可能存在的错误
+    setError(null);
+
+    // 检查是否需要跳转到指定时间（音质切换场景）
+    if (audioRef.current && currentTime > 0) {
+      const timeDiff = Math.abs(currentTime - audioRef.current.currentTime);
+      if (timeDiff > 1) {
+        console.log(`🎯 音频准备完成，先跳转到: ${currentTime.toFixed(2)}s`);
+        audioRef.current.currentTime = Math.max(
+          0,
+          Math.min(currentTime, audioRef.current.duration || 0)
+        );
+      }
+    }
+
     // 如果应该播放，则开始播放
     if (isPlaying && audioRef.current) {
-      audioRef.current.play().catch(handlePlayError);
+      console.log("🎵 恢复播放状态");
+      audioRef.current.play().catch((error) => {
+        console.error("播放启动失败:", error);
+        const playError: PlayError = {
+          code: "PLAY_FAILED",
+          message: "播放启动失败: " + error.message,
+          song: currentSong || undefined,
+        };
+        setError(playError);
+        setStatus(PlayerStatus.ERROR);
+      });
     }
-  }, [isPlaying]);
+  }, [isPlaying, status, currentSong, currentTime]);
 
   const handlePlay = useCallback(() => {
     setStatus(PlayerStatus.PLAYING);
@@ -143,7 +169,9 @@ export const useAudioPlayer = () => {
           case MediaError.MEDIA_ERR_ABORTED:
             errorMessage = "播放被中止";
             errorCode = "MEDIA_ERR_ABORTED";
-            break;
+            // 播放被中止通常是正常的操作（如切换音质），不设置错误状态
+            console.warn("🔄 音频播放被中止（可能是正常的切换操作）");
+            return;
           case MediaError.MEDIA_ERR_NETWORK:
             errorMessage = "网络错误";
             errorCode = "MEDIA_ERR_NETWORK";
@@ -155,6 +183,13 @@ export const useAudioPlayer = () => {
           case MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED:
             errorMessage = "不支持的音频格式";
             errorCode = "MEDIA_ERR_SRC_NOT_SUPPORTED";
+            // 检查是否是音质切换过程中的临时错误
+            if (status === PlayerStatus.LOADING) {
+              console.warn(
+                "🔄 音质切换过程中的临时格式错误，将在加载完成后自动恢复"
+              );
+              return;
+            }
             break;
         }
       }
@@ -168,9 +203,9 @@ export const useAudioPlayer = () => {
       setError(playError);
       setStatus(PlayerStatus.ERROR);
 
-      console.error("音频播放错误:", playError);
+      console.error("⚠️ 音频播放错误:", playError);
     },
-    [currentSong]
+    [currentSong, status]
   );
 
   const handleTimeUpdate = useCallback(() => {
@@ -287,6 +322,34 @@ export const useAudioPlayer = () => {
   useEffect(() => {
     setVolumeLevel(volume);
   }, [volume, setVolumeLevel]);
+
+  // 监听currentTime变化（用于手动拖拽进度条等场景）
+  const lastSeekTimeRef = useRef<number>(0);
+  useEffect(() => {
+    // 只处理音频已经在播放中的时间跳转（如拖拽进度条）
+    if (
+      audioRef.current &&
+      audioRef.current.readyState >= 2 &&
+      status === PlayerStatus.PLAYING
+    ) {
+      const timeDiff = Math.abs(currentTime - audioRef.current.currentTime);
+
+      // 只有当时间差异较大时才进行跳转（大于1秒），且不是音质切换场景
+      if (timeDiff > 1 && currentTime !== lastSeekTimeRef.current) {
+        console.log(
+          `🎯 播放中的时间跳转: ${audioRef.current.currentTime.toFixed(
+            2
+          )}s -> ${currentTime.toFixed(2)}s`
+        );
+        audioRef.current.currentTime = Math.max(
+          0,
+          Math.min(currentTime, audioRef.current.duration || 0)
+        );
+        lastSeekTimeRef.current = currentTime;
+        console.log(`✅ 跳转完成: ${audioRef.current.currentTime.toFixed(2)}s`);
+      }
+    }
+  }, [currentTime, status]);
 
   // 预加载下一首歌曲
   useEffect(() => {

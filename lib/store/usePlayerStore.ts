@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { Song, PlayMode } from "../types/music";
+import type { AudioQuality } from "../api/types";
 import { getAudioUrl } from "../utils/audio-url";
 
 // 播放器状态接口
@@ -18,6 +19,11 @@ interface PlayerState {
   // 播放列表
   playlist: Song[];
   playMode: PlayMode;
+
+  // 音质设置
+  currentQuality: AudioQuality;
+  setCurrentQuality: (quality: AudioQuality) => Promise<void>;
+  switchQuality: (quality: AudioQuality) => Promise<void>;
 
   // UI 状态
   showPlayer: boolean;
@@ -45,7 +51,7 @@ interface PlayerState {
   moveInPlaylist: (fromIndex: number, toIndex: number) => void;
 
   // 播放歌曲
-  playSong: (song: Song) => Promise<void>;
+  playSong: (song: Song, quality?: AudioQuality) => Promise<void>;
   playSongList: (songs: Song[], startIndex?: number) => Promise<void>;
 
   // UI 控制
@@ -70,6 +76,7 @@ export const usePlayerStore = create<PlayerState>()(
       currentIndex: -1,
       playlist: [],
       playMode: "order",
+      currentQuality: "320" as AudioQuality, // 默认音质
       showPlayer: false,
       showPlaylist: false,
 
@@ -231,12 +238,15 @@ export const usePlayerStore = create<PlayerState>()(
       },
 
       // 播放歌曲
-      playSong: async (song) => {
+      playSong: async (song, quality) => {
         try {
+          const state = get();
+          const useQuality = quality || state.currentQuality;
+
           // 获取音频URL（如果没有）
           let songWithUrl = song;
           if (!song.url) {
-            const url = await getAudioUrl(song);
+            const url = await getAudioUrl(song, useQuality);
             songWithUrl = { ...song, url };
           }
 
@@ -253,6 +263,7 @@ export const usePlayerStore = create<PlayerState>()(
                 playlist: newPlaylist,
                 currentSong: songWithUrl,
                 currentIndex: index,
+                currentQuality: useQuality,
                 isPlaying: true,
                 showPlayer: true,
                 currentTime: 0,
@@ -267,6 +278,7 @@ export const usePlayerStore = create<PlayerState>()(
                 playlist: newPlaylist,
                 currentSong: songWithUrl,
                 currentIndex: index,
+                currentQuality: useQuality,
                 isPlaying: true,
                 showPlayer: true,
                 currentTime: 0,
@@ -350,12 +362,75 @@ export const usePlayerStore = create<PlayerState>()(
             return currentIndex - 1 >= 0 ? currentIndex - 1 : -1;
         }
       },
+
+      // 音质控制方法
+      setCurrentQuality: async (quality) => {
+        set({ currentQuality: quality });
+      },
+
+      switchQuality: async (quality) => {
+        const state = get();
+        if (!state.currentSong) return;
+
+        try {
+          // 记录当前播放时间和状态
+          const savedTime = state.currentTime;
+          const wasPlaying = state.isPlaying;
+
+          console.log(
+            `🔄 正在切换音质: ${
+              state.currentQuality
+            } -> ${quality}, 当前时间: ${savedTime.toFixed(2)}s`
+          );
+
+          // 暂停播放
+          set({ isPlaying: false });
+
+          // 创建一个临时歌曲对象，移除现有URL以强制重新获取
+          const tempSong = { ...state.currentSong, url: undefined };
+
+          // 获取新音质的URL
+          console.log(`📡 正在获取新音质(${quality})的URL...`);
+          const url = await getAudioUrl(tempSong, quality);
+          console.log(`✅ 成功获取新音质URL: ${url.substring(0, 100)}...`);
+
+          const updatedSong = { ...state.currentSong, url };
+
+          // 更新当前歌曲和音质，保持当前播放时间
+          set({
+            currentSong: updatedSong,
+            currentQuality: quality,
+            // 不重置currentTime，保持原位置
+          });
+
+          console.log(
+            `🎵 音质已切换到: ${quality}, 准备跳转到: ${savedTime.toFixed(2)}s`
+          );
+
+          // 设置要恢复的时间和播放状态
+          set({
+            currentTime: savedTime, // 设置目标时间
+          });
+
+          // 如果之前在播放，则恢复播放状态
+          if (wasPlaying) {
+            setTimeout(() => {
+              console.log(`⏯️ 恢复播放状态`);
+              set({ isPlaying: true });
+            }, 50); // 减少延迟
+          }
+        } catch (error) {
+          console.error("切换音质失败:", error);
+          throw error;
+        }
+      },
     }),
     {
       name: "music-player-storage",
       partialize: (state) => ({
         volume: state.volume,
         playMode: state.playMode,
+        currentQuality: state.currentQuality,
         playlist: state.playlist,
         currentIndex: state.currentIndex,
         currentSong: state.currentSong,

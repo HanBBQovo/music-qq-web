@@ -6,6 +6,12 @@ import { useAudioPlayer } from "@/lib/hooks/use-audio-player";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   Play,
   Pause,
   SkipBack,
@@ -21,6 +27,8 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PlaylistPanel } from "./playlist-panel";
+import type { AudioQuality } from "@/lib/api/types";
+import { toast } from "sonner";
 
 export function MiniPlayer() {
   const {
@@ -30,6 +38,7 @@ export function MiniPlayer() {
     currentTime,
     duration,
     playMode,
+    currentQuality,
     showPlayer,
     showPlaylist,
     togglePlay,
@@ -40,6 +49,7 @@ export function MiniPlayer() {
     setPlayMode,
     setShowPlayer,
     setShowPlaylist,
+    switchQuality,
   } = usePlayerStore();
 
   // 使用音频播放器hook
@@ -48,6 +58,67 @@ export function MiniPlayer() {
   const [localVolume, setLocalVolume] = useState(volume);
   const [isDragging, setIsDragging] = useState(false);
   const [localProgress, setLocalProgress] = useState(0);
+
+  // 音质选项
+  const qualityOptions: Array<{
+    value: AudioQuality;
+    label: string;
+    description: string;
+    badge?: string;
+  }> = [
+    { value: "128", label: "标准音质", description: "MP3 128K", badge: "128K" },
+    { value: "320", label: "高品质", description: "MP3 320K", badge: "320K" },
+    {
+      value: "flac",
+      label: "无损音质",
+      description: "FLAC 格式",
+      badge: "FLAC",
+    },
+    {
+      value: "ATMOS_2",
+      label: "杜比全景声",
+      description: "ATMOS 2.0 声道",
+      badge: "ATMOS",
+    },
+    {
+      value: "ATMOS_51",
+      label: "杜比全景声",
+      description: "ATMOS 5.1 声道",
+      badge: "ATMOS 5.1",
+    },
+    {
+      value: "MASTER",
+      label: "母带音质",
+      description: "Hi-Res 母带",
+      badge: "MASTER",
+    },
+  ];
+
+  // 获取当前音质的显示标签
+  const getCurrentQualityLabel = () => {
+    const current = qualityOptions.find((q) => q.value === currentQuality);
+    return current?.badge || currentQuality.toUpperCase();
+  };
+
+  // 处理音质切换
+  const handleQualityChange = async (quality: AudioQuality) => {
+    if (quality === currentQuality) return;
+
+    const targetOption = qualityOptions.find((q) => q.value === quality);
+    const loadingToast = toast.loading(`正在切换到${targetOption?.label}...`);
+
+    try {
+      console.log(`🎵 用户切换音质: ${currentQuality} -> ${quality}`);
+      await switchQuality(quality);
+
+      toast.dismiss(loadingToast);
+      toast.success(`已切换到${targetOption?.label} (${targetOption?.badge})`);
+    } catch (error) {
+      console.error("切换音质失败:", error);
+      toast.dismiss(loadingToast);
+      toast.error(`切换到${targetOption?.label}失败，请重试`);
+    }
+  };
 
   // 同步音量
   useEffect(() => {
@@ -255,6 +326,53 @@ export function MiniPlayer() {
                   className="w-20"
                 />
               </div>
+
+              {/* 音质选择器 */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 px-2 py-1 hidden md:flex text-xs font-medium text-muted-foreground hover:text-foreground"
+                    title={`点击切换音质，当前: ${
+                      qualityOptions.find((q) => q.value === currentQuality)
+                        ?.label
+                    }`}
+                  >
+                    {getCurrentQualityLabel()}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  {qualityOptions.map((option) => (
+                    <DropdownMenuItem
+                      key={option.value}
+                      onClick={() => handleQualityChange(option.value)}
+                      className={cn(
+                        "flex flex-col items-start gap-1 py-3 cursor-pointer",
+                        currentQuality === option.value &&
+                          "bg-accent text-accent-foreground"
+                      )}
+                    >
+                      <div className="flex items-center justify-between w-full">
+                        <span className="font-medium">{option.label}</span>
+                        <span
+                          className={cn(
+                            "text-xs px-2 py-0.5 rounded",
+                            currentQuality === option.value
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-muted text-muted-foreground"
+                          )}
+                        >
+                          {option.badge}
+                        </span>
+                      </div>
+                      <span className="text-xs text-muted-foreground">
+                        {option.description}
+                      </span>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
 
               {/* 播放列表 */}
               <Button
