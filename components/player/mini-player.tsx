@@ -179,9 +179,80 @@ export function MiniPlayer() {
     }
   }, [currentTime, duration, isDragging]);
 
-  // 如果没有当前歌曲，不显示播放器
+  // 如果没有当前歌曲，显示空状态
   if (!currentSong) {
-    return null;
+    return (
+      <>
+        <div
+          className={cn(
+            "fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-t z-50 transition-transform duration-300",
+            showPlayer ? "translate-y-0" : "translate-y-full"
+          )}
+        >
+          <div className="container mx-auto px-4 py-3">
+            <div className="flex items-center justify-center gap-4">
+              <div className="text-center">
+                <p className="text-sm text-muted-foreground">暂无播放歌曲</p>
+                <p className="text-xs text-muted-foreground">
+                  从搜索或专辑中选择歌曲开始播放
+                </p>
+              </div>
+
+              {/* 播放列表按钮 */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowPlaylist(!showPlaylist)}
+                className="h-8 w-8 p-0"
+                title="播放列表"
+              >
+                <List className="h-4 w-4" />
+              </Button>
+
+              {/* 收起按钮 */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowPlayer(false)}
+                className="h-8 w-8 p-0"
+                title="收起播放器"
+              >
+                <ChevronDown className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* 播放列表面板 */}
+        <PlaylistPanel />
+
+        {/* 当播放器隐藏时显示的悬浮展开按钮 */}
+        {!showPlayer && (
+          <button
+            onClick={() => setShowPlayer(true)}
+            className="fixed bottom-6 right-6 z-50 rounded-full p-3 bg-primary text-primary-foreground cursor-pointer select-none transition-all duration-200"
+            title="展开播放器"
+            style={{
+              pointerEvents: "auto",
+              boxShadow:
+                "0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = "scale(1.05)";
+              e.currentTarget.style.boxShadow =
+                "0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = "scale(1)";
+              e.currentTarget.style.boxShadow =
+                "0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)";
+            }}
+          >
+            <ChevronUp className="h-6 w-6" />
+          </button>
+        )}
+      </>
+    );
   }
 
   const handleVolumeChange = (value: number[]) => {

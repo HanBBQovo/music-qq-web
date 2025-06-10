@@ -155,23 +155,86 @@ export const usePlayerStore = create<PlayerState>()(
       },
 
       removeFromPlaylist: (index) => {
-        set((state) => {
-          const newPlaylist = state.playlist.filter((_, i) => i !== index);
-          let newCurrentIndex = state.currentIndex;
+        const state = get();
+        const wasPlayingRemovedSong = index === state.currentIndex;
+        const wasPlaying = state.isPlaying;
 
-          if (index === state.currentIndex) {
-            newCurrentIndex = -1;
-          } else if (index < state.currentIndex) {
-            newCurrentIndex = state.currentIndex - 1;
+        set((currentState) => {
+          const newPlaylist = currentState.playlist.filter(
+            (_, i) => i !== index
+          );
+
+          // 如果播放列表为空，清空所有状态
+          if (newPlaylist.length === 0) {
+            return {
+              playlist: [],
+              currentIndex: -1,
+              currentSong: null,
+              isPlaying: false,
+            };
           }
 
-          return {
-            playlist: newPlaylist,
-            currentIndex: newCurrentIndex,
-            currentSong:
-              newCurrentIndex >= 0 ? newPlaylist[newCurrentIndex] : null,
-          };
+          if (index === currentState.currentIndex) {
+            // 移除的是正在播放的歌曲，需要智能切换
+            let newCurrentIndex = -1;
+            let newCurrentSong = null;
+
+            if (index < newPlaylist.length) {
+              // 如果删除的不是最后一首，切换到原来的下一首（现在在相同位置）
+              newCurrentIndex = index;
+              newCurrentSong = newPlaylist[index];
+            } else if (newPlaylist.length > 0) {
+              // 如果删除的是最后一首，切换到新的最后一首
+              newCurrentIndex = newPlaylist.length - 1;
+              newCurrentSong = newPlaylist[newCurrentIndex];
+            }
+
+            return {
+              playlist: newPlaylist,
+              currentIndex: newCurrentIndex,
+              currentSong: newCurrentSong,
+              isPlaying: false, // 停止播放，等待后续自动播放新歌曲
+            };
+          } else {
+            // 删除的不是当前播放的歌曲，需要在新播放列表中重新查找当前歌曲
+            const currentSongIdentifier =
+              currentState.currentSong?.id || currentState.currentSong?.mid;
+
+            if (currentSongIdentifier) {
+              const newCurrentIndex = newPlaylist.findIndex(
+                (song) =>
+                  song.id === currentSongIdentifier ||
+                  song.mid === currentSongIdentifier
+              );
+
+              if (newCurrentIndex >= 0) {
+                // 找到了，继续播放当前歌曲
+                return {
+                  playlist: newPlaylist,
+                  currentIndex: newCurrentIndex,
+                  currentSong: currentState.currentSong, // 保持当前歌曲对象引用不变
+                  isPlaying: currentState.isPlaying, // 保持播放状态不变
+                };
+              }
+            }
+
+            // 如果找不到当前歌曲，fallback到第一首
+            return {
+              playlist: newPlaylist,
+              currentIndex: newPlaylist.length > 0 ? 0 : -1,
+              currentSong: newPlaylist.length > 0 ? newPlaylist[0] : null,
+              isPlaying: false,
+            };
+          }
         });
+
+        // 只有在删除当前播放歌曲时才自动播放新歌曲
+        if (wasPlayingRemovedSong && wasPlaying) {
+          const newState = get();
+          if (newState.currentSong && newState.playlist.length > 0) {
+            newState.playSong(newState.currentSong);
+          }
+        }
       },
 
       clearPlaylist: () =>
