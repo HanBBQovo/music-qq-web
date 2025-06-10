@@ -1235,13 +1235,26 @@ async function downloadSong(task: DownloadTask): Promise<void> {
       ),
     }));
 
+    // 验证URL格式是否有效
+    let validSongUrl = songUrl.url;
+    try {
+      // 测试URL是否有效
+      new URL(validSongUrl);
+      console.log(
+        `[下载] 验证歌曲URL有效: ${validSongUrl.substring(0, 50)}...`
+      );
+    } catch (error) {
+      console.error(`[下载] 无效的URL格式: ${validSongUrl}`, error);
+      throw new Error(`获取到的下载链接格式无效: ${validSongUrl}`);
+    }
+
     // 获取设置
     const settings = useSettingsStore.getState();
     const shouldAddMetadata = settings.autoAddMetadata || settings.autoAddCover;
 
     // 开始下载歌曲
     const streamUrl = musicApi.getStreamUrl(
-      songUrl.url || "",
+      validSongUrl,
       task.songMid,
       task.songName,
       task.artist,
@@ -1251,7 +1264,6 @@ async function downloadSong(task: DownloadTask): Promise<void> {
 
     // 为URL对象添加redirect参数
     const finalUrl = new URL(streamUrl);
-    finalUrl.searchParams.append("redirect", "true");
 
     // 使用fetch API下载歌曲，添加Cookie头
     const storedCookie = localStorage.getItem("qqmusic_cookie") || "";

@@ -333,15 +333,55 @@ export const musicApi = {
     albumMid?: string,
     metadata: boolean = false
   ): string => {
-    // 构建音频流URL
-    const streamUrl = new URL("/api/stream", BASE_URL);
+    // 检查BASE_URL是否为相对路径
+    let baseUrl = BASE_URL;
+
+    // 构建音频流URL - 处理不同环境下的URL构造
+    let streamUrlString = "";
+
+    // 针对Vercel部署环境特殊处理
+    if (baseUrl === "/music-api") {
+      if (typeof window !== "undefined") {
+        // 客户端环境，使用完整URL
+        streamUrlString = `${window.location.origin}/music-api/api/stream`;
+      } else {
+        // 服务器端渲染环境
+        streamUrlString = "/music-api/api/stream";
+      }
+    }
+    // 处理标准开发环境（完整URL）
+    else if (
+      baseUrl &&
+      (baseUrl.includes("://") || baseUrl.startsWith("http"))
+    ) {
+      // BASE_URL是完整URL
+      streamUrlString = `${baseUrl}/api/stream`;
+    }
+    // 处理其他情况
+    else {
+      if (typeof window !== "undefined") {
+        // 客户端环境，使用当前域名
+        streamUrlString = `${window.location.origin}/api/stream`;
+      } else {
+        // 服务器端渲染环境
+        streamUrlString = "/api/stream";
+      }
+    }
+
+    // 创建URL对象并添加查询参数
+    const streamUrl = new URL(streamUrlString);
     streamUrl.searchParams.append("url", encodeURIComponent(url));
     streamUrl.searchParams.append("songMid", songMid);
     if (songName) streamUrl.searchParams.append("songName", songName);
     if (artist) streamUrl.searchParams.append("artist", artist);
     if (albumMid) streamUrl.searchParams.append("albumMid", albumMid);
     streamUrl.searchParams.append("metadata", metadata ? "true" : "false");
-    // 注意：redirect参数会在下载和播放时分别处理，以解决CORS问题
+    streamUrl.searchParams.append("redirect", "true");
+
+    // 打印调试信息
+    console.log(
+      `[API] 构造流URL: BASE_URL=${BASE_URL}, 最终URL=${streamUrl.toString()}`
+    );
 
     return streamUrl.toString();
   },
