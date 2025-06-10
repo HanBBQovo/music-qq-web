@@ -29,6 +29,7 @@ import { cn } from "@/lib/utils";
 import { PlaylistPanel } from "./playlist-panel";
 import type { AudioQuality } from "@/lib/api/types";
 import { toast } from "sonner";
+import { formatFileSize } from "@/lib/utils/audio-url";
 
 export function MiniPlayer() {
   const {
@@ -41,6 +42,9 @@ export function MiniPlayer() {
     currentQuality,
     showPlayer,
     showPlaylist,
+    availableQualities,
+    qualitySizes,
+    recommendedQuality,
     togglePlay,
     setVolume,
     setCurrentTime,
@@ -59,40 +63,83 @@ export function MiniPlayer() {
   const [isDragging, setIsDragging] = useState(false);
   const [localProgress, setLocalProgress] = useState(0);
 
-  // 音质选项
-  const qualityOptions: Array<{
-    value: AudioQuality;
-    label: string;
-    description: string;
-    badge?: string;
-  }> = [
-    { value: "128", label: "标准音质", description: "MP3 128K", badge: "128K" },
-    { value: "320", label: "高品质", description: "MP3 320K", badge: "320K" },
-    {
-      value: "flac",
-      label: "无损音质",
-      description: "FLAC 格式",
-      badge: "FLAC",
-    },
-    {
-      value: "ATMOS_2",
-      label: "杜比全景声",
-      description: "ATMOS 2.0 声道",
-      badge: "ATMOS",
-    },
-    {
-      value: "ATMOS_51",
-      label: "杜比全景声",
-      description: "ATMOS 5.1 声道",
-      badge: "ATMOS 5.1",
-    },
-    {
-      value: "MASTER",
-      label: "母带音质",
-      description: "Hi-Res 母带",
-      badge: "MASTER",
-    },
-  ];
+  // 生成动态音质选项
+  const generateQualityOptions = () => {
+    // console.log("🎛️ 生成音质选项，当前状态:", {
+    //   availableQualities,
+    //   qualitySizes,
+    //   recommendedQuality,
+    //   hasAvailableQualities: availableQualities.length > 0,
+    // });
+
+    // 所有可能的音质选项（作为fallback）
+    const allQualityOptions: Array<{
+      value: AudioQuality;
+      label: string;
+      description: string;
+      badge: string;
+    }> = [
+      {
+        value: "128",
+        label: "标准音质",
+        description: "MP3 128K",
+        badge: "128K",
+      },
+      { value: "320", label: "高品质", description: "MP3 320K", badge: "320K" },
+      {
+        value: "flac",
+        label: "无损音质",
+        description: "FLAC 格式",
+        badge: "FLAC",
+      },
+      {
+        value: "ATMOS_2",
+        label: "杜比全景声",
+        description: "ATMOS 2.0 声道",
+        badge: "ATMOS",
+      },
+      {
+        value: "ATMOS_51",
+        label: "杜比全景声",
+        description: "ATMOS 5.1 声道",
+        badge: "ATMOS 5.1",
+      },
+      {
+        value: "MASTER",
+        label: "母带音质",
+        description: "Hi-Res 母带",
+        badge: "MASTER",
+      },
+    ];
+
+    // 如果有可用音质列表，则基于此生成选项
+    if (availableQualities.length > 0) {
+      return allQualityOptions.map((option) => {
+        const isAvailable = availableQualities.includes(option.value);
+        const isRecommended = recommendedQuality === option.value;
+        const fileSize = qualitySizes[option.value];
+
+        return {
+          ...option,
+          isAvailable,
+          isRecommended,
+          fileSize,
+          sizeText: fileSize ? formatFileSize(fileSize) : "未知大小",
+        };
+      });
+    }
+
+    // Fallback: 返回所有选项（都标记为可用）
+    return allQualityOptions.map((option) => ({
+      ...option,
+      isAvailable: true,
+      isRecommended: false,
+      fileSize: 0,
+      sizeText: "未知大小",
+    }));
+  };
+
+  const qualityOptions = generateQualityOptions();
 
   // 获取当前音质的显示标签
   const getCurrentQualityLabel = () => {
@@ -342,19 +389,32 @@ export function MiniPlayer() {
                     {getCurrentQualityLabel()}
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuContent align="end" className="w-56">
                   {qualityOptions.map((option) => (
                     <DropdownMenuItem
                       key={option.value}
-                      onClick={() => handleQualityChange(option.value)}
+                      onClick={() =>
+                        option.isAvailable
+                          ? handleQualityChange(option.value)
+                          : undefined
+                      }
+                      disabled={!option.isAvailable}
                       className={cn(
-                        "flex flex-col items-start gap-1 py-3 cursor-pointer",
+                        "flex flex-col items-start gap-1 py-3 cursor-pointer relative",
                         currentQuality === option.value &&
-                          "bg-accent text-accent-foreground"
+                          "bg-accent text-accent-foreground",
+                        !option.isAvailable && "opacity-50 cursor-not-allowed"
                       )}
                     >
                       <div className="flex items-center justify-between w-full">
-                        <span className="font-medium">{option.label}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">{option.label}</span>
+                          {option.isRecommended && (
+                            <span className="text-xs px-1.5 py-0.5 rounded bg-green-500/20 text-green-700 dark:text-green-400">
+                              推荐
+                            </span>
+                          )}
+                        </div>
                         <span
                           className={cn(
                             "text-xs px-2 py-0.5 rounded",
@@ -366,9 +426,19 @@ export function MiniPlayer() {
                           {option.badge}
                         </span>
                       </div>
-                      <span className="text-xs text-muted-foreground">
-                        {option.description}
-                      </span>
+                      <div className="flex items-center justify-between w-full">
+                        <span className="text-xs text-muted-foreground">
+                          {option.description}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {option.sizeText}
+                        </span>
+                      </div>
+                      {!option.isAvailable && (
+                        <span className="text-xs text-red-500 dark:text-red-400">
+                          此音质不可用
+                        </span>
+                      )}
                     </DropdownMenuItem>
                   ))}
                 </DropdownMenuContent>

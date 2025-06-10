@@ -3,6 +3,7 @@ import { persist } from "zustand/middleware";
 import type { Song, PlayMode } from "../types/music";
 import type { AudioQuality } from "../api/types";
 import { getAudioUrl } from "../utils/audio-url";
+import { toast } from "sonner";
 
 // 播放器状态接口
 interface PlayerState {
@@ -24,6 +25,11 @@ interface PlayerState {
   currentQuality: AudioQuality;
   setCurrentQuality: (quality: AudioQuality) => Promise<void>;
   switchQuality: (quality: AudioQuality) => Promise<void>;
+
+  // 音质信息
+  availableQualities: AudioQuality[]; // 当前歌曲可用的音质列表
+  qualitySizes: Record<string, number>; // 各音质的文件大小（字节）
+  recommendedQuality: AudioQuality | null; // 推荐音质
 
   // UI 状态
   showPlayer: boolean;
@@ -77,6 +83,12 @@ export const usePlayerStore = create<PlayerState>()(
       playlist: [],
       playMode: "order",
       currentQuality: "320" as AudioQuality, // 默认音质
+
+      // 音质信息初始状态
+      availableQualities: [],
+      qualitySizes: {},
+      recommendedQuality: null,
+
       showPlayer: false,
       showPlaylist: false,
 
@@ -243,13 +255,47 @@ export const usePlayerStore = create<PlayerState>()(
           const state = get();
           const useQuality = quality || state.currentQuality;
 
-          // 获取音频URL（如果没有）
+          // 先设置基本歌曲信息，确保事件能匹配到
+          set((state) => {
+            let index = state.playlist.findIndex(
+              (s) => s.mid === song.mid || s.id === song.id
+            );
+
+            if (index === -1) {
+              const newPlaylist = [...state.playlist, song];
+              index = newPlaylist.length - 1;
+
+              return {
+                playlist: newPlaylist,
+                currentSong: song, // 先设置歌曲信息
+                currentIndex: index,
+                currentQuality: useQuality,
+                isPlaying: false, // 暂时不播放，等URL获取完成
+                showPlayer: true,
+                currentTime: 0,
+                duration: song.duration || 0,
+              };
+            } else {
+              return {
+                currentSong: song, // 先设置歌曲信息
+                currentIndex: index,
+                currentQuality: useQuality,
+                isPlaying: false, // 暂时不播放，等URL获取完成
+                showPlayer: true,
+                currentTime: 0,
+                duration: song.duration || 0,
+              };
+            }
+          });
+
+          // 然后获取音频URL（如果没有）
           let songWithUrl = song;
           if (!song.url) {
             const url = await getAudioUrl(song, useQuality);
             songWithUrl = { ...song, url };
           }
 
+          // 最后更新URL并开始播放
           set((state) => {
             let index = state.playlist.findIndex(
               (s) => s.mid === song.mid || s.id === song.id
@@ -263,11 +309,7 @@ export const usePlayerStore = create<PlayerState>()(
                 playlist: newPlaylist,
                 currentSong: songWithUrl,
                 currentIndex: index,
-                currentQuality: useQuality,
-                isPlaying: true,
-                showPlayer: true,
-                currentTime: 0,
-                duration: songWithUrl.duration || 0,
+                isPlaying: true, // 现在开始播放
               };
             } else {
               // 更新播放列表中的歌曲URL
@@ -278,11 +320,7 @@ export const usePlayerStore = create<PlayerState>()(
                 playlist: newPlaylist,
                 currentSong: songWithUrl,
                 currentIndex: index,
-                currentQuality: useQuality,
-                isPlaying: true,
-                showPlayer: true,
-                currentTime: 0,
-                duration: songWithUrl.duration || 0,
+                isPlaying: true, // 现在开始播放
               };
             }
           });
@@ -368,60 +406,85 @@ export const usePlayerStore = create<PlayerState>()(
         set({ currentQuality: quality });
       },
 
-      switchQuality: async (quality) => {
-        const state = get();
-        if (!state.currentSong) return;
+      switchQuality: async (quality: AudioQuality) => {
+        const { currentSong, currentTime, isPlaying } = get();
+        if (!currentSong) return;
 
+        console.log(
+          `🔄 正在切换音质: ${
+            get().currentQuality
+          } -> ${quality}, 当前时间: ${currentTime.toFixed(2)}s`
+        );
+
+        // 1. 保存当前播放状态和时间
+        const savedTime = currentTime;
+        const wasPlaying = isPlaying;
+
+        // 2. 立即更新目标音质状态
+        set({ currentQuality: quality });
+
+        // 3. 获取新音质的URL
         try {
-          // 记录当前播放时间和状态
-          const savedTime = state.currentTime;
-          const wasPlaying = state.isPlaying;
-
-          console.log(
-            `🔄 正在切换音质: ${
-              state.currentQuality
-            } -> ${quality}, 当前时间: ${savedTime.toFixed(2)}s`
-          );
-
-          // 暂停播放
-          set({ isPlaying: false });
-
-          // 创建一个临时歌曲对象，移除现有URL以强制重新获取
-          const tempSong = { ...state.currentSong, url: undefined };
-
-          // 获取新音质的URL
           console.log(`📡 正在获取新音质(${quality})的URL...`);
-          const url = await getAudioUrl(tempSong, quality);
-          console.log(`✅ 成功获取新音质URL: ${url.substring(0, 100)}...`);
 
-          const updatedSong = { ...state.currentSong, url };
+          // 创建临时歌曲对象，移除现有URL强制重新获取
+          const tempSong = { ...currentSong, url: undefined };
+          const newUrl = await getAudioUrl(tempSong, quality);
+          console.log(`✅ 成功获取新音质URL:`, newUrl.substring(0, 80) + "...");
 
-          // 更新当前歌曲和音质，保持当前播放时间
+          // 4. 创建更新的歌曲对象
+          const updatedSong = {
+            ...currentSong,
+            url: newUrl,
+          };
+
+          // 5. 更新歌曲，保持当前时间
           set({
             currentSong: updatedSong,
-            currentQuality: quality,
-            // 不重置currentTime，保持原位置
+            currentTime: savedTime, // 保持播放位置
           });
 
-          console.log(
-            `🎵 音质已切换到: ${quality}, 准备跳转到: ${savedTime.toFixed(2)}s`
-          );
-
-          // 设置要恢复的时间和播放状态
-          set({
-            currentTime: savedTime, // 设置目标时间
-          });
-
-          // 如果之前在播放，则恢复播放状态
+          // 6. 如果之前在播放，恢复播放状态
           if (wasPlaying) {
             setTimeout(() => {
               console.log(`⏯️ 恢复播放状态`);
               set({ isPlaying: true });
-            }, 50); // 减少延迟
+            }, 50);
           }
+
+          // 7. 显示成功提示
+          toast.success(
+            `音质已切换到${
+              quality === "320"
+                ? "高品音质"
+                : quality === "flac"
+                ? "无损音质"
+                : quality
+            }`,
+            {
+              duration: 2000,
+            }
+          );
         } catch (error) {
-          console.error("切换音质失败:", error);
-          throw error;
+          console.error(`❌ 切换音质失败:`, error);
+
+          // 检查是否是音质降级相关的"错误"
+          const errorMessage =
+            error instanceof Error ? error.message : String(error);
+          if (
+            errorMessage.includes("降级") ||
+            errorMessage.includes("fallback")
+          ) {
+            // 这实际上不是错误，而是音质降级通知
+            console.log(`ℹ️ 音质自动降级通知: ${errorMessage}`);
+          } else {
+            // 真正的错误：恢复原音质状态
+            console.log(`🔄 发生错误，不修改音质状态`);
+
+            toast.error(`音质切换失败: ${errorMessage}`, {
+              duration: 3000,
+            });
+          }
         }
       },
     }),
@@ -438,3 +501,135 @@ export const usePlayerStore = create<PlayerState>()(
     }
   )
 );
+
+// 在浏览器环境中设置音质降级事件监听器
+if (typeof window !== "undefined") {
+  // 页面加载完成后，检查是否有当前歌曲需要恢复音质信息
+  setTimeout(() => {
+    const state = usePlayerStore.getState();
+    if (
+      state.currentSong &&
+      (!state.availableQualities || state.availableQualities.length === 0)
+    ) {
+      console.log("🔄 页面刷新后恢复音质信息:", state.currentSong.title);
+
+      // 重新获取当前歌曲的音质信息
+      const restoreQualityInfo = async () => {
+        try {
+          // 创建一个HEAD请求来获取音质信息，而不实际下载音频
+          const mid = state.currentSong?.mid || state.currentSong?.id;
+          if (!mid) return;
+
+          const API_BASE_URL =
+            process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+          const streamUrl = `${API_BASE_URL}/api/play/stream?mid=${encodeURIComponent(
+            mid
+          )}&quality=${state.currentQuality}&autoFallback=true`;
+
+          const response = await fetch(streamUrl, {
+            method: "HEAD",
+            headers: {
+              "x-qq-cookie": localStorage.getItem("qqmusic_cookie") || "",
+              Range: "bytes=0-1023",
+              "User-Agent":
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+            },
+          });
+
+          if (response.ok) {
+            // 使用现有的parseQualityInfo函数解析响应头
+            const { parseQualityInfo } = await import("@/lib/utils/audio-url");
+            const qualityInfo = parseQualityInfo(response);
+
+            // 直接更新状态
+            usePlayerStore.setState({
+              availableQualities: qualityInfo.availableQualities,
+              qualitySizes: qualityInfo.qualitySizes,
+              recommendedQuality: qualityInfo.recommendedQuality,
+            });
+
+            console.log("✅ 成功恢复音质信息:", qualityInfo);
+          }
+        } catch (error) {
+          console.warn("⚠️ 恢复音质信息失败:", error);
+        }
+      };
+
+      restoreQualityInfo();
+    }
+  }, 1000); // 延迟1秒确保应用完全加载
+
+  window.addEventListener("quality-fallback", (event: any) => {
+    const { songId, actualQuality, requestedQuality, fallbackReason } =
+      event.detail;
+
+    // 检查是否是当前播放的歌曲（简单mid匹配）
+    const state = usePlayerStore.getState();
+    const currentSong = state.currentSong;
+
+    if (!currentSong) {
+      return;
+    }
+
+    // 简单匹配：使用mid或id
+    const currentIdentifier = currentSong.mid || currentSong.id;
+    const isMatch = currentIdentifier === songId;
+
+    console.log("🔍 音质降级匹配:", {
+      eventSongId: songId,
+      currentIdentifier: currentIdentifier,
+      isMatch: isMatch,
+    });
+
+    if (isMatch) {
+      console.log(
+        `🔊 音质自动降级: ${requestedQuality} -> ${actualQuality}, 原因: ${fallbackReason}`
+      );
+
+      // 更新当前音质状态
+      usePlayerStore.setState({ currentQuality: actualQuality });
+
+      // 显示降级提示
+      toast.warning(`音质已自动降级到${actualQuality}`, {
+        duration: 3000,
+      });
+    }
+  });
+
+  // 监听音质信息更新事件
+  window.addEventListener("quality-info-updated", (event: any) => {
+    console.log("📡 收到 quality-info-updated 事件:", event.detail);
+    const { songId, qualityInfo } = event.detail;
+
+    // 检查是否是当前播放的歌曲（简单mid匹配）
+    const state = usePlayerStore.getState();
+    const currentSong = state.currentSong;
+
+    if (!currentSong) {
+      return;
+    }
+
+    // 简单匹配：使用mid或id
+    const currentIdentifier = currentSong.mid || currentSong.id;
+    const isMatch = currentIdentifier === songId;
+
+    console.log("🔍 音质信息匹配:", {
+      eventSongId: songId,
+      currentIdentifier: currentIdentifier,
+      isMatch: isMatch,
+    });
+
+    if (isMatch) {
+      console.log(`📊 音质信息更新成功:`, qualityInfo);
+
+      // 更新音质信息
+      usePlayerStore.setState({
+        availableQualities: qualityInfo.availableQualities,
+        qualitySizes: qualityInfo.qualitySizes,
+        recommendedQuality: qualityInfo.recommendedQuality,
+      });
+    } else {
+      console.log("❌ 歌曲不匹配，跳过音质信息更新");
+    }
+  });
+}

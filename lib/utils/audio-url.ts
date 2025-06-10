@@ -6,6 +6,7 @@
 import type { Song } from "../types/music";
 import type { AudioQuality } from "../api/types";
 import { HTTP_HEADERS, USER_AGENTS } from "@/lib/constants/http-headers";
+import { toast } from "sonner";
 
 // 使用现有的API客户端和配置
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
@@ -93,6 +94,64 @@ export async function getAudioUrl(
 
     if (response.ok) {
       console.log(`✅ 成功获取《${song.title}》的音频流URL`);
+
+      // 调试：打印所有响应头
+      console.log("🔍 所有响应头:", Array.from(response.headers.entries()));
+
+      // 解析音质信息
+      const qualityInfo = parseQualityInfo(response);
+      console.log("🎵 解析的音质信息:", qualityInfo);
+
+      // 检测音质降级响应头
+      const actualQuality = response.headers.get("X-Quality");
+      const requestedQuality = response.headers.get("X-Requested-Quality");
+      const qualityFallback = response.headers.get("X-Quality-Fallback");
+      const fallbackReason = response.headers.get("X-Fallback-Reason");
+
+      // 如果发生了音质降级，提示用户并更新音质设置
+      if (qualityFallback === "true" && actualQuality && requestedQuality) {
+        console.warn(`⚠️ 音质自动降级: ${requestedQuality} → ${actualQuality}`);
+        console.warn(`降级原因: ${fallbackReason || "请求的音质不可用"}`);
+
+        // 显示降级提示
+        toast.warning(
+          `音质已自动降级：${getQualityDisplayName(
+            requestedQuality
+          )} → ${getQualityDisplayName(actualQuality)}`,
+          {
+            description: fallbackReason || "请求的音质不可用，已自动降级",
+            duration: 5000,
+          }
+        );
+
+        // 更新播放器的当前音质状态
+        if (typeof window !== "undefined") {
+          // 发送自定义事件通知播放器更新音质状态
+          window.dispatchEvent(
+            new CustomEvent("quality-fallback", {
+              detail: {
+                songId: mid,
+                requestedQuality,
+                actualQuality,
+                fallbackReason,
+              },
+            })
+          );
+        }
+      }
+
+      // 发送音质信息更新事件
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent("quality-info-updated", {
+            detail: {
+              songId: mid,
+              qualityInfo,
+            },
+          })
+        );
+      }
+
       return streamUrl;
     } else {
       console.warn(`⚠️ 音频流不可用: HTTP ${response.status}, 尝试测试音频`);
@@ -353,4 +412,171 @@ export function setQQCookie(cookie: string) {
   if (typeof window !== "undefined") {
     localStorage.setItem("qqmusic_cookie", cookie);
   }
+}
+
+/**
+ * 获取音质显示名称
+ * @param quality 音质代码
+ * @returns 显示名称
+ */
+function getQualityDisplayName(quality: string): string {
+  switch (quality) {
+    case "128":
+      return "标准音质";
+    case "320":
+      return "高品音质";
+    case "flac":
+      return "无损音质";
+    case "ATMOS_2":
+      return "臻品全景声2.0";
+    case "ATMOS_51":
+      return "臻品音质2.0";
+    case "MASTER":
+      return "臻品母带2.0";
+    default:
+      return quality;
+  }
+}
+
+/**
+ * 音质信息接口
+ */
+export interface QualityInfo {
+  availableQualities: AudioQuality[];
+  qualitySizes: Record<string, number>;
+  recommendedQuality: AudioQuality | null;
+  qualityDetails: Record<
+    string,
+    {
+      size: number;
+      format: string;
+      isVip: boolean;
+      description: string;
+    }
+  >;
+}
+
+/**
+ * 解析响应头中的音质信息
+ * @param response fetch响应对象
+ * @returns 音质信息
+ */
+export function parseQualityInfo(response: Response): QualityInfo {
+  const defaultInfo: QualityInfo = {
+    availableQualities: [],
+    qualitySizes: {},
+    recommendedQuality: null,
+    qualityDetails: {},
+  };
+
+  try {
+    // 解析可用音质列表
+    const availableQualitiesHeader = response.headers.get(
+      "X-Available-Qualities"
+    );
+    let availableQualities: AudioQuality[] = [];
+    if (availableQualitiesHeader) {
+      availableQualities = availableQualitiesHeader
+        .split(",")
+        .map((q) => q.trim()) as AudioQuality[];
+    }
+
+    // 解析音质大小
+    const qualitySizesHeader = response.headers.get("X-Quality-Sizes");
+    const qualitySizes: Record<string, number> = {};
+    if (qualitySizesHeader) {
+      qualitySizesHeader.split(",").forEach((item) => {
+        const [quality, sizeStr] = item.split(":");
+        if (quality && sizeStr) {
+          qualitySizes[quality.trim()] = parseInt(sizeStr.trim());
+        }
+      });
+    }
+
+    // 解析推荐音质
+    const recommendedQuality = response.headers.get(
+      "X-Recommended-Quality"
+    ) as AudioQuality | null;
+
+    // 解析音质详细信息
+    const qualityDetailsHeader = response.headers.get("X-Quality-Details");
+    const qualityDetails: Record<string, any> = {};
+    if (qualityDetailsHeader) {
+      qualityDetailsHeader.split(",").forEach((item) => {
+        const parts = item.split(":");
+        if (parts.length >= 5) {
+          const [quality, sizeStr, format, isVipStr, description] = parts;
+          qualityDetails[quality.trim()] = {
+            size: parseInt(sizeStr.trim()),
+            format: format.trim(),
+            isVip: isVipStr.trim() === "true",
+            description: description.trim(),
+          };
+        }
+      });
+    }
+
+    // 尝试解析完整JSON信息（Base64编码）
+    const qualitiesJsonHeader = response.headers.get("X-Qualities-JSON");
+    if (qualitiesJsonHeader) {
+      try {
+        const decodedJson = atob(qualitiesJsonHeader);
+        const fullQualityInfo = JSON.parse(decodedJson);
+
+        // 如果JSON解析成功，优先使用JSON中的信息
+        if (Array.isArray(fullQualityInfo)) {
+          fullQualityInfo.forEach((item: any) => {
+            if (item.quality && item.size !== undefined) {
+              qualitySizes[item.quality] = item.size;
+              qualityDetails[item.quality] = {
+                size: item.size,
+                format: item.format || "mp3",
+                isVip: item.isVip || false,
+                description: item.description || "",
+              };
+            }
+          });
+        }
+      } catch (jsonError) {
+        console.warn("解析X-Qualities-JSON失败:", jsonError);
+      }
+    }
+
+    console.log("🔍 解析的音质信息:", {
+      availableQualities,
+      qualitySizes,
+      recommendedQuality,
+      qualityDetails,
+    });
+
+    return {
+      availableQualities,
+      qualitySizes,
+      recommendedQuality,
+      qualityDetails,
+    };
+  } catch (error) {
+    console.error("解析音质信息失败:", error);
+    return defaultInfo;
+  }
+}
+
+/**
+ * 格式化文件大小
+ * @param bytes 字节数
+ * @returns 格式化的大小字符串
+ */
+export function formatFileSize(bytes: number): string {
+  if (!bytes || bytes === 0) return "未知";
+
+  const units = ["B", "KB", "MB", "GB"];
+  let size = bytes;
+  let unitIndex = 0;
+
+  while (size >= 1024 && unitIndex < units.length - 1) {
+    size /= 1024;
+    unitIndex++;
+  }
+
+  return `${size.toFixed(unitIndex === 0 ? 0 : 1)}${units[unitIndex]}`;
 }
