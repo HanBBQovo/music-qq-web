@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, memo } from "react";
 import { usePlayerStore } from "@/lib/store/usePlayerStore";
 import { useDownloadStore } from "@/lib/store/useDownloadStore";
 import { useSettingsStore } from "@/lib/store/useSettingsStore";
@@ -102,228 +102,216 @@ function SortableSongItem(props: SortableSongItemProps) {
 
   const style = {
     transform: CSS.Transform.toString(transform),
-    transition,
+    transition: isDragging ? undefined : transition,
   };
 
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className={cn(isDragging && "opacity-50 z-50")}
+      className={isDragging ? "opacity-50 z-50" : undefined}
     >
       <SongItem {...props} dragHandleProps={{ ...attributes, ...listeners }} />
     </div>
   );
 }
 
-function SongItem({
-  song,
-  index,
-  isCurrentSong,
-  onPlay,
-  onRemove,
-  onDownload,
-  dragHandleProps,
-  isDeleting = false,
-}: SongItemProps & { dragHandleProps?: any }) {
-  const { isPlaying } = usePlayerStore();
+const SongItem = memo(
+  function SongItem({
+    song,
+    index,
+    isCurrentSong,
+    onPlay,
+    onRemove,
+    onDownload,
+    dragHandleProps,
+    isDeleting = false,
+  }: SongItemProps & { dragHandleProps?: any }) {
+    const { isPlaying } = usePlayerStore();
 
-  const handleClick = () => {
-    if (isDeleting) {
-      console.log("🚫 删除期间，阻止歌曲点击");
-      return;
-    }
-    onPlay(index);
-  };
+    const handleClick = () => {
+      if (isDeleting) {
+        return;
+      }
+      onPlay(index);
+    };
 
-  return (
-    <div
-      className={cn(
-        "group relative rounded-xl transition-all duration-300 ease-out",
-        "hover:bg-gradient-to-r hover:from-primary/5 hover:to-purple-500/5",
-        "hover:shadow-md hover:scale-[1.01] hover:-translate-y-0.5",
-        "cursor-pointer border border-transparent hover:border-primary/20",
-        "w-full overflow-hidden",
-        isCurrentSong && [
-          "bg-gradient-to-r from-primary/10 to-purple-500/10",
-          "border-primary/30 shadow-lg",
-          "before:absolute before:left-0 before:top-2 before:bottom-2 before:w-1",
-          "before:bg-gradient-to-b before:from-primary before:to-purple-500 before:rounded-r-full",
-        ],
-        isDeleting && [
-          "pointer-events-none opacity-75 cursor-not-allowed",
-          "hover:scale-100 hover:shadow-none",
-        ]
-      )}
-      onClick={handleClick}
-      style={{ width: "100%", maxWidth: "100%" }}
-    >
-      {/* 使用Grid布局，三列：封面、信息、按钮 */}
+    return (
       <div
-        className="grid gap-2 p-2 w-full items-center"
-        style={{
-          gridTemplateColumns: "40px 1fr auto",
-          width: "100%",
-          maxWidth: "100%",
-        }}
+        className={cn(
+          "group relative rounded-lg transition-colors duration-150",
+          "hover:bg-muted/50",
+          "cursor-pointer border border-transparent",
+          "w-full overflow-hidden",
+          isCurrentSong && [
+            "bg-primary/5 border-primary/20",
+            "before:absolute before:left-0 before:top-2 before:bottom-2 before:w-1",
+            "before:bg-primary before:rounded-r-full",
+          ],
+          isDeleting && ["pointer-events-none opacity-60 cursor-not-allowed"]
+        )}
+        onClick={handleClick}
+        style={{ width: "100%", maxWidth: "100%" }}
       >
-        {/* 第1列：序号和专辑封面 */}
-        <div className="relative">
-          <div className="w-10 h-10 rounded-lg overflow-hidden shadow-lg ring-1 ring-black/5">
-            {song.cover ? (
-              <img
-                src={song.cover}
-                alt={song.title}
-                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
-              />
-            ) : (
-              <div className="w-full h-full bg-gradient-to-br from-primary/20 to-purple-500/20 flex items-center justify-center">
-                <Music className="h-4 w-4 text-primary/60" />
+        {/* 使用Grid布局，三列：封面、信息、按钮 */}
+        <div
+          className="grid gap-3 p-3 w-full items-center"
+          style={{
+            gridTemplateColumns: "40px 1fr auto",
+            width: "100%",
+            maxWidth: "100%",
+          }}
+        >
+          {/* 第1列：序号和专辑封面 */}
+          <div className="relative">
+            <div className="w-10 h-10 rounded-md overflow-hidden bg-muted">
+              {song.cover ? (
+                <img
+                  src={song.cover}
+                  alt={song.title}
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                />
+              ) : (
+                <div className="w-full h-full bg-muted flex items-center justify-center">
+                  <Music className="h-4 w-4 text-muted-foreground" />
+                </div>
+              )}
+            </div>
+
+            {/* 播放状态指示器 - 简化 */}
+            {isCurrentSong && (
+              <div className="absolute -top-1 -right-1 w-3 h-3 bg-primary rounded-full">
+                {isPlaying && (
+                  <div className="w-1 h-1 bg-white rounded-full absolute top-1 left-1" />
+                )}
               </div>
             )}
           </div>
 
-          {/* 播放状态指示器 */}
-          {isCurrentSong && (
-            <div className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-gradient-to-r from-primary to-purple-500 rounded-full flex items-center justify-center shadow-lg">
-              {isPlaying ? (
-                <div className="w-0.5 h-0.5 bg-white rounded-full animate-pulse" />
-              ) : (
-                <div className="w-0.5 h-0.5 bg-white rounded-full" />
+          {/* 第2列：歌曲信息 */}
+          <div className="min-w-0 overflow-hidden">
+            <h3
+              className={cn(
+                "font-medium text-sm leading-tight mb-1 truncate",
+                isCurrentSong ? "text-primary" : "text-foreground"
               )}
+            >
+              {song.title}
+            </h3>
+            <div className="text-xs text-muted-foreground space-y-0.5">
+              <div className="truncate">{song.artist}</div>
+              <div className="flex items-center gap-2">
+                <span className="tabular-nums">
+                  {formatTime(song.duration)}
+                </span>
+                {song.source && (
+                  <>
+                    <span>•</span>
+                    <span className="uppercase">{song.source}</span>
+                  </>
+                )}
+              </div>
             </div>
-          )}
-
-          {/* 序号显示 */}
-          <div
-            className={cn(
-              "absolute inset-0 bg-black/40 backdrop-blur-sm rounded-lg",
-              "flex items-center justify-center text-white font-medium text-xs",
-              "opacity-0 transition-opacity duration-200",
-              "group-hover:opacity-100"
-            )}
-          >
-            {index + 1}
-          </div>
-        </div>
-
-        {/* 第2列：歌曲信息 */}
-        <div className="min-w-0 overflow-hidden">
-          <h3
-            className={cn(
-              "font-semibold text-sm leading-tight mb-0.5 truncate transition-colors",
-              isCurrentSong
-                ? "text-primary"
-                : "text-foreground group-hover:text-primary"
-            )}
-          >
-            {song.title}
-          </h3>
-          <div className="text-xs text-muted-foreground">
-            <div className="truncate">{song.artist}</div>
-            {song.album && (
-              <div className="truncate opacity-75 text-xs">{song.album}</div>
-            )}
-          </div>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
-            <span className="tabular-nums">{formatTime(song.duration)}</span>
-            {song.source && (
-              <>
-                <span>•</span>
-                <span className="uppercase text-xs">{song.source}</span>
-              </>
-            )}
-          </div>
-        </div>
-
-        {/* 第3列：操作按钮 */}
-        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-          {/* 拖拽手柄 */}
-          <div
-            {...dragHandleProps}
-            className="h-8 w-8 rounded-full hover:bg-muted hover:text-foreground flex items-center justify-center cursor-grab active:cursor-grabbing transition-all duration-200"
-          >
-            <GripVertical className="h-3 w-3" />
           </div>
 
-          {/* 播放/暂停按钮 */}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 w-8 rounded-full hover:bg-primary hover:text-primary-foreground"
-            onClick={(e) => {
-              e.stopPropagation();
-              if (isDeleting) {
-                e.preventDefault();
-                return false;
-              }
-              onPlay(index);
-            }}
-            disabled={isDeleting}
-          >
-            {isCurrentSong && isPlaying ? (
-              <Pause className="h-3 w-3" />
-            ) : (
-              <Play className="h-3 w-3 ml-0.5" />
-            )}
-          </Button>
+          {/* 第3列：操作按钮 - 简化 */}
+          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+            {/* 拖拽手柄 - 简化 */}
+            <div
+              {...dragHandleProps}
+              className="h-8 w-8 rounded-md hover:bg-muted/70 flex items-center justify-center cursor-grab active:cursor-grabbing"
+            >
+              <GripVertical className="h-3 w-3" />
+            </div>
 
-          {/* 更多操作菜单 */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 w-8 rounded-full hover:bg-muted hover:text-foreground"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (isDeleting) {
+            {/* 播放/暂停按钮 - 简化 */}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 rounded-md"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (isDeleting) {
+                  e.preventDefault();
+                  return false;
+                }
+                onPlay(index);
+              }}
+              disabled={isDeleting}
+            >
+              {isCurrentSong && isPlaying ? (
+                <Pause className="h-3 w-3" />
+              ) : (
+                <Play className="h-3 w-3" />
+              )}
+            </Button>
+
+            {/* 更多操作菜单 */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 rounded-md"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (isDeleting) {
+                      e.preventDefault();
+                      return false;
+                    }
+                  }}
+                  disabled={isDeleting}
+                >
+                  <MoreVertical className="h-3 w-3" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-40">
+                <DropdownMenuItem onClick={() => onPlay(index)}>
+                  <Play className="h-4 w-4 mr-2" />
+                  播放
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
                     e.preventDefault();
+                    if (isDeleting) return false;
+                    onDownload(index);
                     return false;
-                  }
-                }}
-                disabled={isDeleting}
-              >
-                <MoreVertical className="h-3 w-3" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuItem onClick={() => onPlay(index)}>
-                <Play className="h-4 w-4 mr-3" />
-                播放歌曲
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={(e) => {
-                  e.stopPropagation();
-                  e.preventDefault();
-                  if (isDeleting) return false;
-                  onDownload(index);
-                  return false;
-                }}
-              >
-                <Download className="h-4 w-4 mr-3" />
-                下载歌曲
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={(e) => {
-                  e.stopPropagation();
-                  e.preventDefault();
-                  onRemove(index);
-                  return false;
-                }}
-                className="text-destructive focus:text-destructive"
-              >
-                <Trash2 className="h-4 w-4 mr-3" />
-                从列表移除
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+                  }}
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  下载
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    onRemove(index);
+                    return false;
+                  }}
+                  className="text-destructive focus:text-destructive"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  移除
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
       </div>
-    </div>
-  );
-}
+    );
+  },
+  (prevProps, nextProps) => {
+    // 优化比较函数，减少不必要的检查
+    return (
+      prevProps.song.id === nextProps.song.id &&
+      prevProps.isCurrentSong === nextProps.isCurrentSong &&
+      prevProps.isDeleting === nextProps.isDeleting
+    );
+  }
+);
 
 export function PlaylistPanel() {
   const {
@@ -345,9 +333,13 @@ export function PlaylistPanel() {
   const [showClearDialog, setShowClearDialog] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // 配置拖拽传感器
+  // 配置拖拽传感器 - 优化性能
   const sensors = useSensors(
-    useSensor(PointerSensor),
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8, // 增加激活距离，减少误触
+      },
+    }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })
@@ -357,7 +349,6 @@ export function PlaylistPanel() {
   const handlePlaySong = (index: number) => {
     // 如果正在删除操作中，忽略点击事件
     if (isDeleting) {
-      console.log("🚫 正在删除操作中，忽略播放点击");
       return;
     }
 
@@ -370,7 +361,6 @@ export function PlaylistPanel() {
 
   // 移除歌曲
   const handleRemoveSong = (index: number) => {
-    console.log("🗑️ 开始删除操作，设置防抖");
     setIsDeleting(true);
 
     removeFromPlaylist(index);
@@ -378,7 +368,6 @@ export function PlaylistPanel() {
     // 300ms后解除删除状态，防止意外点击
     setTimeout(() => {
       setIsDeleting(false);
-      console.log("✅ 删除操作完成，解除防抖");
     }, 300);
   };
 
@@ -539,8 +528,8 @@ export function PlaylistPanel() {
 
                 {/* 歌曲列表 */}
                 <div className="flex-1 min-h-0 overflow-hidden">
-                  <div className="h-full overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-muted-foreground/20">
-                    <div className="p-3 space-y-1 w-full">
+                  <div className="h-full overflow-y-auto overscroll-contain">
+                    <div className="p-2 space-y-1">
                       <DndContext
                         sensors={sensors}
                         collisionDetection={closestCenter}
@@ -556,7 +545,6 @@ export function PlaylistPanel() {
                             <div
                               key={song.id || `${song.title}-${index}`}
                               className="w-full"
-                              style={{ maxWidth: "100%", width: "100%" }}
                             >
                               <SortableSongItem
                                 song={song}

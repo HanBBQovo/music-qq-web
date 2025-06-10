@@ -1,6 +1,7 @@
 import { useEffect, useRef, useCallback, useState } from "react";
 import { usePlayerStore } from "../store/usePlayerStore";
 import { Song, PlayerStatus, PlayError, PLAYER_CONFIG } from "../types/music";
+import { throttle } from "../utils";
 
 // 音频播放Hook
 export const useAudioPlayer = () => {
@@ -27,6 +28,14 @@ export const useAudioPlayer = () => {
     playNext,
     _getNextIndex,
   } = usePlayerStore();
+
+  // 创建节流的时间更新函数 - 每500ms最多更新一次
+  const throttledSetCurrentTime = useCallback(
+    throttle((time: number) => {
+      setCurrentTime(time);
+    }, 500),
+    [setCurrentTime]
+  );
 
   // 创建音频元素
   const createAudioElement = useCallback((src: string): HTMLAudioElement => {
@@ -98,7 +107,6 @@ export const useAudioPlayer = () => {
   }, [setDuration]);
 
   const handleCanPlay = useCallback(() => {
-    console.log("🎵 音频可以播放，状态从", status, "->", PlayerStatus.IDLE);
     setStatus(PlayerStatus.IDLE);
     // 清除之前可能存在的错误
     setError(null);
@@ -107,7 +115,6 @@ export const useAudioPlayer = () => {
     if (audioRef.current && currentTime > 0) {
       const timeDiff = Math.abs(currentTime - audioRef.current.currentTime);
       if (timeDiff > 1) {
-        console.log(`🎯 音频准备完成，先跳转到: ${currentTime.toFixed(2)}s`);
         audioRef.current.currentTime = Math.max(
           0,
           Math.min(currentTime, audioRef.current.duration || 0)
@@ -117,7 +124,6 @@ export const useAudioPlayer = () => {
 
     // 如果应该播放，则开始播放
     if (isPlaying && audioRef.current) {
-      console.log("🎵 恢复播放状态");
       audioRef.current.play().catch((error) => {
         console.error("播放启动失败:", error);
         const playError: PlayError = {
@@ -210,9 +216,10 @@ export const useAudioPlayer = () => {
 
   const handleTimeUpdate = useCallback(() => {
     if (audioRef.current) {
-      setCurrentTime(audioRef.current.currentTime);
+      // 使用节流的时间更新，减少状态更新频率
+      throttledSetCurrentTime(audioRef.current.currentTime);
     }
-  }, [setCurrentTime]);
+  }, [throttledSetCurrentTime]);
 
   const handleProgress = useCallback(() => {
     if (audioRef.current && audioRef.current.buffered.length > 0) {
@@ -389,21 +396,17 @@ export const useAudioPlayer = () => {
       });
 
       if (isMatch && audioRef.current) {
-        console.log("🎯 音质切换: 等待音频就绪后处理时间跳转和播放恢复");
-
         let retryCount = 0;
-        const maxRetries = 100; // 最多等待5秒 (50ms * 100)
+        const maxRetries = 50; // 减少最大重试次数到2.5秒 (50ms * 50)
 
         const waitForReady = () => {
           if (!audioRef.current) {
-            console.warn("⚠️ 音质切换: 音频元素已被销毁");
             return;
           }
 
           if (audioRef.current.readyState >= 2) {
             // HAVE_CURRENT_DATA或更高
             // 音频已经可以播放，设置时间位置
-            console.log(`🎯 音质切换: 设置时间到 ${targetTime.toFixed(2)}s`);
             try {
               audioRef.current.currentTime = Math.max(
                 0,
@@ -415,15 +418,12 @@ export const useAudioPlayer = () => {
 
               // 如果应该恢复播放，则开始播放
               if (shouldResumePlayback) {
-                console.log("🎵 音质切换: 恢复播放状态");
-
                 // 延迟一下确保音频完全就绪，然后直接播放
                 setTimeout(() => {
                   if (audioRef.current && audioRef.current.paused) {
                     audioRef.current
                       .play()
                       .then(() => {
-                        console.log("🎵 音质切换: 播放恢复成功");
                         // 播放成功后更新store状态
                         const { play } = usePlayerStore.getState();
                         play();
@@ -441,9 +441,8 @@ export const useAudioPlayer = () => {
             // 音频还没准备好，继续等待
             retryCount++;
             if (retryCount < maxRetries) {
-              setTimeout(waitForReady, 50);
+              setTimeout(waitForReady, 100); // 增加等待间隔到100ms，减少CPU占用
             } else {
-              console.warn("⚠️ 音质切换: 等待音频就绪超时");
               // 即使超时，也尝试恢复播放状态
               if (shouldResumePlayback) {
                 const { play } = usePlayerStore.getState();
