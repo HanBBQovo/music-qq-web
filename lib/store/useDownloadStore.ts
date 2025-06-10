@@ -231,12 +231,15 @@ function getQualityDisplayName(quality: string): string {
 // 后端健康检查函数
 async function checkBackendHealth() {
   try {
-    const response = await fetch("http://localhost:8080/api/stream/health", {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
+    const response = await fetch(
+      process.env.NEXT_PUBLIC_API_URL + "/api/stream/health",
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
 
     if (response.ok) {
       const healthData = await response.json();
@@ -1246,6 +1249,10 @@ async function downloadSong(task: DownloadTask): Promise<void> {
       shouldAddMetadata
     );
 
+    // 为URL对象添加redirect参数
+    const finalUrl = new URL(streamUrl);
+    finalUrl.searchParams.append("redirect", "true");
+
     // 使用fetch API下载歌曲，添加Cookie头
     const storedCookie = localStorage.getItem("qqmusic_cookie") || "";
 
@@ -1264,11 +1271,10 @@ async function downloadSong(task: DownloadTask): Promise<void> {
       );
     }
 
-    // 构建请求头
-    const headers: Record<string, string> = {};
-    if (storedCookie) {
-      headers[HTTP_HEADERS.QQ_COOKIE] = storedCookie;
-    }
+    // 构建请求头 - 不包含x-qq-cookie以避免CORS问题
+    const headers: Record<string, string> = {
+      // 当使用redirect=true时，不发送敏感头，避免CORS问题
+    };
 
     // 添加Range头实现断点续传
     if (startByte > 0) {
@@ -1281,7 +1287,7 @@ async function downloadSong(task: DownloadTask): Promise<void> {
       console.log(`[断点续传] 任务 ${task.songName}: 从头开始下载`);
     }
 
-    console.log(`[下载] 发送请求到: ${streamUrl}`);
+    console.log(`[下载] 发送请求到: ${finalUrl}`);
 
     // 不重置起始字节，保持断点续传位置
     // startByte = 0;
@@ -1322,9 +1328,9 @@ async function downloadSong(task: DownloadTask): Promise<void> {
       // 启动超时定时器
       setupTimeout();
 
-      console.log(`[下载] 发送请求到: ${streamUrl}`);
+      console.log(`[下载] 发送请求到: ${finalUrl}`);
 
-      fetchResponse = await fetch(streamUrl, {
+      fetchResponse = await fetch(finalUrl, {
         signal: abortController.signal,
         headers,
       });
@@ -1499,10 +1505,29 @@ async function downloadSong(task: DownloadTask): Promise<void> {
       });
 
       // 确定文件类型和扩展名
+      // 1. 根据Content-Type头
       const contentType = fetchResponse.headers.get("Content-Type");
-      let fileExtension = "mp3";
+      let fileExtension = "mp3"; // 默认使用mp3
       let mimeType = "audio/mpeg";
 
+      console.log(`[文件类型] Content-Type: ${contentType}`);
+      console.log(`[文件类型] 请求的音质: ${task.quality}`);
+
+      // 2. 先根据音质判断后缀
+      if (
+        task.quality === "MASTER" ||
+        task.quality === "ATMOS_2" ||
+        task.quality === "ATMOS_51" ||
+        task.quality === "flac"
+      ) {
+        fileExtension = "flac";
+        mimeType = "audio/flac";
+      } else if (task.quality === "320" || task.quality === "128") {
+        fileExtension = "mp3";
+        mimeType = "audio/mpeg";
+      }
+
+      // 3. 再根据Content-Type和URL判断
       if (contentType) {
         if (contentType.includes("flac")) {
           fileExtension = "flac";
@@ -1510,19 +1535,45 @@ async function downloadSong(task: DownloadTask): Promise<void> {
         } else if (contentType.includes("mp4") || contentType.includes("m4a")) {
           fileExtension = "m4a";
           mimeType = "audio/mp4";
+        } else if (
+          contentType.includes("mp3") ||
+          contentType.includes("mpeg")
+        ) {
+          fileExtension = "mp3";
+          mimeType = "audio/mpeg";
         }
-      } else {
-        // 根据音质推断格式
+      }
+
+      // 4. 分析文件头部特征识别(如果是redirect=true时可能无法正确获取Content-Type)
+      if (mergedData.length > 4) {
+        // FLAC文件头: "fLaC"
         if (
-          task.quality === "MASTER" ||
-          task.quality === "ATMOS_2" ||
-          task.quality === "ATMOS_51" ||
-          task.quality === "flac"
+          mergedData[0] === 0x66 && // f
+          mergedData[1] === 0x4c && // L
+          mergedData[2] === 0x61 && // a
+          mergedData[3] === 0x43 // C
         ) {
           fileExtension = "flac";
           mimeType = "audio/flac";
+          console.log("[文件类型] 通过文件头识别为FLAC格式");
+        }
+        // MP3文件头标识: "ID3" 或者 0xFF 0xFB
+        else if (
+          (mergedData[0] === 0x49 &&
+            mergedData[1] === 0x44 &&
+            mergedData[2] === 0x33) || // ID3
+          (mergedData[0] === 0xff &&
+            (mergedData[1] === 0xfb || mergedData[1] === 0xfa)) // MP3帧头
+        ) {
+          fileExtension = "mp3";
+          mimeType = "audio/mpeg";
+          console.log("[文件类型] 通过文件头识别为MP3格式");
         }
       }
+
+      console.log(
+        `[文件类型] 最终确定类型: ${mimeType}, 扩展名: ${fileExtension}`
+      );
 
       // 生成文件名
       let fileName = `${task.artist} - ${task.songName}.${fileExtension}`;
@@ -1535,9 +1586,14 @@ async function downloadSong(task: DownloadTask): Promise<void> {
         const filenameMatch = contentDisposition.match(/filename="([^"]+)"/);
         if (filenameMatch) {
           try {
-            fileName = decodeURIComponent(filenameMatch[1]);
+            // 使用服务器建议的文件名，但保留我们确定的扩展名
+            const serverFilename = decodeURIComponent(filenameMatch[1]);
+            // 替换服务器文件名的扩展名
+            fileName = serverFilename.replace(/\.[^/.]+$/, `.${fileExtension}`);
+            console.log(`[文件类型] 使用服务器文件名并替换扩展名: ${fileName}`);
           } catch {
-            // 使用默认文件名
+            // 解码失败，使用默认文件名
+            console.log(`[文件类型] 解码失败，使用默认文件名: ${fileName}`);
           }
         }
       }

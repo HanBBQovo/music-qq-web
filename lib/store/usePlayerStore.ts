@@ -597,7 +597,7 @@ if (typeof window !== "undefined") {
             process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
           const streamUrl = `${API_BASE_URL}/api/play/stream?mid=${encodeURIComponent(
             mid
-          )}&quality=${state.currentQuality}&autoFallback=true`;
+          )}&quality=${state.currentQuality}&autoFallback=true&redirect=true`;
 
           const response = await fetch(streamUrl, {
             method: "HEAD",

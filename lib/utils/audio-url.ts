@@ -71,7 +71,7 @@ export async function getAudioUrl(
     // 构建流式播放API URL
     const streamUrl = `${API_BASE_URL}/api/play/stream?mid=${encodeURIComponent(
       mid
-    )}&quality=${quality}&autoFallback=true`;
+    )}&quality=${quality}&autoFallback=true&redirect=true`;
 
     console.log(`🎵 正在获取《${song.title}》的音频流:`, {
       mid,

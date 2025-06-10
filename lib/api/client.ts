@@ -341,6 +341,7 @@ export const musicApi = {
     if (artist) streamUrl.searchParams.append("artist", artist);
     if (albumMid) streamUrl.searchParams.append("albumMid", albumMid);
     streamUrl.searchParams.append("metadata", metadata ? "true" : "false");
+    // 注意：redirect参数会在下载和播放时分别处理，以解决CORS问题
 
     return streamUrl.toString();
   },
