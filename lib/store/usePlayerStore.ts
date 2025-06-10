@@ -662,10 +662,19 @@ if (typeof window !== "undefined") {
       // 更新当前音质状态
       usePlayerStore.setState({ currentQuality: actualQuality });
 
+      // 清理并处理降级原因
+      const cleanReason = cleanFallbackReason(fallbackReason);
+
       // 显示降级提示
-      toast.warning(`音质已自动降级到${actualQuality}`, {
-        duration: 3000,
-      });
+      toast.warning(
+        `音质已自动降级：${getQualityDisplayName(
+          requestedQuality
+        )} → ${getQualityDisplayName(actualQuality)}`,
+        {
+          description: cleanReason,
+          duration: 3000,
+        }
+      );
     }
   });
 
@@ -705,4 +714,84 @@ if (typeof window !== "undefined") {
       console.log("❌ 歌曲不匹配，跳过音质信息更新");
     }
   });
+}
+
+// 获取音质显示名称
+function getQualityDisplayName(quality: string): string {
+  switch (quality) {
+    case "128":
+      return "标准音质";
+    case "320":
+      return "高品音质";
+    case "flac":
+      return "无损音质";
+    case "ATMOS_2":
+      return "臻品全景声2.0";
+    case "ATMOS_51":
+      return "臻品音质2.0";
+    case "MASTER":
+      return "臻品母带2.0";
+    default:
+      return quality;
+  }
+}
+
+// 清理降级原因，避免显示编码内容
+function cleanFallbackReason(reason: string | null): string {
+  if (!reason) return "请求的音质不可用";
+
+  // 检查是否是base64编码（简单检测）
+  if (reason.length > 50 && /^[A-Za-z0-9+/]+=*$/.test(reason)) {
+    try {
+      // 尝试解码base64
+      const decoded = atob(reason);
+
+      // 尝试处理UTF-8编码的中文内容
+      try {
+        // 将解码的字节序列转换为正确的UTF-8字符串
+        const utf8Decoded = decodeURIComponent(escape(decoded));
+        if (utf8Decoded && utf8Decoded.length > 0 && utf8Decoded !== decoded) {
+          reason = utf8Decoded;
+        } else {
+          // 如果UTF-8解码没有改变内容，检查是否是可读的ASCII
+          if (decoded && /^[\x20-\x7E\s]*$/.test(decoded)) {
+            reason = decoded;
+          } else {
+            // 无法解码，使用默认消息
+            return "音质资源不可用，已自动降级";
+          }
+        }
+      } catch (utf8Error) {
+        // UTF-8解码失败，尝试直接使用base64解码结果
+        if (decoded && /^[\x20-\x7E\s]*$/.test(decoded)) {
+          reason = decoded;
+        } else {
+          return "音质资源不可用，已自动降级";
+        }
+      }
+    } catch (e) {
+      // 解码失败，使用默认消息
+      return "音质资源不可用，已自动降级";
+    }
+  }
+
+  // 清理HTML实体和特殊字符
+  let cleaned = reason
+    .replace(/&#\d+;/g, "") // 移除数字HTML实体
+    .replace(/&[^;]+;/g, "") // 移除其他HTML实体
+    .replace(/<[^>]*>/g, "") // 移除HTML标签
+    .replace(/[\x00-\x1F\x7F-\x9F]/g, "") // 移除控制字符
+    .trim();
+
+  // 如果清理后太长，截断并添加省略号
+  if (cleaned.length > 100) {
+    cleaned = cleaned.substring(0, 97) + "...";
+  }
+
+  // 如果清理后为空或太短，使用默认消息
+  if (!cleaned || cleaned.length < 3) {
+    return "音质资源不可用，已自动降级";
+  }
+
+  return cleaned;
 }

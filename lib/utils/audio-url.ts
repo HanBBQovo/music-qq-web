@@ -108,23 +108,15 @@ export async function getAudioUrl(
       const qualityFallback = response.headers.get("X-Quality-Fallback");
       const fallbackReason = response.headers.get("X-Fallback-Reason");
 
-      // 如果发生了音质降级，提示用户并更新音质设置
+      // 如果发生了音质降级，发送事件通知播放器
       if (qualityFallback === "true" && actualQuality && requestedQuality) {
         console.warn(`⚠️ 音质自动降级: ${requestedQuality} → ${actualQuality}`);
         console.warn(`降级原因: ${fallbackReason || "请求的音质不可用"}`);
 
-        // 显示降级提示
-        toast.warning(
-          `音质已自动降级：${getQualityDisplayName(
-            requestedQuality
-          )} → ${getQualityDisplayName(actualQuality)}`,
-          {
-            description: fallbackReason || "请求的音质不可用，已自动降级",
-            duration: 5000,
-          }
-        );
+        // 处理降级原因，避免显示编码内容
+        const cleanReason = cleanFallbackReason(fallbackReason);
 
-        // 更新播放器的当前音质状态
+        // 更新播放器的当前音质状态（不在这里显示toast，由usePlayerStore统一处理）
         if (typeof window !== "undefined") {
           // 发送自定义事件通知播放器更新音质状态
           window.dispatchEvent(
@@ -133,7 +125,7 @@ export async function getAudioUrl(
                 songId: mid,
                 requestedQuality,
                 actualQuality,
-                fallbackReason,
+                fallbackReason: cleanReason, // 使用清理后的原因
               },
             })
           );
@@ -579,4 +571,68 @@ export function formatFileSize(bytes: number): string {
   }
 
   return `${size.toFixed(unitIndex === 0 ? 0 : 1)}${units[unitIndex]}`;
+}
+
+/**
+ * 清理降级原因，避免显示编码内容
+ * @param reason 原始降级原因
+ * @returns 清理后的降级原因
+ */
+function cleanFallbackReason(reason: string | null): string {
+  if (!reason) return "请求的音质不可用";
+
+  // 检查是否是base64编码（简单检测）
+  if (reason.length > 50 && /^[A-Za-z0-9+/]+=*$/.test(reason)) {
+    try {
+      // 尝试解码base64
+      const decoded = atob(reason);
+
+      // 尝试处理UTF-8编码的中文内容
+      try {
+        // 将解码的字节序列转换为正确的UTF-8字符串
+        const utf8Decoded = decodeURIComponent(escape(decoded));
+        if (utf8Decoded && utf8Decoded.length > 0 && utf8Decoded !== decoded) {
+          reason = utf8Decoded;
+        } else {
+          // 如果UTF-8解码没有改变内容，检查是否是可读的ASCII
+          if (decoded && /^[\x20-\x7E\s]*$/.test(decoded)) {
+            reason = decoded;
+          } else {
+            // 无法解码，使用默认消息
+            return "音质资源不可用，已自动降级";
+          }
+        }
+      } catch (utf8Error) {
+        // UTF-8解码失败，尝试直接使用base64解码结果
+        if (decoded && /^[\x20-\x7E\s]*$/.test(decoded)) {
+          reason = decoded;
+        } else {
+          return "音质资源不可用，已自动降级";
+        }
+      }
+    } catch (e) {
+      // 解码失败，使用默认消息
+      return "音质资源不可用，已自动降级";
+    }
+  }
+
+  // 清理HTML实体和特殊字符
+  let cleaned = reason
+    .replace(/&#\d+;/g, "") // 移除数字HTML实体
+    .replace(/&[^;]+;/g, "") // 移除其他HTML实体
+    .replace(/<[^>]*>/g, "") // 移除HTML标签
+    .replace(/[\x00-\x1F\x7F-\x9F]/g, "") // 移除控制字符
+    .trim();
+
+  // 如果清理后太长，截断并添加省略号
+  if (cleaned.length > 100) {
+    cleaned = cleaned.substring(0, 97) + "...";
+  }
+
+  // 如果清理后为空或太短，使用默认消息
+  if (!cleaned || cleaned.length < 3) {
+    return "音质资源不可用，已自动降级";
+  }
+
+  return cleaned;
 }
