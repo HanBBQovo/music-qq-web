@@ -371,6 +371,101 @@ export const useAudioPlayer = () => {
     };
   }, []);
 
+  // 监听音质切换事件
+  useEffect(() => {
+    const handleQualitySwitch = (event: any) => {
+      const { songId, targetTime, shouldResumePlayback } = event.detail;
+
+      // 检查是否是当前播放的歌曲
+      const currentIdentifier = currentSong?.mid || currentSong?.id;
+      const isMatch = currentIdentifier === songId;
+
+      console.log("🔄 收到音质切换事件:", {
+        eventSongId: songId,
+        currentIdentifier: currentIdentifier,
+        isMatch: isMatch,
+        targetTime: targetTime,
+        shouldResumePlayback: shouldResumePlayback,
+      });
+
+      if (isMatch && audioRef.current) {
+        console.log("🎯 音质切换: 等待音频就绪后处理时间跳转和播放恢复");
+
+        let retryCount = 0;
+        const maxRetries = 100; // 最多等待5秒 (50ms * 100)
+
+        const waitForReady = () => {
+          if (!audioRef.current) {
+            console.warn("⚠️ 音质切换: 音频元素已被销毁");
+            return;
+          }
+
+          if (audioRef.current.readyState >= 2) {
+            // HAVE_CURRENT_DATA或更高
+            // 音频已经可以播放，设置时间位置
+            console.log(`🎯 音质切换: 设置时间到 ${targetTime.toFixed(2)}s`);
+            try {
+              audioRef.current.currentTime = Math.max(
+                0,
+                Math.min(targetTime, audioRef.current.duration || 0)
+              );
+
+              // 更新store中的currentTime
+              setCurrentTime(audioRef.current.currentTime);
+
+              // 如果应该恢复播放，则开始播放
+              if (shouldResumePlayback) {
+                console.log("🎵 音质切换: 恢复播放状态");
+
+                // 延迟一下确保音频完全就绪，然后直接播放
+                setTimeout(() => {
+                  if (audioRef.current && audioRef.current.paused) {
+                    audioRef.current
+                      .play()
+                      .then(() => {
+                        console.log("🎵 音质切换: 播放恢复成功");
+                        // 播放成功后更新store状态
+                        const { play } = usePlayerStore.getState();
+                        play();
+                      })
+                      .catch((error) => {
+                        console.error("🎵 音质切换: 恢复播放失败:", error);
+                      });
+                  }
+                }, 200);
+              }
+            } catch (error) {
+              console.error("🎯 音质切换: 设置时间失败:", error);
+            }
+          } else {
+            // 音频还没准备好，继续等待
+            retryCount++;
+            if (retryCount < maxRetries) {
+              setTimeout(waitForReady, 50);
+            } else {
+              console.warn("⚠️ 音质切换: 等待音频就绪超时");
+              // 即使超时，也尝试恢复播放状态
+              if (shouldResumePlayback) {
+                const { play } = usePlayerStore.getState();
+                play();
+              }
+            }
+          }
+        };
+
+        waitForReady();
+      }
+    };
+
+    if (typeof window !== "undefined") {
+      window.addEventListener("quality-switch", handleQualitySwitch);
+
+      return () => {
+        window.removeEventListener("quality-switch", handleQualitySwitch);
+      };
+    }
+  }, [currentSong, setCurrentTime]);
+
   // 返回音频播放器接口
   return {
     // 状态

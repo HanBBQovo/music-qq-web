@@ -483,8 +483,11 @@ export const usePlayerStore = create<PlayerState>()(
         const savedTime = currentTime;
         const wasPlaying = isPlaying;
 
-        // 2. 立即更新目标音质状态
-        set({ currentQuality: quality });
+        // 2. 立即暂停播放并更新目标音质状态
+        set({
+          currentQuality: quality,
+          isPlaying: false, // 立即暂停，避免听到从头开始的声音
+        });
 
         // 3. 获取新音质的URL
         try {
@@ -501,18 +504,24 @@ export const usePlayerStore = create<PlayerState>()(
             url: newUrl,
           };
 
-          // 5. 更新歌曲，保持当前时间
+          // 5. 更新歌曲和时间，但保持暂停状态
           set({
             currentSong: updatedSong,
             currentTime: savedTime, // 保持播放位置
+            isPlaying: false, // 继续保持暂停状态
           });
 
-          // 6. 如果之前在播放，恢复播放状态
-          if (wasPlaying) {
-            setTimeout(() => {
-              console.log(`⏯️ 恢复播放状态`);
-              set({ isPlaying: true });
-            }, 50);
+          // 6. 设置一个标识，告诉useAudioPlayer这是音质切换场景
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(
+              new CustomEvent("quality-switch", {
+                detail: {
+                  songId: currentSong.mid || currentSong.id,
+                  targetTime: savedTime,
+                  shouldResumePlayback: wasPlaying,
+                },
+              })
+            );
           }
 
           // 7. 显示成功提示
@@ -541,8 +550,9 @@ export const usePlayerStore = create<PlayerState>()(
             // 这实际上不是错误，而是音质降级通知
             console.log(`ℹ️ 音质自动降级通知: ${errorMessage}`);
           } else {
-            // 真正的错误：恢复原音质状态
-            console.log(`🔄 发生错误，不修改音质状态`);
+            // 真正的错误：恢复原播放状态
+            console.log(`🔄 发生错误，恢复原播放状态`);
+            set({ isPlaying: wasPlaying });
 
             toast.error(`音质切换失败: ${errorMessage}`, {
               duration: 3000,
