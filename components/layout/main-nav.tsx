@@ -54,7 +54,7 @@ export function MainNav() {
             <div className="p-2 rounded-xl bg-gradient-to-br from-purple-500 to-blue-600 group-hover:from-purple-600 group-hover:to-blue-700 transition-all duration-200 shadow-lg group-hover:shadow-xl">
               <MusicIcon className="h-6 w-6 text-white" />
             </div>
-            <span className="hidden font-bold text-lg sm:inline-block bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+            <span className="hidden font-bold text-lg inline-block bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
               QQ音乐下载
             </span>
           </Link>
