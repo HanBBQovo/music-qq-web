@@ -80,7 +80,7 @@ export const STORAGE_KEYS = {
 export const PLAYER_CONFIG = {
   MAX_HISTORY_COUNT: 100,
   MAX_PLAYLIST_COUNT: 500,
-  PRELOAD_NEXT_SONG: true,
+  PRELOAD_NEXT_SONG: false,
   AUTO_PLAY_NEXT: true,
   FADE_DURATION: 300, // 毫秒
   SEEK_STEP: 10, // 秒

@@ -167,6 +167,16 @@ export const useAudioPlayer = () => {
       const audio = event.target as HTMLAudioElement;
       const error = audio.error;
 
+      // 检查错误是否来自当前播放的歌曲，如果不是则忽略（可能是旧的音频元素）
+      if (
+        currentSong &&
+        audio.src &&
+        !audio.src.includes(currentSong.mid || currentSong.id)
+      ) {
+        console.warn("🔄 忽略非当前歌曲的音频错误");
+        return;
+      }
+
       let errorMessage = "播放出错";
       let errorCode = "UNKNOWN_ERROR";
 

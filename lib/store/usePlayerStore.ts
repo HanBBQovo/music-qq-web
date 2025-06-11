@@ -351,12 +351,15 @@ export const usePlayerStore = create<PlayerState>()(
             }
           });
 
-          // 然后获取音频URL（如果没有）
+          // 每次切歌都重新获取URL以确保通过HEAD验证流程
           let songWithUrl = song;
-          if (!song.url) {
-            const url = await getAudioUrl(song, useQuality);
-            songWithUrl = { ...song, url };
-          }
+
+          // 强制重新获取URL，因为存储的可能只是构建的API路径，需要HEAD验证
+          const url = await getAudioUrl(
+            { ...song, url: undefined },
+            useQuality
+          );
+          songWithUrl = { ...song, url };
 
           // 最后更新URL并开始播放
           set((state) => {
@@ -593,11 +596,59 @@ if (typeof window !== "undefined") {
           const mid = state.currentSong?.mid || state.currentSong?.id;
           if (!mid) return;
 
+          // 使用与audio-url.ts相同的API路径构造逻辑
           const API_BASE_URL =
             process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
-          const streamUrl = `${API_BASE_URL}/api/play/stream?mid=${encodeURIComponent(
-            mid
-          )}&quality=${state.currentQuality}&autoFallback=true&redirect=true`;
+          let streamUrl;
+
+          // 如果BASE_URL是相对路径（如/music-api），需要特殊处理
+          if (API_BASE_URL === "/music-api") {
+            if (typeof window !== "undefined") {
+              // 客户端环境，使用完整URL
+              streamUrl = `${
+                window.location.origin
+              }/music-api/api/play/stream?mid=${encodeURIComponent(
+                mid
+              )}&quality=${
+                state.currentQuality
+              }&autoFallback=true&redirect=true`;
+            } else {
+              // 服务器端渲染环境
+              streamUrl = `/music-api/api/play/stream?mid=${encodeURIComponent(
+                mid
+              )}&quality=${
+                state.currentQuality
+              }&autoFallback=true&redirect=true`;
+            }
+          }
+          // 处理标准开发环境（完整URL）
+          else if (
+            API_BASE_URL &&
+            (API_BASE_URL.includes("://") || API_BASE_URL.startsWith("http"))
+          ) {
+            // BASE_URL是完整URL
+            streamUrl = `${API_BASE_URL}/api/play/stream?mid=${encodeURIComponent(
+              mid
+            )}&quality=${state.currentQuality}&autoFallback=true&redirect=true`;
+          }
+          // 处理其他情况
+          else {
+            if (typeof window !== "undefined") {
+              // 客户端环境，使用当前域名
+              streamUrl = `${
+                window.location.origin
+              }/api/play/stream?mid=${encodeURIComponent(mid)}&quality=${
+                state.currentQuality
+              }&autoFallback=true&redirect=true`;
+            } else {
+              // 服务器端渲染环境
+              streamUrl = `/api/play/stream?mid=${encodeURIComponent(
+                mid
+              )}&quality=${
+                state.currentQuality
+              }&autoFallback=true&redirect=true`;
+            }
+          }
 
           const response = await fetch(streamUrl, {
             method: "HEAD",

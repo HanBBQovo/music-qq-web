@@ -8,8 +8,44 @@ import type { AudioQuality } from "../api/types";
 import { HTTP_HEADERS, USER_AGENTS } from "@/lib/constants/http-headers";
 import { toast } from "sonner";
 
-// 使用现有的API客户端和配置
+// 使用现有的API客户端和配置，确保与其他API保持一致
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+
+/**
+ * 构建正确的API路径
+ * @param endpoint API端点
+ * @returns 完整的API URL
+ */
+function buildApiUrl(endpoint: string): string {
+  // 如果BASE_URL是相对路径（如/music-api），需要特殊处理
+  if (API_BASE_URL === "/music-api") {
+    if (typeof window !== "undefined") {
+      // 客户端环境，使用完整URL
+      return `${window.location.origin}/music-api${endpoint}`;
+    } else {
+      // 服务器端渲染环境
+      return `/music-api${endpoint}`;
+    }
+  }
+  // 处理标准开发环境（完整URL）
+  else if (
+    API_BASE_URL &&
+    (API_BASE_URL.includes("://") || API_BASE_URL.startsWith("http"))
+  ) {
+    // BASE_URL是完整URL
+    return `${API_BASE_URL}${endpoint}`;
+  }
+  // 处理其他情况
+  else {
+    if (typeof window !== "undefined") {
+      // 客户端环境，使用当前域名
+      return `${window.location.origin}${endpoint}`;
+    } else {
+      // 服务器端渲染环境
+      return endpoint;
+    }
+  }
+}
 
 /**
  * 获取QQ音乐Cookie
@@ -69,9 +105,11 @@ export async function getAudioUrl(
     }
 
     // 构建流式播放API URL
-    const streamUrl = `${API_BASE_URL}/api/play/stream?mid=${encodeURIComponent(
-      mid
-    )}&quality=${quality}&autoFallback=true&redirect=true`;
+    const streamUrl = buildApiUrl(
+      `/api/play/stream?mid=${encodeURIComponent(
+        mid
+      )}&quality=${quality}&autoFallback=true&redirect=true`
+    );
 
     console.log(`🎵 正在获取《${song.title}》的音频流:`, {
       mid,
@@ -200,7 +238,7 @@ export async function getPlayInfo(song: Song): Promise<any> {
 
     const cookie = getQQCookie();
     const response = await fetch(
-      `${API_BASE_URL}/api/play/info?mid=${encodeURIComponent(mid)}`,
+      buildApiUrl(`/api/play/info?mid=${encodeURIComponent(mid)}`),
       {
         method: "GET",
         headers: {
@@ -301,7 +339,7 @@ export function clearAudioUrlCache(): void {
 export async function checkApiHealth(): Promise<boolean> {
   try {
     const cookie = getQQCookie();
-    const response = await fetch(`${API_BASE_URL}/api/play/stats`, {
+    const response = await fetch(buildApiUrl("/api/play/stats"), {
       method: "GET",
       headers: {
         [HTTP_HEADERS.QQ_COOKIE]: cookie,
@@ -312,7 +350,7 @@ export async function checkApiHealth(): Promise<boolean> {
       status: response.status,
       ok: response.ok,
       hasCookie: !!cookie,
-      url: `${API_BASE_URL}/api/play/stats`,
+      url: buildApiUrl("/api/play/stats"),
     });
     return response.ok;
   } catch (error) {
@@ -343,9 +381,11 @@ export async function validateAudioUrl(url: string): Promise<boolean> {
  */
 export async function getPlayStats(mid?: string): Promise<any> {
   try {
-    const url = mid
-      ? `${API_BASE_URL}/api/play/stats/${encodeURIComponent(mid)}`
-      : `${API_BASE_URL}/api/play/stats`;
+    const endpoint = mid
+      ? `/api/play/stats/${encodeURIComponent(mid)}`
+      : `/api/play/stats`;
+
+    const url = buildApiUrl(endpoint);
 
     const cookie = getQQCookie();
     const response = await fetch(url, {
