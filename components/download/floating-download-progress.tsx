@@ -65,7 +65,7 @@ export const FloatingDownloadProgress: React.FC<FloatingDownloadProgressProps> =
           `[下载弹窗] 发现${downloadingTasks.length}个downloading状态的任务，强制恢复为paused`
         );
         downloadingTasks.forEach((task) => {
-          console.log(`[下载弹窗] 强制暂停任务: ${task.songName}`);
+          // console.log(`[下载弹窗] 强制暂停任务: ${task.songName}`);
           pauseTask(task.id);
         });
       }
@@ -482,7 +482,7 @@ export const FloatingDownloadProgress: React.FC<FloatingDownloadProgressProps> =
       <>
         {!isOpen && (
           <button
-            className={`fixed bottom-20 right-6 z-50 rounded-full p-3 bg-primary text-primary-foreground cursor-pointer select-none transition-all duration-200 ${
+            className={`fixed right-6 z-50 rounded-full p-3 bg-primary text-primary-foreground cursor-pointer select-none transition-all duration-200 md:bottom-20 bottom-34 ${
               className || ""
             }`}
             onClick={() => setIsOpen(true)}
@@ -693,7 +693,7 @@ const FloatingDownloadButton = React.memo(function FloatingDownloadButton() {
   return (
     <>
       <button
-        className="fixed bottom-20 right-6 z-50 rounded-full p-3 bg-primary text-primary-foreground cursor-pointer select-none transition-all duration-200"
+        className="fixed right-6 z-50 rounded-full p-3 bg-primary text-primary-foreground cursor-pointer select-none transition-all duration-200 md:bottom-20 bottom-34"
         onClick={() => setIsOpen(true)}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}

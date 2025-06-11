@@ -1,6 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import {
+  useState,
+  useEffect,
+  useRef,
+  useMemo,
+  useCallback,
+  useLayoutEffect,
+} from "react";
 import { usePlayerStore } from "@/lib/store/usePlayerStore";
 import { useAudioPlayer } from "@/lib/hooks/use-audio-player";
 import { Button } from "@/components/ui/button";
@@ -30,6 +37,9 @@ import { PlaylistPanel } from "./playlist-panel";
 import type { AudioQuality } from "@/lib/api/types";
 import { toast } from "sonner";
 import { formatFileSize } from "@/lib/utils/audio-url";
+import React from "react";
+import { resetGlobalAudioAnalyser } from "@/lib/audio/audio-analyzer";
+import { DynamicCover } from "./dynamic-cover";
 
 export function MiniPlayer() {
   const {
@@ -56,12 +66,37 @@ export function MiniPlayer() {
     switchQuality,
   } = usePlayerStore();
 
-  // 使用音频播放器hook
-  const { seekTo } = useAudioPlayer();
+  // 简化渲染追踪，只在开发时使用
+  const renderCountRef = useRef(0);
+  renderCountRef.current += 1;
+
+  // 使用音频播放器hook，获取audioElement引用
+  const { seekTo, audioElement } = useAudioPlayer();
 
   const [localVolume, setLocalVolume] = useState(volume);
   const [isDragging, setIsDragging] = useState(false);
   const [localProgress, setLocalProgress] = useState(0);
+
+  // 恢复简单的进度条逻辑
+  useEffect(() => {
+    if (!isDragging && duration > 0) {
+      setLocalProgress((currentTime / duration) * 100);
+    }
+  }, [currentTime, duration, isDragging]);
+
+  // 同步音量
+  useEffect(() => {
+    setLocalVolume(volume);
+  }, [volume]);
+
+  // 监听歌曲变化
+  useEffect(() => {
+    // 当歌曲变化时，重置音频分析器
+    if (currentSong?.id) {
+      // console.log(`🎵 检测到歌曲变化: ${currentSong.title}`);
+      resetGlobalAudioAnalyser();
+    }
+  }, [currentSong?.id]);
 
   // 生成动态音质选项
   const generateQualityOptions = () => {
@@ -155,7 +190,7 @@ export function MiniPlayer() {
     const loadingToast = toast.loading(`正在切换到${targetOption?.label}...`);
 
     try {
-      console.log(`🎵 用户切换音质: ${currentQuality} -> ${quality}`);
+      // console.log(`🎵 用户切换音质: ${currentQuality} -> ${quality}`);
       await switchQuality(quality);
 
       toast.dismiss(loadingToast);
@@ -166,18 +201,6 @@ export function MiniPlayer() {
       toast.error(`切换到${targetOption?.label}失败，请重试`);
     }
   };
-
-  // 同步音量
-  useEffect(() => {
-    setLocalVolume(volume);
-  }, [volume]);
-
-  // 同步进度
-  useEffect(() => {
-    if (!isDragging && duration > 0) {
-      setLocalProgress((currentTime / duration) * 100);
-    }
-  }, [currentTime, duration, isDragging]);
 
   // 如果没有当前歌曲，显示空状态
   if (!currentSong) {
@@ -230,7 +253,7 @@ export function MiniPlayer() {
         {!showPlayer && (
           <button
             onClick={() => setShowPlayer(true)}
-            className="fixed bottom-6 right-6 z-50 rounded-full p-3 bg-primary text-primary-foreground cursor-pointer select-none transition-all duration-200"
+            className="fixed md:bottom-6 bottom-20 right-6 z-50 rounded-full p-3 bg-primary text-primary-foreground cursor-pointer select-none transition-all duration-200"
             title="展开播放器"
             style={{
               pointerEvents: "auto",
@@ -261,6 +284,10 @@ export function MiniPlayer() {
     setVolume(newVolume);
   };
 
+  const toggleMute = () => {
+    setVolume(volume > 0 ? 0 : 0.8);
+  };
+
   const handleProgressStart = () => {
     setIsDragging(true);
   };
@@ -273,13 +300,8 @@ export function MiniPlayer() {
   const handleProgressCommit = (value: number[]) => {
     const progress = value[0];
     const newTime = (progress / 100) * duration;
-    // 使用音频播放器的seekTo方法来实际跳转时间
     seekTo(newTime);
     setIsDragging(false);
-  };
-
-  const toggleMute = () => {
-    setVolume(volume > 0 ? 0 : 0.8);
   };
 
   const handlePlayModeClick = () => {
@@ -330,18 +352,14 @@ export function MiniPlayer() {
           <div className="hidden md:flex items-center gap-4">
             {/* 歌曲信息 */}
             <div className="flex items-center gap-3 min-w-0 flex-1">
-              <div className="w-12 h-12 bg-muted rounded-lg overflow-hidden flex-shrink-0">
-                {currentSong.cover ? (
-                  <img
-                    src={currentSong.cover}
-                    alt={currentSong.title}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-muted flex items-center justify-center">
-                    <Play className="h-6 w-6 text-muted-foreground" />
-                  </div>
-                )}
+              <div className="flex-shrink-0">
+                <DynamicCover
+                  src={currentSong.cover}
+                  alt={currentSong.title}
+                  size="large"
+                  isPlaying={isPlaying}
+                  audioElement={audioElement}
+                />
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium truncate">
@@ -368,7 +386,14 @@ export function MiniPlayer() {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={togglePlay}
+                onClick={() => {
+                  togglePlay();
+                  // 在用户交互时尝试启动音频上下文
+                  if (typeof window !== "undefined") {
+                    const event = new CustomEvent("user-interaction-play");
+                    window.dispatchEvent(event);
+                  }
+                }}
                 className="h-10 w-10 p-0"
                 title={isPlaying ? "暂停" : "播放"}
               >
@@ -550,18 +575,14 @@ export function MiniPlayer() {
             <div className="flex items-center gap-3">
               {/* 歌曲信息 */}
               <div className="flex items-center gap-2 min-w-0 flex-1">
-                <div className="w-10 h-10 bg-muted rounded-lg overflow-hidden flex-shrink-0">
-                  {currentSong.cover ? (
-                    <img
-                      src={currentSong.cover}
-                      alt={currentSong.title}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full bg-muted flex items-center justify-center">
-                      <Play className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                  )}
+                <div className="flex-shrink-0">
+                  <DynamicCover
+                    src={currentSong.cover}
+                    alt={currentSong.title}
+                    size="small"
+                    isPlaying={isPlaying}
+                    audioElement={audioElement}
+                  />
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium truncate">
@@ -588,7 +609,14 @@ export function MiniPlayer() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={togglePlay}
+                  onClick={() => {
+                    togglePlay();
+                    // 在用户交互时尝试启动音频上下文
+                    if (typeof window !== "undefined") {
+                      const event = new CustomEvent("user-interaction-play");
+                      window.dispatchEvent(event);
+                    }
+                  }}
                   className="h-10 w-10 p-0"
                   title={isPlaying ? "暂停" : "播放"}
                 >
@@ -767,7 +795,7 @@ export function MiniPlayer() {
       {!showPlayer && (
         <button
           onClick={() => setShowPlayer(true)}
-          className="fixed bottom-6 right-6 z-50 rounded-full p-3 bg-primary text-primary-foreground cursor-pointer select-none transition-all duration-200"
+          className="fixed md:bottom-6 bottom-20 right-6 z-50 rounded-full p-3 bg-primary text-primary-foreground cursor-pointer select-none transition-all duration-200"
           title="展开播放器"
           style={{
             pointerEvents: "auto",
