@@ -7,6 +7,7 @@ import { MiniPlayer } from "@/components/player/mini-player";
 import { ClientKeyboardShortcuts } from "@/components/client-keyboard-shortcuts";
 import { MainNav } from "@/components/layout/main-nav";
 import { Footer } from "@/components/layout/footer";
+import { FloatingDownloadButton } from "@/components/download/floating-download-progress";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -29,6 +30,7 @@ export default function RootLayout({
             <main className="flex-1 pb-20">{children}</main>
             <Footer />
             <MiniPlayer />
+            <FloatingDownloadButton />
             <Toaster />
             <ClientKeyboardShortcuts />
           </div>

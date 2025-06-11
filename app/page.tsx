@@ -4,7 +4,6 @@ import React, { Suspense } from "react";
 import { motion } from "framer-motion";
 import { SearchForm } from "@/components/search/search-form";
 import { SearchResults } from "@/components/search/search-results";
-import { FloatingDownloadProgress } from "@/components/download/floating-download-progress";
 import {
   Card,
   CardContent,
@@ -218,9 +217,6 @@ export default function HomePage() {
             </motion.div>
           </motion.div>
         </motion.div>
-
-        {/* 浮动下载进度组件 */}
-        <FloatingDownloadProgress />
       </div>
     </div>
   );
