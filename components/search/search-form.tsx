@@ -174,7 +174,7 @@ export function SearchForm() {
         return;
       }
 
-      // 执行正常搜索
+      // 执行正常搜索 - 只更新URL和状态，让useEffect触发搜索
       const urlSearchParams = new URLSearchParams({
         q: data.query,
         type: data.type,
@@ -182,15 +182,12 @@ export function SearchForm() {
 
       router.push(`/?${urlSearchParams.toString()}`, { scroll: false });
 
-      // 更新搜索关键词、搜索类型并执行搜索
+      // 更新搜索关键词和搜索类型，但不直接调用search()
+      // useEffect会监听到URL变化并自动触发搜索
       setSearchKey(data.query);
-      setSearchType(data.type); // 设置搜索类型
-      await search();
+      setSearchType(data.type);
 
-      // 显示通知
-      toast.success(`正在搜索"${data.query}"`, {
-        description: `类型：${currentType?.label}`,
-      });
+      // 不再显示toast，让store中的搜索逻辑处理所有提示
     } catch (error) {
       toast.error("操作失败，请重试");
       console.error("Search/Parse error:", error);

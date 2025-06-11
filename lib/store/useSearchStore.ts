@@ -116,6 +116,17 @@ export const useSearchStore = create<SearchState>()(
             return;
           }
 
+          // 显示搜索开始提示（只在实际发起网络请求时）
+          toast.success(`正在搜索"${state.searchParams.key}"`, {
+            description: `类型：${
+              state.searchParams.type === "song"
+                ? "歌曲"
+                : state.searchParams.type === "album"
+                ? "专辑"
+                : "歌单"
+            }`,
+          });
+
           // 如果没有缓存或缓存已过期，请求新数据
           const response = await musicApi.search(state.searchParams);
 
