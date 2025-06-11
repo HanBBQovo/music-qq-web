@@ -108,12 +108,10 @@ export function SearchResults() {
 
   // 播放单首歌曲
   async function handlePlaySong(song: Song) {
+    const loadingToast = toast.loading(`正在加载《${song.name}》...`);
+
     try {
       const playerSong = convertToPlayerSong(song);
-
-      // 显示加载提示
-      const loadingToast = toast.loading(`正在加载《${song.name}》...`);
-
       await playSong(playerSong);
 
       // 关闭加载提示并显示成功消息
@@ -122,7 +120,8 @@ export function SearchResults() {
         description: `歌手: ${song.singer.map((s) => s.name).join(", ")}`,
       });
     } catch (error) {
-      toast.error(`播放失败: ${(error as Error).message}`);
+      // 关闭加载提示，错误信息由audio-url.ts统一显示
+      toast.dismiss(loadingToast);
     }
   }
 
@@ -155,19 +154,18 @@ export function SearchResults() {
       return;
     }
 
+    const loadingToast = toast.loading(`正在加载播放列表...`);
+
     try {
       const playerSongs = songs.map(convertToPlayerSong);
-
-      // 显示加载提示
-      const loadingToast = toast.loading(`正在加载播放列表...`);
-
       await playSongList(playerSongs, 0);
 
       // 关闭加载提示并显示成功消息
       toast.dismiss(loadingToast);
       toast.success(`开始播放搜索结果，共${songs.length}首歌曲`);
     } catch (error) {
-      toast.error(`播放失败: ${(error as Error).message}`);
+      // 关闭加载提示，错误信息由audio-url.ts统一显示
+      toast.dismiss(loadingToast);
     }
   }
 

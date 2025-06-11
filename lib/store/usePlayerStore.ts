@@ -392,6 +392,10 @@ export const usePlayerStore = create<PlayerState>()(
           });
         } catch (error) {
           console.error("播放歌曲失败:", error);
+
+          // 注意：不在这里显示toast，因为audio-url.ts中已经显示了详细的错误信息
+          // 避免重复的错误提示
+
           // 即使获取URL失败，也要设置为当前歌曲但不播放
           set((state) => {
             let index = state.playlist.findIndex(

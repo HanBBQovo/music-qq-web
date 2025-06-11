@@ -921,6 +921,12 @@ export const useDownloadStore = create<DownloadState>()(
                 `[下载管理器] 下载任务失败: ${task.songName}, 错误: ${error.name} - ${error.message}`
               );
               updateTaskStatus(task.id, "error", error.message || "下载失败");
+
+              // 显示用户友好的错误提示
+              toast.error(`下载失败: ${task.songName}`, {
+                description: error.message || "未知错误",
+                duration: 5000,
+              });
             });
         });
 

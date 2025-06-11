@@ -213,15 +213,14 @@ export function ParseResultContent({ parseId }: ParseResultContentProps) {
     const songName = parts[0]?.trim() || song;
     const artistName = parts[1]?.trim() || "";
 
-    try {
-      toast.loading(`正在搜索《${songName}》...`);
+    const loadingToast = toast.loading(`正在加载《${songName}》...`);
 
+    try {
       // 先搜索歌曲
       const songInfo = await searchSong(songName, artistName);
       const playerSong = convertToPlayerSong(songInfo, songName, artistName);
 
       // 播放歌曲
-      const loadingToast = toast.loading(`正在加载《${songName}》...`);
       await playSong(playerSong);
 
       toast.dismiss(loadingToast);
@@ -229,7 +228,8 @@ export function ParseResultContent({ parseId }: ParseResultContentProps) {
         description: `歌手: ${artistName}`,
       });
     } catch (error) {
-      toast.error(`播放失败: ${(error as Error).message}`);
+      // 关闭加载提示，错误信息由audio-url.ts统一显示
+      toast.dismiss(loadingToast);
     }
   };
 
@@ -240,8 +240,9 @@ export function ParseResultContent({ parseId }: ParseResultContentProps) {
       return;
     }
 
+    const loadingToast = toast.loading(`正在准备播放列表...`);
+
     try {
-      const loadingToast = toast.loading(`正在准备播放列表...`);
       const playerSongs: PlayerSong[] = [];
 
       // 搜索前几首歌曲作为播放列表
@@ -276,7 +277,8 @@ export function ParseResultContent({ parseId }: ParseResultContentProps) {
       toast.dismiss(loadingToast);
       toast.success(`开始播放解析歌单，共加载${playerSongs.length}首歌曲`);
     } catch (error) {
-      toast.error(`播放失败: ${(error as Error).message}`);
+      // 关闭加载提示，错误信息由audio-url.ts统一显示
+      toast.dismiss(loadingToast);
     }
   };
 

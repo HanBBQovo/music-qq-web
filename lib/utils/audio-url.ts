@@ -184,29 +184,44 @@ export async function getAudioUrl(
 
       return streamUrl;
     } else {
-      console.warn(`⚠️ 音频流不可用: HTTP ${response.status}, 尝试测试音频`);
-      throw new Error(`音频流不可用: HTTP ${response.status}`);
+      console.warn(
+        `⚠️ 音频流不可用: HTTP ${response.status}, 尝试获取错误详情`
+      );
+
+      // 提取响应头中的错误信息
+      const errorCode = response.headers.get("x-error-code");
+      const errorMessage = response.headers.get("x-error-message");
+      const errorDetail = response.headers.get("x-error-detail");
+
+      let friendlyMessage = `音频流不可用: HTTP ${response.status}`;
+
+      // 如果有中文错误信息，尝试解码
+      if (errorMessage) {
+        try {
+          // 解码base64编码的中文消息
+          const decodedMessage = decodeURIComponent(escape(atob(errorMessage)));
+          friendlyMessage = decodedMessage;
+        } catch (e) {
+          console.warn("解码错误消息失败:", e);
+          friendlyMessage = errorMessage;
+        }
+      }
+
+      console.warn(`❌ 错误详情: 代码=${errorCode}, 消息=${friendlyMessage}`);
+      throw new Error(friendlyMessage);
     }
   } catch (error) {
     console.error(`❌ 获取《${song.title}》音频流失败:`, error);
 
-    // 如果后端API不可用，使用备用方案（测试音频）
-    console.log("🔄 使用测试音频作为备用方案");
-    return getTestAudioUrl();
+    // 显示播放失败的错误提示
+    toast.error(`播放失败: ${song.title}`, {
+      description: error instanceof Error ? error.message : "音频源不可用",
+      duration: 5000,
+    });
+
+    // 重新抛出错误，不使用测试音频备用方案
+    throw error;
   }
-}
-
-/**
- * 获取测试音频URL（后端不可用时的备用方案）
- */
-function getTestAudioUrl(): string {
-  const testAudioUrls = [
-    "https://www.learningcontainer.com/wp-content/uploads/2020/02/Kalimba.mp3",
-    "https://samplelib.com/lib/preview/mp3/sample-3s.mp3",
-    "https://file-examples.com/storage/fe7a6b657faa64b9d7a9d56/2017/11/file_example_MP3_700KB.mp3",
-  ];
-
-  return testAudioUrls[Math.floor(Math.random() * testAudioUrls.length)];
 }
 
 /**

@@ -250,10 +250,10 @@ export default function AlbumDetailPage() {
 
   // 播放单首歌曲
   async function handlePlaySong(song: Song) {
+    const loadingToast = toast.loading(`正在加载《${song.name}》...`);
+
     try {
       const playerSong = convertToPlayerSong(song);
-      const loadingToast = toast.loading(`正在加载《${song.name}》...`);
-
       await playSong(playerSong);
 
       toast.dismiss(loadingToast);
@@ -261,7 +261,8 @@ export default function AlbumDetailPage() {
         description: `歌手: ${song.singer.map((s) => s.name).join(", ")}`,
       });
     } catch (error) {
-      toast.error(`播放失败: ${(error as Error).message}`);
+      // 关闭加载提示，错误信息由audio-url.ts统一显示
+      toast.dismiss(loadingToast);
     }
   }
 
@@ -272,10 +273,10 @@ export default function AlbumDetailPage() {
       return;
     }
 
+    const loadingToast = toast.loading(`正在加载专辑播放列表...`);
+
     try {
       const playerSongs = album.songs.map(convertToPlayerSong);
-      const loadingToast = toast.loading(`正在加载专辑播放列表...`);
-
       await playSongList(playerSongs, 0);
 
       toast.dismiss(loadingToast);
@@ -283,7 +284,8 @@ export default function AlbumDetailPage() {
         `开始播放专辑《${album.name}》，共${album.songs.length}首歌曲`
       );
     } catch (error) {
-      toast.error(`播放失败: ${(error as Error).message}`);
+      // 关闭加载提示，错误信息由audio-url.ts统一显示
+      toast.dismiss(loadingToast);
     }
   }
 
