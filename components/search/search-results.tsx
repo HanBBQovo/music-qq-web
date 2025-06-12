@@ -518,7 +518,7 @@ function SongSearchResults({
         </CardHeader>
         <div className="max-w-full">
           <div className="overflow-x-auto border-b">
-            <Table>
+            <Table className="table-fixed w-full">
               <TableHeader className="bg-muted/30 sticky top-0 z-10">
                 <TableRow>
                   <TableHead className="w-10 text-center">
@@ -597,7 +597,7 @@ function SongSearchResults({
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className="space-y-1">
+                      <div className="truncate">
                         {song.singer.map((singer, index) => (
                           <span key={singer.id}>
                             <span className="text-sm hover:text-primary cursor-pointer transition-colors">

@@ -534,7 +534,7 @@ export default function AlbumDetailPage() {
           {album.songs && album.songs.length > 0 ? (
             <div className="max-w-full">
               <div className="overflow-x-auto border-b">
-                <Table>
+                <Table className="table-fixed w-full">
                   <TableHeader className="bg-muted/30 sticky top-0 z-10">
                     <TableRow>
                       <TableHead className="w-10 text-center">
@@ -615,10 +615,10 @@ export default function AlbumDetailPage() {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <div className="space-y-1">
+                          <div className="truncate">
                             {song.singer.map((singer, index) => (
                               <span key={singer.id}>
-                                <span className="text-sm text-muted-foreground">
+                                <span className="text-sm text-muted-foreground hover:text-primary cursor-pointer transition-colors">
                                   {singer.name}
                                 </span>
                                 {index < song.singer.length - 1 && (
