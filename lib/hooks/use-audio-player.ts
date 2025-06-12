@@ -11,6 +11,12 @@ export const useAudioPlayer = () => {
   const [buffered, setBuffered] = useState(0);
   const preloadAudioRef = useRef<HTMLAudioElement | null>(null);
 
+  // 重试相关状态
+  const [retryCount, setRetryCount] = useState(0);
+  const [isRetrying, setIsRetrying] = useState(false);
+  const maxRetries = 3;
+  const retryTimeouts = useRef<NodeJS.Timeout[]>([]);
+
   // 从状态管理中获取播放器状态和方法
   const {
     currentSong,
@@ -38,13 +44,82 @@ export const useAudioPlayer = () => {
   );
 
   // 创建音频元素
-  const createAudioElement = useCallback((src: string): HTMLAudioElement => {
-    const audio = new Audio();
-    audio.src = src;
-    audio.preload = "metadata";
-    audio.crossOrigin = "anonymous"; // 支持跨域
-    return audio;
+  const createAudioElement = useCallback(
+    (src: string): HTMLAudioElement => {
+      const audio = new Audio();
+      audio.src = src;
+      audio.preload = "metadata";
+      audio.crossOrigin = "anonymous"; // 支持跨域
+
+      // 为音频元素添加唯一标识
+      const songId = currentSong?.mid || currentSong?.id;
+      if (songId) {
+        (audio as any)._songId = songId;
+      }
+      (audio as any)._createTime = Date.now();
+
+      return audio;
+    },
+    [currentSong]
+  );
+
+  // 清理重试定时器
+  const cleanupRetryTimeouts = useCallback(() => {
+    retryTimeouts.current.forEach((timeout) => clearTimeout(timeout));
+    retryTimeouts.current = [];
   }, []);
+
+  // 判断错误是否可以重试
+  const isRetryableError = useCallback((errorCode: string): boolean => {
+    return ["MEDIA_ERR_NETWORK", "MEDIA_ERR_DECODE", "PLAY_FAILED"].includes(
+      errorCode
+    );
+  }, []);
+
+  // 重试播放
+  const performRetry = useCallback(
+    async (attempt: number) => {
+      if (!currentSong?.url || attempt > maxRetries) {
+        console.error(`❌ 重试失败，已达到最大重试次数 (${maxRetries})`);
+        setIsRetrying(false);
+        return;
+      }
+
+      setIsRetrying(true);
+      const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000); // 指数退避，最大5秒
+
+      console.log(`🔄 第 ${attempt} 次重试播放 (${delay}ms后)...`);
+
+      const timeout = setTimeout(async () => {
+        try {
+          if (audioRef.current && currentSong.url) {
+            // 重新设置音频源
+            audioRef.current.src = currentSong.url;
+            audioRef.current.load();
+
+            // 如果之前在播放，尝试恢复播放
+            if (isPlaying) {
+              await audioRef.current.play();
+              console.log(`✅ 第 ${attempt} 次重试成功`);
+              setError(null);
+              setRetryCount(0);
+            }
+          }
+          setIsRetrying(false);
+        } catch (error) {
+          console.error(`❌ 第 ${attempt} 次重试失败:`, error);
+          if (attempt < maxRetries) {
+            performRetry(attempt + 1);
+          } else {
+            setIsRetrying(false);
+          }
+        }
+      }, delay);
+
+      retryTimeouts.current.push(timeout);
+    },
+    [currentSong, isPlaying, maxRetries]
+  );
 
   // 初始化音频元素
   useEffect(() => {
@@ -69,6 +144,11 @@ export const useAudioPlayer = () => {
       audioRef.current.removeEventListener("progress", handleProgress);
     }
 
+    // 重置重试状态
+    setRetryCount(0);
+    setIsRetrying(false);
+    cleanupRetryTimeouts();
+
     // 创建新的音频元素
     audioRef.current = createAudioElement(currentSong.url);
 
@@ -91,6 +171,7 @@ export const useAudioPlayer = () => {
         audioRef.current.pause();
         audioRef.current.src = "";
       }
+      cleanupRetryTimeouts();
     };
   }, [currentSong?.url]); // 移除volume依赖，避免音量变化时重新创建音频元素
 
@@ -133,6 +214,10 @@ export const useAudioPlayer = () => {
         };
         setError(playError);
         setStatus(PlayerStatus.ERROR);
+
+        // 确保播放状态设置为暂停
+        const { pause } = usePlayerStore.getState();
+        pause();
       });
     }
   }, [isPlaying, status, currentSong, currentTime]);
@@ -167,18 +252,32 @@ export const useAudioPlayer = () => {
       const audio = event.target as HTMLAudioElement;
       const error = audio.error;
 
-      // 检查错误是否来自当前播放的歌曲，如果不是则忽略（可能是旧的音频元素）
-      if (
-        currentSong &&
-        audio.src &&
-        !audio.src.includes(currentSong.mid || currentSong.id)
-      ) {
-        console.warn("🔄 忽略非当前歌曲的音频错误");
+      // 改进的错误识别逻辑：检查音频元素的标识和创建时间
+      const audioSongId = (audio as any)._songId;
+      const audioCreateTime = (audio as any)._createTime;
+      const currentIdentifier = currentSong?.mid || currentSong?.id;
+      const currentAudioCreateTime = (audioRef.current as any)?._createTime;
+
+      // 更准确的判断：检查songId匹配且是当前音频元素
+      const isCurrentAudio =
+        currentIdentifier &&
+        audioSongId === currentIdentifier &&
+        audioCreateTime === currentAudioCreateTime;
+
+      if (!isCurrentAudio) {
+        console.warn("🔄 忽略过期音频元素的错误:", {
+          audioSongId,
+          currentIdentifier,
+          audioCreateTime,
+          currentAudioCreateTime,
+          isCurrentAudio,
+        });
         return;
       }
 
       let errorMessage = "播放出错";
       let errorCode = "UNKNOWN_ERROR";
+      let shouldRetry = false;
 
       if (error) {
         switch (error.code) {
@@ -191,10 +290,12 @@ export const useAudioPlayer = () => {
           case MediaError.MEDIA_ERR_NETWORK:
             errorMessage = "网络错误";
             errorCode = "MEDIA_ERR_NETWORK";
+            shouldRetry = true;
             break;
           case MediaError.MEDIA_ERR_DECODE:
             errorMessage = "解码错误";
             errorCode = "MEDIA_ERR_DECODE";
+            shouldRetry = true;
             break;
           case MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED:
             errorMessage = "不支持的音频格式";
@@ -216,12 +317,33 @@ export const useAudioPlayer = () => {
         song: currentSong || undefined,
       };
 
+      console.error("⚠️ 音频播放错误:", {
+        error: playError,
+        audioElement: {
+          src: audio.src?.substring(0, 80) + "...",
+          readyState: audio.readyState,
+          networkState: audio.networkState,
+        },
+        currentSong: currentSong?.title,
+        shouldRetry,
+      });
+
+      // 设置错误状态
       setError(playError);
       setStatus(PlayerStatus.ERROR);
 
-      console.error("⚠️ 音频播放错误:", playError);
+      // 确保播放状态设置为暂停
+      const { pause } = usePlayerStore.getState();
+      pause();
+
+      // 如果可以重试且还没超过重试次数
+      if (shouldRetry && retryCount < maxRetries && !isRetrying) {
+        const nextRetryCount = retryCount + 1;
+        setRetryCount(nextRetryCount);
+        performRetry(nextRetryCount);
+      }
     },
-    [currentSong, status]
+    [currentSong, status, retryCount, isRetrying, performRetry, maxRetries]
   );
 
   const handleTimeUpdate = useCallback(() => {
@@ -253,8 +375,19 @@ export const useAudioPlayer = () => {
       };
       setError(playError);
       setStatus(PlayerStatus.ERROR);
+
+      // 确保播放状态设置为暂停
+      const { pause } = usePlayerStore.getState();
+      pause();
+
+      // 如果可以重试且还没超过重试次数
+      if (retryCount < maxRetries && !isRetrying) {
+        const nextRetryCount = retryCount + 1;
+        setRetryCount(nextRetryCount);
+        performRetry(nextRetryCount);
+      }
     },
-    [currentSong]
+    [currentSong, retryCount, maxRetries, isRetrying, performRetry]
   );
 
   // 播放控制方法
@@ -481,7 +614,7 @@ export const useAudioPlayer = () => {
     status,
     error,
     buffered,
-    isLoading: status === PlayerStatus.LOADING,
+    isLoading: status === PlayerStatus.LOADING || isRetrying,
     isPlaying: status === PlayerStatus.PLAYING,
     isPaused: status === PlayerStatus.PAUSED,
     hasError: status === PlayerStatus.ERROR,
@@ -500,6 +633,10 @@ export const useAudioPlayer = () => {
     retry: () => {
       setError(null);
       setStatus(PlayerStatus.IDLE);
+      setRetryCount(0);
+      setIsRetrying(false);
+      cleanupRetryTimeouts();
+
       if (currentSong?.url) {
         if (audioRef.current) {
           audioRef.current.src = currentSong.url;
@@ -507,5 +644,10 @@ export const useAudioPlayer = () => {
         }
       }
     },
+
+    // 重试状态
+    retryCount,
+    isRetrying,
+    maxRetries,
   };
 };
