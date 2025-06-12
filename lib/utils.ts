@@ -53,15 +53,17 @@ export function generateId(): string {
 }
 
 /**
- * 从QQ音乐专辑MID获取专辑封面URL
+ * 从音乐平台专辑MID获取专辑封面URL
  * @param albumMid 专辑MID
- * @param size 图片尺寸，默认300
- * @returns 专辑封面URL
+ * @param size 封面尺寸 (默认150)
+ * @returns 封面URL
  */
-export function getAlbumCoverUrl(albumMid: string, size: number = 300): string {
-  if (!albumMid) return "";
+export function getCoverUrl(albumMid: string, size: number = 150): string {
+  if (!albumMid) {
+    return "";
+  }
 
-  // QQ音乐官方封面格式
+  // 音乐平台官方封面格式
   // 1. 旧格式: https://y.gtimg.cn/music/photo_new/T002R300x300M000{albumMid}.jpg
   // 2. 新格式: https://y.qq.com/music/photo_new/T002R300x300M000{albumMid}.jpg
 
@@ -70,7 +72,7 @@ export function getAlbumCoverUrl(albumMid: string, size: number = 300): string {
 
   // 2023-2024年更新的格式
   const urls = [
-    // 格式1: QQ音乐当前主要使用的格式
+    // 格式1: 音乐平台当前主要使用的格式
     `https://y.qq.com/music/photo_new/T002R${size}x${size}M000${albumMid}.jpg`,
     // 格式2: 较早使用但仍然有效的CDN格式
     `https://y.gtimg.cn/music/photo_new/T002R${size}x${size}M000${albumMid}.jpg`,
@@ -229,11 +231,11 @@ export function extractAlbumIdFromUrl(url: string): string | null {
 }
 
 /**
- * 智能识别QQ音乐链接类型和ID
- * @param url QQ音乐链接
- * @returns 解析结果对象
+ * 智能识别音乐链接类型和ID
+ * @param url 音乐链接
+ * @returns 解析结果
  */
-export function parseQQMusicLink(url: string): {
+export function parseMusicLink(url: string): {
   success: boolean;
   type?: "song" | "album" | "playlist";
   id?: string;
@@ -297,7 +299,7 @@ export function parseQQMusicLink(url: string): {
  * @param url 需要解析的链接
  * @returns 解析结果Promise
  */
-export async function parseQQMusicLinkServer(url: string): Promise<{
+export async function parseMusicLinkServer(url: string): Promise<{
   success: boolean;
   type?: "song" | "album" | "playlist";
   id?: string;

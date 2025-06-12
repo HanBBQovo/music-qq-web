@@ -57,8 +57,8 @@ export const useSettingsStore = create<SettingsState>()(
 
         try {
           // 同时保存到localStorage，供API客户端使用
-          localStorage.setItem("qqmusic_cookie", cookie);
-          console.log("[设置Store] localStorage已保存qqmusic_cookie");
+          localStorage.setItem("music_cookie", cookie);
+          console.log("[设置Store] localStorage已保存music_cookie");
 
           // 更新zustand store状态
           set({ cookie });
@@ -89,7 +89,7 @@ export const useSettingsStore = create<SettingsState>()(
       resetSettings: () => {
         try {
           localStorage.removeItem("settings-store");
-          localStorage.removeItem("qqmusic_cookie");
+          localStorage.removeItem("music_cookie");
           set({
             defaultQuality: "320",
             enableQualityFallback: false,
@@ -120,7 +120,7 @@ export const useSettingsStore = create<SettingsState>()(
 
           if (rehydratedState && rehydratedState.cookie) {
             try {
-              localStorage.setItem("qqmusic_cookie", rehydratedState.cookie);
+              localStorage.setItem("music_cookie", rehydratedState.cookie);
               console.log("[设置Store] 恢复时同步cookie到localStorage成功");
             } catch (error) {
               console.error("[设置Store] 恢复时同步cookie失败:", error);

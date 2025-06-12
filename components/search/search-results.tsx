@@ -320,7 +320,7 @@ export function SearchResults() {
               正在搜索&quot;{query}&quot;...
             </p>
             <p className="text-sm text-muted-foreground mt-2">
-              从QQ音乐获取数据中
+              从音乐平台获取数据中
             </p>
           </CardContent>
         </Card>

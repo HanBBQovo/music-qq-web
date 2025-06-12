@@ -1,14 +1,14 @@
 // 音乐歌曲类型定义
 export interface Song {
   id: string;
-  mid?: string; // QQ音乐的歌曲MID
+  mid?: string; // 音乐平台的歌曲MID
   title: string;
   artist: string;
-  album?: string;
+  album: string;
   cover?: string;
-  duration?: number;
+  duration: number;
   url?: string;
-  source: string; // QQ音乐来源标识
+  source: string; // 音乐来源标识
   quality?: string; // 音质设置
   error?: string; // 错误信息
 }

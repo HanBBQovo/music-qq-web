@@ -32,14 +32,14 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import {
-  parseQQMusicLink,
-  parseQQMusicLinkServer,
+  parseMusicLink,
+  parseMusicLinkServer,
   generateRedirectUrl,
 } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 
 const linkParseSchema = z.object({
-  url: z.string().min(1, "请输入QQ音乐链接"),
+  url: z.string().min(1, "请输入音乐平台链接"),
 });
 
 type LinkParseValues = z.infer<typeof linkParseSchema>;
@@ -111,7 +111,7 @@ export function LinkParser() {
 
     try {
       // 先尝试前端解析
-      const frontendResult = parseQQMusicLink(data.url);
+      const frontendResult = parseMusicLink(data.url);
       console.log("前端解析结果:", frontendResult);
 
       if (frontendResult.success && frontendResult.id) {
@@ -123,7 +123,7 @@ export function LinkParser() {
       // 如果前端解析失败，调用后端API
       if (frontendResult.needServerParsing || !frontendResult.success) {
         toast.info("正在解析链接...");
-        const serverResult = await parseQQMusicLinkServer(data.url);
+        const serverResult = await parseMusicLinkServer(data.url);
         console.log("后端解析结果:", serverResult);
 
         if (serverResult.success) {
@@ -175,7 +175,7 @@ export function LinkParser() {
                       <LinkIcon className="h-5 w-5" />
                     </div>
                     <Input
-                      placeholder="粘贴QQ音乐链接..."
+                      placeholder="粘贴音乐平台链接..."
                       {...field}
                       disabled={isParsingLink}
                       className="pl-11 h-12 text-base border-2 transition-colors focus-visible:ring-0 focus-visible:border-primary pr-10"
@@ -218,7 +218,7 @@ export function LinkParser() {
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent side="bottom">
-                  <p>解析QQ音乐链接</p>
+                  <p>解析音乐链接</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -320,7 +320,7 @@ export function LinkParser() {
 
       {/* 支持的链接格式提示 */}
       <div className="text-xs text-muted-foreground space-y-2">
-        <div className="font-medium">支持的QQ音乐链接格式：</div>
+        <div className="font-medium">支持的音乐平台链接格式：</div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-1">
           <div>• 歌曲：y.qq.com/n/ryqq/songDetail/...</div>
           <div>• 专辑：y.qq.com/n/ryqq/albumDetail/...</div>

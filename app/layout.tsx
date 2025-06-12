@@ -12,8 +12,8 @@ import { FloatingDownloadButton } from "@/components/download/floating-download-
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "QQ 音乐 Web 版",
-  description: "基于 Next.js 的在线音乐播放器",
+  title: "MusicHub - 音乐中心",
+  description: "基于 Next.js 的现代音乐播放和下载工具",
 };
 
 export default function RootLayout({

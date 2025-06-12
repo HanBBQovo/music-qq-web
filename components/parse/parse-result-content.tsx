@@ -584,7 +584,7 @@ export function ParseResultContent({ parseId }: ParseResultContentProps) {
             <div className="space-y-1">
               <p className="text-sm font-medium text-orange-800">下载说明</p>
               <p className="text-sm text-orange-700">
-                解析出的歌曲会通过搜索匹配QQ音乐库中的歌曲进行下载。选择要下载的歌曲后点击"下载选中"按钮即可开始批量下载。下载音质为：
+                解析出的歌曲会通过搜索匹配音乐库中的歌曲进行下载。选择要下载的歌曲后点击"下载选中"按钮即可开始批量下载。下载音质为：
                 {getQualityDisplayName(defaultQuality)}
               </p>
             </div>

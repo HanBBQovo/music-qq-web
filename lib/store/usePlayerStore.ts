@@ -657,7 +657,7 @@ if (typeof window !== "undefined") {
           const response = await fetch(streamUrl, {
             method: "HEAD",
             headers: {
-              "x-qq-cookie": localStorage.getItem("qqmusic_cookie") || "",
+              "x-qq-cookie": localStorage.getItem("music_cookie") || "",
               Range: "bytes=0-1023",
               "User-Agent":
                 "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",

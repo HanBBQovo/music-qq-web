@@ -39,7 +39,7 @@ const apiClient = axios.create({
 apiClient.interceptors.request.use(
   (config) => {
     // 从localStorage获取Cookie，使用自定义头传递（浏览器不允许直接设置Cookie头）
-    const cookie = localStorage.getItem("qqmusic_cookie");
+    const cookie = localStorage.getItem("music_cookie");
     if (cookie && config.headers) {
       config.headers[HTTP_HEADERS.QQ_COOKIE] = cookie;
     }

@@ -41,7 +41,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { useSearchStore } from "@/lib/store";
-import { parseQQMusicLinkServer } from "@/lib/utils";
+import { parseMusicLinkServer } from "@/lib/utils";
 
 const searchTypes = [
   {
@@ -126,7 +126,7 @@ export function SearchForm() {
       // 如果是链接解析类型，进行特殊处理
       if (data.type === "link") {
         // 调用链接解析API
-        const parseResult = await parseQQMusicLinkServer(data.query);
+        const parseResult = await parseMusicLinkServer(data.query);
 
         if (parseResult.success && parseResult.type) {
           // 如果有歌单数据，存储到localStorage并跳转到解析结果页面
@@ -258,7 +258,7 @@ export function SearchForm() {
                     <Input
                       placeholder={
                         selectedType === "link"
-                          ? "粘贴QQ音乐链接..."
+                          ? "粘贴音乐平台链接..."
                           : `输入${
                               currentType?.label || ""
                             }名称、歌手、关键词...`
@@ -312,7 +312,7 @@ export function SearchForm() {
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="bottom">
-                <p>搜索QQ音乐资源</p>
+                <p>搜索音乐资源</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -345,7 +345,7 @@ export function SearchForm() {
             </div>
             <p className="text-xs text-muted-foreground/80 leading-relaxed">
               💡
-              支持歌曲名、歌手名、专辑名搜索，也可以粘贴QQ音乐分享链接直接解析
+              支持歌曲名、歌手名、专辑名搜索，也可以粘贴音乐平台分享链接直接解析
             </p>
           </div>
         )}

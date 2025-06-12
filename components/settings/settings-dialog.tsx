@@ -38,6 +38,12 @@ import { toast } from "sonner";
 import useSettingsStore from "@/lib/store/useSettingsStore";
 import { useDownloadStore } from "@/lib/store";
 import type { AudioQuality } from "@/lib/api/types";
+import {
+  FormField,
+  FormItem,
+  FormControl,
+  FormDescription,
+} from "@/components/ui/form";
 
 interface SettingsDialogProps {
   open?: boolean;
@@ -133,7 +139,7 @@ export function SettingsDialog({
 
     // 组件挂载后，从localStorage直接读取cookie值
     if (typeof window !== "undefined") {
-      const storedCookie = localStorage.getItem("qqmusic_cookie") || "";
+      const storedCookie = localStorage.getItem("music_cookie") || "";
       console.log("[设置弹框] 从localStorage读取cookie:", {
         cookieLength: storedCookie.length,
         cookiePreview: storedCookie.substring(0, 50) + "...",
@@ -455,13 +461,13 @@ export function SettingsDialog({
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 mb-3">
                     <Cookie className="h-4 w-4 text-primary" />
-                    <h4 className="text-sm font-medium">QQ音乐Cookie设置</h4>
+                    <h4 className="text-sm font-medium">平台Cookie设置</h4>
                   </div>
 
                   <div className="space-y-3">
                     <Textarea
                       id="cookie-input"
-                      placeholder="请粘贴QQ音乐的Cookie值..."
+                      placeholder="请粘贴音乐平台的Cookie值..."
                       value={cookieValue}
                       onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
                         setCookieValue(e.target.value)
@@ -471,7 +477,7 @@ export function SettingsDialog({
                     />
                     <p className="text-xs text-muted-foreground">
                       💡
-                      提供Cookie可以下载VIP歌曲和更高音质。请从QQ音乐网页版的开发者工具中获取Cookie。
+                      提供Cookie可以下载VIP歌曲和更高音质。请从音乐平台网页版的开发者工具中获取Cookie。
                     </p>
                   </div>
 

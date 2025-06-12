@@ -11,7 +11,7 @@ export function Footer() {
           {/* 底部版权信息 */}
           <div className=" flex flex-col sm:flex-row items-center justify-between gap-4">
             <p className="text-xs text-muted-foreground text-center sm:text-left">
-              © 2025 QQ音乐下载播放器
+              © 2025 MusicHub
             </p>
 
             <div className="flex items-center gap-4 text-xs text-muted-foreground">

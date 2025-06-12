@@ -114,7 +114,7 @@ async function prefetchFileSize(
 ): Promise<number | null> {
   try {
     // 获取Cookie
-    const cookie = localStorage.getItem("qqmusic_cookie") || "";
+    const cookie = localStorage.getItem("music_cookie") || "";
 
     // 检查用户是否启用了元数据处理
     const settings = useSettingsStore.getState();
@@ -1198,7 +1198,7 @@ async function downloadSong(task: DownloadTask): Promise<void> {
     const response = await musicApi.getSongUrl({
       mid: task.songMid,
       quality: task.quality,
-      cookie: localStorage.getItem("qqmusic_cookie") || "",
+      cookie: localStorage.getItem("music_cookie") || "",
       enableFallback: useSettingsStore.getState().enableQualityFallback,
     });
 
@@ -1272,7 +1272,7 @@ async function downloadSong(task: DownloadTask): Promise<void> {
     const finalUrl = new URL(streamUrl);
 
     // 使用fetch API下载歌曲，添加Cookie头
-    const storedCookie = localStorage.getItem("qqmusic_cookie") || "";
+    const storedCookie = localStorage.getItem("music_cookie") || "";
 
     // 获取当前任务的已下载数据
     const downloadState = useDownloadStore.getState();

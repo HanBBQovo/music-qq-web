@@ -1,6 +1,6 @@
 /**
  * 音频URL获取工具
- * 对接真实的QQ音乐流式播放API
+ * 对接真实的音乐流式播放API
  */
 
 import type { Song } from "../types/music";
@@ -48,11 +48,11 @@ function buildApiUrl(endpoint: string): string {
 }
 
 /**
- * 获取QQ音乐Cookie
+ * 获取音乐平台Cookie
  */
 export function getQQCookie(): string {
   if (typeof window !== "undefined") {
-    return localStorage.getItem("qqmusic_cookie") || "";
+    return localStorage.getItem("music_cookie") || "";
   }
   return "";
 }
@@ -73,17 +73,17 @@ export async function getAudioUrl(
   }
 
   try {
-    // 获取歌曲的MID，优先使用mid字段，确保是QQ音乐MID格式
+    // 获取歌曲的MID，优先使用mid字段，确保是音乐MID格式
     let mid = song.mid || song.id || "";
     if (!mid) {
       throw new Error("歌曲MID不能为空");
     }
 
-    // 验证MID格式：QQ音乐MID通常是字母数字组合，如 '003a2DsM1zYZd3'
-    // 如果是纯数字，可能不是正确的QQ音乐MID
+    // 验证MID格式：音乐MID通常是字母数字组合，如 '003a2DsM1zYZd3'
+    // 如果是纯数字，可能不是正确的音乐MID
     if (/^\d+$/.test(mid)) {
       console.warn(
-        `⚠️ 检测到疑似数字ID而非QQ音乐MID: ${mid}，歌曲：${song.title}`
+        `⚠️ 检测到疑似数字ID而非音乐MID: ${mid}，歌曲：${song.title}`
       );
       // 如果song.mid存在且不是纯数字，优先使用
       if (song.mid && !/^\d+$/.test(song.mid)) {
@@ -93,15 +93,15 @@ export async function getAudioUrl(
         mid = song.id;
         console.log(`✅ 使用ID字段作为MID: ${mid}`);
       } else {
-        console.error(`❌ 无法找到有效的QQ音乐MID，歌曲：${song.title}`);
-        throw new Error(`无效的QQ音乐MID格式: ${mid}`);
+        console.error(`❌ 无法找到有效的音乐MID，歌曲：${song.title}`);
+        throw new Error(`无效的音乐MID格式: ${mid}`);
       }
     }
 
-    // 获取QQ音乐Cookie
+    // 获取音乐平台Cookie
     const cookie = getQQCookie();
     if (!cookie) {
-      console.warn("⚠️ 未配置QQ音乐Cookie，可能无法正常播放");
+      console.warn("⚠️ 未配置音乐平台Cookie，可能无法正常播放");
     }
 
     // 构建流式播放API URL
@@ -247,7 +247,7 @@ export async function getPlayInfo(song: Song): Promise<any> {
       } else if (song.id && !/^\d+$/.test(song.id)) {
         mid = song.id;
       } else {
-        throw new Error(`无效的QQ音乐MID格式: ${mid}`);
+        throw new Error(`无效的音乐MID格式: ${mid}`);
       }
     }
 
@@ -435,7 +435,7 @@ export async function getPlayStats(mid?: string): Promise<any> {
 export async function getSupportedQualities(): Promise<
   Array<{ key: string; label: string }>
 > {
-  // 根据QQ音乐API支持的音质返回选项
+  // 根据音乐API支持的音质返回选项
   return getDefaultQualities();
 }
 
@@ -452,12 +452,12 @@ function getDefaultQualities() {
 }
 
 /**
- * 设置QQ音乐Cookie
- * @param cookie QQ音乐Cookie
+ * 设置音乐平台Cookie
+ * @param cookie 音乐平台Cookie
  */
 export function setQQCookie(cookie: string) {
   if (typeof window !== "undefined") {
-    localStorage.setItem("qqmusic_cookie", cookie);
+    localStorage.setItem("music_cookie", cookie);
   }
 }
 

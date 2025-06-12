@@ -57,10 +57,10 @@ export default function HomePage() {
             variants={fadeInUp}
           >
             <h1 className="text-3xl md:text-4xl lg:text-6xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent leading-tight">
-              QQ音乐下载器
+              MusicHub
             </h1>
             <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed px-2">
-              搜索并下载高品质QQ音乐资源，支持歌曲、专辑、歌单和链接解析
+              搜索并下载高品质音乐资源，支持歌曲、专辑、歌单和链接解析
             </p>
             <div className="flex flex-wrap items-center justify-center gap-4 md:gap-6 mt-4 md:mt-6">
               <div className="flex items-center gap-2 text-xs md:text-sm text-muted-foreground">
@@ -97,13 +97,13 @@ export default function HomePage() {
                       音乐搜索与链接解析
                     </CardTitle>
                     <CardDescription className="text-sm md:text-base mt-1">
-                      输入关键词搜索或粘贴QQ音乐链接解析
+                      输入关键词搜索或粘贴音乐平台链接解析
                     </CardDescription>
                   </div>
                 </div>
                 <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-sm font-medium text-primary">
                   <MusicIcon className="h-4 w-4" />
-                  支持QQ音乐资源
+                  多平台音乐资源
                 </div>
               </div>
             </CardHeader>
@@ -189,7 +189,7 @@ export default function HomePage() {
                 </CardHeader>
                 <CardContent>
                   <p className="text-muted-foreground text-sm md:text-base">
-                    精准定位您想要的音乐资源，支持歌手名、专辑名、歌曲名的组合搜索，以及QQ音乐分享链接解析
+                    精准定位您想要的音乐资源，支持歌手名、专辑名、歌曲名的组合搜索，以及音乐平台分享链接解析
                   </p>
                 </CardContent>
               </Card>

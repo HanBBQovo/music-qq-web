@@ -55,7 +55,7 @@ export function MainNav() {
               <MusicIcon className="h-6 w-6 text-white" />
             </div>
             <span className="hidden font-bold text-lg inline-block bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-              QQ音乐下载
+              MusicHub
             </span>
           </Link>
 
@@ -112,7 +112,7 @@ export function MainNav() {
                             <MusicIcon className="h-5 w-5 text-white" />
                           </div>
                           <SheetTitle className="font-bold text-lg bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-                            QQ音乐下载器
+                            MusicHub
                           </SheetTitle>
                         </div>
                         <Button

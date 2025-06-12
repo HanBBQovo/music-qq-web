@@ -3,9 +3,11 @@
  * 统一管理项目中使用的HTTP头名称，避免命名不一致性
  */
 
-// QQ音乐认证相关
+// HTTP头常量定义文件
+
+// 音乐平台认证相关
 export const HTTP_HEADERS = {
-  // QQ音乐Cookie头（统一使用小写格式）
+  // 音乐平台Cookie头（统一使用小写格式）
   QQ_COOKIE: "x-qq-cookie",
 
   // 其他常用头
@@ -15,6 +17,7 @@ export const HTTP_HEADERS = {
   ACCEPT_RANGES: "Accept-Ranges",
   CONTENT_RANGE: "Content-Range",
   CONTENT_LENGTH: "Content-Length",
+  QQ_REFERER: "x-qq-referer",
 } as const;
 
 // 内容类型常量
