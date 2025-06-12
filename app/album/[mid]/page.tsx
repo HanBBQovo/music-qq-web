@@ -534,7 +534,7 @@ export default function AlbumDetailPage() {
           {album.songs && album.songs.length > 0 ? (
             <div className="max-w-full">
               <div className="overflow-x-auto border-b">
-                <Table className="table-fixed w-full">
+                <Table className="w-full md:table-fixed">
                   <TableHeader className="bg-muted/30 sticky top-0 z-10">
                     <TableRow>
                       <TableHead className="w-10 text-center">
@@ -547,9 +547,9 @@ export default function AlbumDetailPage() {
                         />
                       </TableHead>
                       <TableHead className="w-12 text-center"></TableHead>
-                      <TableHead className="w-[30%]">歌曲</TableHead>
-                      <TableHead className="w-[20%]">歌手</TableHead>
-                      <TableHead className="w-[15%]">专辑</TableHead>
+                      <TableHead className="md:w-[30%]">歌曲</TableHead>
+                      <TableHead className="md:w-[20%]">歌手</TableHead>
+                      <TableHead className="md:w-[15%]">专辑</TableHead>
                       <TableHead className="w-16 text-center">时长</TableHead>
                       <TableHead className="w-16 text-center">大小</TableHead>
                       <TableHead className="w-20 text-center">操作</TableHead>
