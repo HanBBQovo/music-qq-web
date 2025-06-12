@@ -31,6 +31,7 @@ import {
   RotateCcw,
   ChevronUp,
   ChevronDown,
+  LoaderIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PlaylistPanel } from "./playlist-panel";
@@ -70,8 +71,8 @@ export function MiniPlayer() {
   const renderCountRef = useRef(0);
   renderCountRef.current += 1;
 
-  // 使用音频播放器hook，获取audioElement引用
-  const { seekTo, audioElement } = useAudioPlayer();
+  // 使用音频播放器hook，获取audioElement引用和loading状态
+  const { seekTo, audioElement, isLoading } = useAudioPlayer();
 
   const [localVolume, setLocalVolume] = useState(volume);
   const [isDragging, setIsDragging] = useState(false);
@@ -394,10 +395,13 @@ export function MiniPlayer() {
                     window.dispatchEvent(event);
                   }
                 }}
+                disabled={isLoading}
                 className="h-10 w-10 p-0"
-                title={isPlaying ? "暂停" : "播放"}
+                title={isLoading ? "正在加载..." : isPlaying ? "暂停" : "播放"}
               >
-                {isPlaying ? (
+                {isLoading ? (
+                  <LoaderIcon className="h-5 w-5 animate-spin" />
+                ) : isPlaying ? (
                   <Pause className="h-5 w-5" />
                 ) : (
                   <Play className="h-5 w-5" />
@@ -617,10 +621,15 @@ export function MiniPlayer() {
                       window.dispatchEvent(event);
                     }
                   }}
+                  disabled={isLoading}
                   className="h-10 w-10 p-0"
-                  title={isPlaying ? "暂停" : "播放"}
+                  title={
+                    isLoading ? "正在加载..." : isPlaying ? "暂停" : "播放"
+                  }
                 >
-                  {isPlaying ? (
+                  {isLoading ? (
+                    <LoaderIcon className="h-5 w-5 animate-spin" />
+                  ) : isPlaying ? (
                     <Pause className="h-5 w-5" />
                   ) : (
                     <Play className="h-5 w-5" />
