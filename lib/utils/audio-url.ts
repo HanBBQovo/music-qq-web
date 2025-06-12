@@ -98,36 +98,75 @@ export async function getAudioUrl(
       }
     }
 
-    // 获取音乐平台Cookie
-    const cookie = getQQCookie();
-    if (!cookie) {
-      console.warn("⚠️ 未配置音乐平台Cookie，可能无法正常播放");
+    // 获取Cookie或Cookie池设置
+    const settingsStr = localStorage.getItem("settings-store");
+    let useCookiePool = false;
+    let selectedCookieId = "";
+    let cookie = "";
+
+    if (settingsStr) {
+      try {
+        const parsedSettings = JSON.parse(settingsStr);
+        useCookiePool = parsedSettings.state?.useCookiePool || false;
+        selectedCookieId = useCookiePool
+          ? parsedSettings.state?.selectedCookieId || ""
+          : "";
+      } catch (error) {
+        console.error("解析设置失败:", error);
+      }
     }
 
+    // 只有在不使用Cookie池时才获取自定义Cookie
+    if (!useCookiePool) {
+      cookie = getQQCookie();
+    }
+
+    console.log("[音频URL] Cookie使用信息:", {
+      useCookiePool,
+      hasCookieId: !!selectedCookieId,
+      cookieId: selectedCookieId || "未设置",
+      hasCookie: !!cookie,
+    });
+
     // 构建流式播放API URL
-    const streamUrl = buildApiUrl(
+    let streamUrl = buildApiUrl(
       `/api/play/stream?mid=${encodeURIComponent(
         mid
       )}&quality=${quality}&autoFallback=true&redirect=true`
     );
+
+    // 如果使用Cookie池，添加cookie_id参数
+    if (useCookiePool && selectedCookieId) {
+      streamUrl += `&cookie_id=${encodeURIComponent(selectedCookieId)}`;
+      console.log(`[音频URL] 使用Cookie池ID请求: ${streamUrl}`);
+    }
 
     console.log(`🎵 正在获取《${song.title}》的音频流:`, {
       mid,
       originalSongId: song.id,
       originalSongMid: song.mid,
       quality,
+      useCookiePool,
+      hasCookieId: !!selectedCookieId,
       hasCookie: !!cookie,
       url: streamUrl,
     });
 
+    // 构建请求头
+    const headers: Record<string, string> = {
+      Range: "bytes=0-1023",
+      "User-Agent": USER_AGENTS.DESKTOP,
+    };
+
+    // 只有在不使用Cookie池时才添加cookie头
+    if (!useCookiePool && cookie) {
+      headers[HTTP_HEADERS.QQ_COOKIE] = cookie;
+    }
+
     // 验证流式播放URL是否可访问
     const response = await fetch(streamUrl, {
       method: "HEAD",
-      headers: {
-        [HTTP_HEADERS.QQ_COOKIE]: cookie,
-        Range: "bytes=0-1023",
-        "User-Agent": USER_AGENTS.DESKTOP,
-      },
+      headers: headers,
     });
 
     if (response.ok) {
@@ -251,17 +290,51 @@ export async function getPlayInfo(song: Song): Promise<any> {
       }
     }
 
-    const cookie = getQQCookie();
-    const response = await fetch(
-      buildApiUrl(`/api/play/info?mid=${encodeURIComponent(mid)}`),
-      {
-        method: "GET",
-        headers: {
-          [HTTP_HEADERS.QQ_COOKIE]: cookie,
-          "Content-Type": "application/json",
-        },
+    // 获取Cookie或Cookie池设置
+    const settingsStr = localStorage.getItem("settings-store");
+    let useCookiePool = false;
+    let selectedCookieId = "";
+    let cookie = "";
+
+    if (settingsStr) {
+      try {
+        const parsedSettings = JSON.parse(settingsStr);
+        useCookiePool = parsedSettings.state?.useCookiePool || false;
+        selectedCookieId = useCookiePool
+          ? parsedSettings.state?.selectedCookieId || ""
+          : "";
+      } catch (error) {
+        console.error("解析设置失败:", error);
       }
-    );
+    }
+
+    // 只有在不使用Cookie池时才获取自定义Cookie
+    if (!useCookiePool) {
+      cookie = getQQCookie();
+    }
+
+    // 构建API URL
+    let apiUrl = buildApiUrl(`/api/play/info?mid=${encodeURIComponent(mid)}`);
+
+    // 如果使用Cookie池，添加cookie_id参数
+    if (useCookiePool && selectedCookieId) {
+      apiUrl += `&cookie_id=${encodeURIComponent(selectedCookieId)}`;
+    }
+
+    // 构建请求头
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+
+    // 只有在不使用Cookie池时才添加cookie头
+    if (!useCookiePool && cookie) {
+      headers[HTTP_HEADERS.QQ_COOKIE] = cookie;
+    }
+
+    const response = await fetch(apiUrl, {
+      method: "GET",
+      headers: headers,
+    });
 
     if (!response.ok) {
       throw new Error(`API请求失败: ${response.status}`);
@@ -353,20 +426,61 @@ export function clearAudioUrlCache(): void {
  */
 export async function checkApiHealth(): Promise<boolean> {
   try {
-    const cookie = getQQCookie();
-    const response = await fetch(buildApiUrl("/api/play/stats"), {
+    // 获取Cookie或Cookie池设置
+    const settingsStr = localStorage.getItem("settings-store");
+    let useCookiePool = false;
+    let selectedCookieId = "";
+    let cookie = "";
+
+    if (settingsStr) {
+      try {
+        const parsedSettings = JSON.parse(settingsStr);
+        useCookiePool = parsedSettings.state?.useCookiePool || false;
+        selectedCookieId = useCookiePool
+          ? parsedSettings.state?.selectedCookieId || ""
+          : "";
+      } catch (error) {
+        console.error("解析设置失败:", error);
+      }
+    }
+
+    // 只有在不使用Cookie池时才获取自定义Cookie
+    if (!useCookiePool) {
+      cookie = getQQCookie();
+    }
+
+    // 构建API URL
+    let apiUrl = buildApiUrl("/api/play/stats");
+
+    // 如果使用Cookie池，添加cookie_id参数
+    if (useCookiePool && selectedCookieId) {
+      apiUrl += `?cookie_id=${encodeURIComponent(selectedCookieId)}`;
+    }
+
+    // 构建请求头
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+
+    // 只有在不使用Cookie池时才添加cookie头
+    if (!useCookiePool && cookie) {
+      headers[HTTP_HEADERS.QQ_COOKIE] = cookie;
+    }
+
+    const response = await fetch(apiUrl, {
       method: "GET",
-      headers: {
-        [HTTP_HEADERS.QQ_COOKIE]: cookie,
-        "Content-Type": "application/json",
-      },
+      headers: headers,
     });
+
     console.log("🔍 API健康检查:", {
       status: response.status,
       ok: response.ok,
+      useCookiePool: useCookiePool,
+      hasCookieId: !!selectedCookieId,
       hasCookie: !!cookie,
-      url: buildApiUrl("/api/play/stats"),
+      url: apiUrl,
     });
+
     return response.ok;
   } catch (error) {
     console.warn("⚠️ 后端API服务不可用:", error);
@@ -396,19 +510,57 @@ export async function validateAudioUrl(url: string): Promise<boolean> {
  */
 export async function getPlayStats(mid?: string): Promise<any> {
   try {
-    const endpoint = mid
+    // 获取Cookie或Cookie池设置
+    const settingsStr = localStorage.getItem("settings-store");
+    let useCookiePool = false;
+    let selectedCookieId = "";
+    let cookie = "";
+
+    if (settingsStr) {
+      try {
+        const parsedSettings = JSON.parse(settingsStr);
+        useCookiePool = parsedSettings.state?.useCookiePool || false;
+        selectedCookieId = useCookiePool
+          ? parsedSettings.state?.selectedCookieId || ""
+          : "";
+      } catch (error) {
+        console.error("解析设置失败:", error);
+      }
+    }
+
+    // 只有在不使用Cookie池时才获取自定义Cookie
+    if (!useCookiePool) {
+      cookie = getQQCookie();
+    }
+
+    // 基础endpoint
+    const baseEndpoint = mid
       ? `/api/play/stats/${encodeURIComponent(mid)}`
       : `/api/play/stats`;
 
-    const url = buildApiUrl(endpoint);
+    // 构建API URL
+    let url = buildApiUrl(baseEndpoint);
 
-    const cookie = getQQCookie();
+    // 如果使用Cookie池，添加cookie_id参数
+    if (useCookiePool && selectedCookieId) {
+      url += `${url.includes("?") ? "&" : "?"}cookie_id=${encodeURIComponent(
+        selectedCookieId
+      )}`;
+    }
+
+    // 构建请求头
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+
+    // 只有在不使用Cookie池时才添加cookie头
+    if (!useCookiePool && cookie) {
+      headers[HTTP_HEADERS.QQ_COOKIE] = cookie;
+    }
+
     const response = await fetch(url, {
       method: "GET",
-      headers: {
-        [HTTP_HEADERS.QQ_COOKIE]: cookie,
-        "Content-Type": "application/json",
-      },
+      headers: headers,
     });
 
     if (!response.ok) {

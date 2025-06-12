@@ -160,7 +160,7 @@ export const useSearchStore = create<SearchState>()(
             };
 
             // 如果是歌单搜索，同时缓存歌单详情
-            let newPlaylistDetailCache = { ...state.playlistDetailCache };
+            const newPlaylistDetailCache = { ...state.playlistDetailCache };
             if (response.data.type === "playlist") {
               response.data.playlists.forEach((playlist) => {
                 newPlaylistDetailCache[playlist.id.toString()] = {
@@ -243,6 +243,7 @@ export const useSearchStore = create<SearchState>()(
           page: 1,
           pageSize: 20,
           type: "song",
+          cookie_id: "",
         },
         searchResult: null,
         page: 1,
@@ -478,6 +479,7 @@ export const useSearchStore = create<SearchState>()(
               page: 1,
               pageSize: 20,
               type: "song",
+              cookie_id: "",
             },
             searchResult: null,
             page: 1,

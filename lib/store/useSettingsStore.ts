@@ -15,6 +15,13 @@ interface SettingsState {
   cookie: string;
   setCookie: (cookie: string) => void;
 
+  // Cookie池设置
+  useCookiePool: boolean;
+  setUseCookiePool: (enabled: boolean) => void;
+
+  selectedCookieId: string;
+  setSelectedCookieId: (id: string) => void;
+
   // 元数据设置
   autoAddMetadata: boolean;
   setAutoAddMetadata: (enabled: boolean) => void;
@@ -68,6 +75,27 @@ export const useSettingsStore = create<SettingsState>()(
         }
       },
 
+      // Cookie池设置
+      useCookiePool: false,
+      setUseCookiePool: (enabled: boolean) => {
+        // 当启用Cookie池时，自动关闭自定义Cookie使用
+        if (enabled) {
+          localStorage.removeItem("music_cookie");
+        } else {
+          // 当禁用Cookie池且存在自定义Cookie时，恢复自定义Cookie
+          set((state) => {
+            if (state.cookie) {
+              localStorage.setItem("music_cookie", state.cookie);
+            }
+            return {};
+          });
+        }
+        set({ useCookiePool: enabled });
+      },
+
+      selectedCookieId: "",
+      setSelectedCookieId: (id: string) => set({ selectedCookieId: id }),
+
       // 元数据设置
       autoAddMetadata: true,
       setAutoAddMetadata: (enabled: boolean) =>
@@ -94,6 +122,8 @@ export const useSettingsStore = create<SettingsState>()(
             defaultQuality: "320",
             enableQualityFallback: false,
             cookie: "",
+            useCookiePool: false,
+            selectedCookieId: "",
             autoAddMetadata: true,
             autoAddCover: true,
             downloadBehavior: "auto",
@@ -116,9 +146,14 @@ export const useSettingsStore = create<SettingsState>()(
             cookie: rehydratedState?.cookie?.substring(0, 50) + "..." || "无",
             cookieLength: rehydratedState?.cookie?.length || 0,
             defaultQuality: rehydratedState?.defaultQuality,
+            useCookiePool: rehydratedState?.useCookiePool || false,
           });
 
-          if (rehydratedState && rehydratedState.cookie) {
+          if (
+            rehydratedState &&
+            rehydratedState.cookie &&
+            !rehydratedState.useCookiePool
+          ) {
             try {
               localStorage.setItem("music_cookie", rehydratedState.cookie);
               console.log("[设置Store] 恢复时同步cookie到localStorage成功");
@@ -126,7 +161,7 @@ export const useSettingsStore = create<SettingsState>()(
               console.error("[设置Store] 恢复时同步cookie失败:", error);
             }
           } else {
-            console.log("[设置Store] 没有cookie需要恢复");
+            console.log("[设置Store] 没有cookie需要恢复或使用Cookie池");
           }
         };
       },

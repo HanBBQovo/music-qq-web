@@ -38,10 +38,39 @@ const apiClient = axios.create({
 // 请求拦截器
 apiClient.interceptors.request.use(
   (config) => {
-    // 从localStorage获取Cookie，使用自定义头传递（浏览器不允许直接设置Cookie头）
-    const cookie = localStorage.getItem("music_cookie");
-    if (cookie && config.headers) {
-      config.headers[HTTP_HEADERS.QQ_COOKIE] = cookie;
+    // 从localStorage获取设置，检查是否使用Cookie池
+    const settingsStr = localStorage.getItem("settings-store");
+    let useCookiePool = false;
+
+    if (settingsStr) {
+      try {
+        const settings = JSON.parse(settingsStr);
+        useCookiePool = settings.state?.useCookiePool || false;
+      } catch (e) {
+        console.error("[API请求] 解析设置失败:", e);
+      }
+    }
+
+    // 仅在不使用Cookie池时才添加Cookie头
+    if (!useCookiePool) {
+      // 从localStorage获取Cookie，使用自定义头传递（浏览器不允许直接设置Cookie头）
+      const cookie = localStorage.getItem("music_cookie");
+      if (cookie && config.headers) {
+        config.headers[HTTP_HEADERS.QQ_COOKIE] = cookie;
+      }
+
+      // 仅在开发环境记录详细日志
+      if (process.env.NODE_ENV === "development") {
+        console.log("[API请求] 使用自定义Cookie");
+        if (cookie) {
+          console.log(`[API请求] Cookie长度: ${cookie.length}`);
+        }
+      }
+    } else {
+      // 使用Cookie池模式，不添加Cookie头
+      if (process.env.NODE_ENV === "development") {
+        console.log("[API请求] 使用Cookie池模式，不添加Cookie头");
+      }
     }
 
     // 仅在开发环境记录详细日志
@@ -50,9 +79,6 @@ apiClient.interceptors.request.use(
         `[API请求] ${config.method?.toUpperCase()} ${config.url}`,
         config.params || config.data
       );
-      if (cookie) {
-        console.log(`[API请求] Cookie长度: ${cookie.length}`);
-      }
     }
     return config;
   },
@@ -149,6 +175,28 @@ export const musicApi = {
   search: async (params: SearchParams): Promise<SearchResponse> => {
     return requestWithRetry(async () => {
       try {
+        // 检查是否使用Cookie池
+        const settingsStr = localStorage.getItem("settings-store");
+        let useCookiePool = false;
+        let selectedCookieId = "";
+
+        if (settingsStr) {
+          try {
+            const settings = JSON.parse(settingsStr);
+            useCookiePool = settings.state?.useCookiePool || false;
+            selectedCookieId = useCookiePool
+              ? settings.state?.selectedCookieId || ""
+              : "";
+          } catch (e) {
+            console.error("[API客户端] 解析设置失败:", e);
+          }
+        }
+
+        // 如果使用Cookie池，添加cookie_id参数
+        if (useCookiePool && selectedCookieId) {
+          params.cookie_id = selectedCookieId;
+        }
+
         if (process.env.NODE_ENV === "development") {
           console.log("[搜索API] 请求参数:", params);
         }
@@ -174,14 +222,9 @@ export const musicApi = {
           searchResponse.code = 0;
         }
 
-        // 如果响应没有message字段，添加默认值
-        if (!searchResponse.message) {
-          searchResponse.message = "success";
-        }
-
         return searchResponse;
       } catch (error) {
-        console.error("搜索音乐失败:", error);
+        console.error("[搜索API] 搜索请求失败:", error);
         throw error;
       }
     });
@@ -193,6 +236,28 @@ export const musicApi = {
   ): Promise<SongDetailResponse> => {
     return requestWithRetry(async () => {
       try {
+        // 检查是否使用Cookie池
+        const settingsStr = localStorage.getItem("settings-store");
+        let useCookiePool = false;
+        let selectedCookieId = "";
+
+        if (settingsStr) {
+          try {
+            const settings = JSON.parse(settingsStr);
+            useCookiePool = settings.state?.useCookiePool || false;
+            selectedCookieId = useCookiePool
+              ? settings.state?.selectedCookieId || ""
+              : "";
+          } catch (e) {
+            console.error("[API客户端] 解析设置失败:", e);
+          }
+        }
+
+        // 如果使用Cookie池，添加cookie_id参数
+        if (useCookiePool && selectedCookieId) {
+          params.cookie_id = selectedCookieId;
+        }
+
         return await apiClient.get("/api/song/detail", { params });
       } catch (error) {
         console.error("获取歌曲详情失败:", error);
@@ -208,11 +273,49 @@ export const musicApi = {
    */
   getSongUrl: async (params: SongUrlParams): Promise<SongUrlResponse> => {
     try {
-      console.log("[API客户端] 获取歌曲URL:", {
+      // 检查是否使用Cookie池
+      const settingsStr = localStorage.getItem("settings-store");
+      let useCookiePool = false;
+      let selectedCookieId = "";
+
+      if (settingsStr) {
+        try {
+          const settings = JSON.parse(settingsStr);
+          useCookiePool = settings.state?.useCookiePool || false;
+          selectedCookieId = useCookiePool
+            ? settings.state?.selectedCookieId || ""
+            : "";
+        } catch (e) {
+          console.error("[API客户端] 解析设置失败:", e);
+        }
+      }
+
+      // 根据模式设置参数
+      let cookieParam = "";
+      let cookieIdParam = "";
+
+      if (useCookiePool) {
+        // Cookie池模式：使用cookie_id，不使用cookie
+        cookieIdParam = selectedCookieId || params.cookie_id || "";
+        cookieParam = ""; // 确保不发送cookie
+      } else {
+        // 自定义Cookie模式：使用cookie，不使用cookie_id
+        cookieParam =
+          params.cookie || localStorage.getItem("music_cookie") || "";
+        cookieIdParam = ""; // 确保不发送cookie_id
+      }
+
+      // 更详细的日志记录，特别是cookie_id参数
+      console.log("[API客户端] 获取歌曲URL详细参数:", {
         mid: params.mid,
-        quality: params.quality,
-        enableFallback: params.enableFallback,
-        hasCookie: !!params.cookie,
+        quality: params.quality || "320",
+        enableFallback: params.enableFallback || false,
+        useCookiePool: useCookiePool,
+        hasCookie: !!cookieParam,
+        cookieLength: cookieParam?.length || 0,
+        hasCookieId: !!cookieIdParam,
+        cookieId: cookieIdParam || "未指定", // 记录具体的cookie_id值
+        usePool: !!cookieIdParam, // 是否使用Cookie池
       });
 
       const response = await fetch(`${BASE_URL}/api/song/url`, {
@@ -223,7 +326,8 @@ export const musicApi = {
         body: JSON.stringify({
           mid: params.mid,
           quality: params.quality || "320",
-          cookie: params.cookie || "",
+          cookie: cookieParam,
+          cookie_id: cookieIdParam,
           enableFallback: params.enableFallback || false,
         }),
       });
@@ -239,6 +343,7 @@ export const musicApi = {
         actualQuality: data.data?.actualQuality,
         requestedQuality: data.data?.requestedQuality,
         formatMatches: data.data?.formatMatches,
+        usedCookieId: cookieIdParam || "未使用", // 记录使用的cookie_id
       });
 
       return data;
@@ -252,6 +357,28 @@ export const musicApi = {
   getLyric: async (params: LyricParams): Promise<LyricResponse> => {
     return requestWithRetry(async () => {
       try {
+        // 检查是否使用Cookie池
+        const settingsStr = localStorage.getItem("settings-store");
+        let useCookiePool = false;
+        let selectedCookieId = "";
+
+        if (settingsStr) {
+          try {
+            const settings = JSON.parse(settingsStr);
+            useCookiePool = settings.state?.useCookiePool || false;
+            selectedCookieId = useCookiePool
+              ? settings.state?.selectedCookieId || ""
+              : "";
+          } catch (e) {
+            console.error("[API客户端] 解析设置失败:", e);
+          }
+        }
+
+        // 如果使用Cookie池，添加cookie_id参数
+        if (useCookiePool && selectedCookieId) {
+          params.cookie_id = selectedCookieId;
+        }
+
         return await apiClient.get("/api/lyric", { params });
       } catch (error) {
         console.error("获取歌词失败:", error);
@@ -264,6 +391,28 @@ export const musicApi = {
   getAlbum: async (params: AlbumParams): Promise<AlbumResponse> => {
     return requestWithRetry(async () => {
       try {
+        // 检查是否使用Cookie池
+        const settingsStr = localStorage.getItem("settings-store");
+        let useCookiePool = false;
+        let selectedCookieId = "";
+
+        if (settingsStr) {
+          try {
+            const settings = JSON.parse(settingsStr);
+            useCookiePool = settings.state?.useCookiePool || false;
+            selectedCookieId = useCookiePool
+              ? settings.state?.selectedCookieId || ""
+              : "";
+          } catch (e) {
+            console.error("[API客户端] 解析设置失败:", e);
+          }
+        }
+
+        // 如果使用Cookie池，添加cookie_id参数
+        if (useCookiePool && selectedCookieId) {
+          params.cookie_id = selectedCookieId;
+        }
+
         return await apiClient.get("/api/album", { params });
       } catch (error) {
         console.error("获取专辑信息失败:", error);
@@ -276,6 +425,28 @@ export const musicApi = {
   getPlaylist: async (params: PlaylistParams): Promise<PlaylistResponse> => {
     return requestWithRetry(async () => {
       try {
+        // 检查是否使用Cookie池
+        const settingsStr = localStorage.getItem("settings-store");
+        let useCookiePool = false;
+        let selectedCookieId = "";
+
+        if (settingsStr) {
+          try {
+            const settings = JSON.parse(settingsStr);
+            useCookiePool = settings.state?.useCookiePool || false;
+            selectedCookieId = useCookiePool
+              ? settings.state?.selectedCookieId || ""
+              : "";
+          } catch (e) {
+            console.error("[API客户端] 解析设置失败:", e);
+          }
+        }
+
+        // 如果使用Cookie池，添加cookie_id参数
+        if (useCookiePool && selectedCookieId) {
+          params.cookie_id = selectedCookieId;
+        }
+
         return await apiClient.get("/api/playlist", { params });
       } catch (error) {
         console.error("获取歌单信息失败:", error);
@@ -331,7 +502,8 @@ export const musicApi = {
     songName?: string,
     artist?: string,
     albumMid?: string,
-    metadata: boolean = false
+    metadata: boolean = false,
+    cookieId?: string
   ): string => {
     // 检查BASE_URL是否为相对路径
     let baseUrl = BASE_URL;
@@ -377,6 +549,12 @@ export const musicApi = {
     if (albumMid) streamUrl.searchParams.append("albumMid", albumMid);
     streamUrl.searchParams.append("metadata", metadata ? "true" : "false");
     streamUrl.searchParams.append("redirect", "true");
+
+    // 如果提供了 cookie_id，添加到查询参数
+    if (cookieId) {
+      streamUrl.searchParams.append("cookie_id", cookieId);
+      console.log(`[API] 添加cookie_id参数: ${cookieId}`);
+    }
 
     // 打印调试信息
     console.log(

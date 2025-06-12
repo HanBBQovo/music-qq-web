@@ -227,6 +227,7 @@ export interface SearchParams {
   page?: number;
   pageSize?: number;
   type?: string;
+  cookie_id?: string;
 }
 
 // 搜索响应接口
@@ -240,6 +241,7 @@ export interface SearchResponse {
 export interface SongDetailParams {
   id?: string;
   mid?: string;
+  cookie_id?: string;
 }
 
 // 歌曲详情响应接口
@@ -254,6 +256,7 @@ export interface SongUrlParams {
   mid: string;
   quality?: AudioQuality;
   cookie?: string;
+  cookie_id?: string;
   enableFallback?: boolean;
 }
 
@@ -268,6 +271,7 @@ export interface SongUrlResponse {
 export interface LyricParams {
   id?: string;
   mid?: string;
+  cookie_id?: string;
 }
 
 // 歌词响应接口
@@ -281,6 +285,7 @@ export interface LyricResponse {
 export interface AlbumParams {
   id?: number;
   mid?: string;
+  cookie_id?: string;
 }
 
 // 专辑响应接口
@@ -294,6 +299,7 @@ export interface AlbumResponse {
 export interface PlaylistParams {
   id?: number | string;
   mid?: string;
+  cookie_id?: string;
 }
 
 // 歌单响应接口

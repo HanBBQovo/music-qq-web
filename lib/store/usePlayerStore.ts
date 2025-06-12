@@ -600,6 +600,29 @@ if (typeof window !== "undefined") {
           const mid = state.currentSong?.mid || state.currentSong?.id;
           if (!mid) return;
 
+          // 获取Cookie或Cookie池设置
+          const settings = localStorage.getItem("settings-store");
+          let useCookiePool = false;
+          let selectedCookieId = "";
+
+          if (settings) {
+            try {
+              const parsedSettings = JSON.parse(settings);
+              useCookiePool = parsedSettings.state?.useCookiePool || false;
+              selectedCookieId = useCookiePool
+                ? parsedSettings.state?.selectedCookieId || ""
+                : "";
+            } catch (error) {
+              console.error("解析设置失败:", error);
+            }
+          }
+
+          console.log("[播放器] Cookie使用信息:", {
+            useCookiePool,
+            hasCookieId: !!selectedCookieId,
+            cookieId: selectedCookieId || "未设置",
+          });
+
           // 使用与audio-url.ts相同的API路径构造逻辑
           const API_BASE_URL =
             process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
@@ -654,14 +677,30 @@ if (typeof window !== "undefined") {
             }
           }
 
+          // 在URL中添加cookie_id参数（如果使用Cookie池）
+          if (useCookiePool && selectedCookieId) {
+            streamUrl += `&cookie_id=${encodeURIComponent(selectedCookieId)}`;
+            console.log("[播放器] 使用Cookie池ID请求:", streamUrl);
+          }
+
+          // 构建请求头 - 只有在不使用Cookie池时才发送cookie头
+          const headers: Record<string, string> = {
+            Range: "bytes=0-1023",
+            "User-Agent":
+              "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+          };
+
+          // 只有在不使用Cookie池时才添加cookie头
+          if (!useCookiePool) {
+            const storedCookie = localStorage.getItem("music_cookie") || "";
+            if (storedCookie) {
+              headers["x-qq-cookie"] = storedCookie;
+            }
+          }
+
           const response = await fetch(streamUrl, {
             method: "HEAD",
-            headers: {
-              "x-qq-cookie": localStorage.getItem("music_cookie") || "",
-              Range: "bytes=0-1023",
-              "User-Agent":
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-            },
+            headers: headers,
           });
 
           if (response.ok) {

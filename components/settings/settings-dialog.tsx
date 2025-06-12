@@ -44,6 +44,7 @@ import {
   FormControl,
   FormDescription,
 } from "@/components/ui/form";
+import CookiePoolSettings from "./cookie-pool-settings";
 
 interface SettingsDialogProps {
   open?: boolean;
@@ -118,6 +119,7 @@ export function SettingsDialog({
     setDownloadBehavior,
     showSaveNotification,
     setShowSaveNotification,
+    useCookiePool,
   } = useSettingsStore();
 
   // 从下载store获取状态
@@ -461,6 +463,15 @@ export function SettingsDialog({
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 mb-3">
                     <Cookie className="h-4 w-4 text-primary" />
+                    <h4 className="text-sm font-medium">Cookie设置</h4>
+                  </div>
+
+                  <CookiePoolSettings />
+
+                  <Separator className="my-4" />
+
+                  <div className="flex items-center gap-2 mb-2">
+                    <Cookie className="h-4 w-4 text-primary" />
                     <h4 className="text-sm font-medium">平台Cookie设置</h4>
                   </div>
 
@@ -472,13 +483,25 @@ export function SettingsDialog({
                       onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
                         setCookieValue(e.target.value)
                       }
-                      rows={4}
-                      className="resize-none"
+                      rows={3}
+                      className={`resize-none ${
+                        useCookiePool
+                          ? "bg-muted cursor-not-allowed opacity-60"
+                          : ""
+                      }`}
+                      disabled={useCookiePool}
                     />
-                    <p className="text-xs text-muted-foreground">
-                      💡
-                      提供Cookie可以下载VIP歌曲和更高音质。请从音乐平台网页版的开发者工具中获取Cookie。
-                    </p>
+                    {useCookiePool ? (
+                      <p className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                        <X className="h-3 w-3" />
+                        已启用Cookie池，个人Cookie已禁用
+                      </p>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">
+                        💡
+                        提供Cookie可以下载VIP歌曲和更高音质。请从音乐平台网页版的开发者工具中获取Cookie。
+                      </p>
+                    )}
                   </div>
 
                   <div className="p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">

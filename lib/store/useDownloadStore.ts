@@ -113,11 +113,28 @@ async function prefetchFileSize(
   quality: AudioQuality
 ): Promise<number | null> {
   try {
-    // 获取Cookie
-    const cookie = localStorage.getItem("music_cookie") || "";
+    // 获取Cookie或Cookie池设置
+    const settings = useSettingsStore.getState();
+    const useCookiePool = settings.useCookiePool;
+    const cookie = useCookiePool
+      ? ""
+      : localStorage.getItem("music_cookie") || "";
+    const cookieId = useCookiePool ? settings.selectedCookieId : "";
+
+    // 记录详细的Cookie使用日志
+    console.log(`[预获取大小] Cookie使用详情:`, {
+      songMid: songMid,
+      quality: quality,
+      useCookiePool: useCookiePool, // 是否使用Cookie池
+      hasCookie: !!cookie, // 是否有自定义Cookie
+      cookieLength: cookie?.length || 0,
+      hasCookieId: !!cookieId, // 是否有Cookie ID
+      cookieId: cookieId || "未选择", // Cookie ID值
+      useCustomCookie: !useCookiePool && !!cookie, // 是否使用自定义Cookie
+      usePoolCookie: useCookiePool && !!cookieId, // 是否使用Cookie池中的Cookie
+    });
 
     // 检查用户是否启用了元数据处理
-    const settings = useSettingsStore.getState();
     const shouldAddMetadata = settings.autoAddMetadata || settings.autoAddCover;
 
     // 获取下载链接
@@ -125,6 +142,7 @@ async function prefetchFileSize(
       mid: songMid,
       quality: quality,
       cookie: cookie,
+      cookie_id: cookieId,
     });
 
     if (response.code !== 0 || !response.data?.url) {
@@ -231,15 +249,49 @@ function getQualityDisplayName(quality: string): string {
 // 后端健康检查函数
 async function checkBackendHealth() {
   try {
-    const response = await fetch(
-      process.env.NEXT_PUBLIC_API_URL + "/api/stream/health",
-      {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
+    // 获取Cookie或Cookie池设置
+    const settingsStr = localStorage.getItem("settings-store");
+    let useCookiePool = false;
+    let selectedCookieId = "";
+
+    if (settingsStr) {
+      try {
+        const settings = JSON.parse(settingsStr);
+        useCookiePool = settings.state?.useCookiePool || false;
+        selectedCookieId = useCookiePool
+          ? settings.state?.selectedCookieId || ""
+          : "";
+      } catch (e) {
+        console.error("[健康检查] 解析设置失败:", e);
       }
-    );
+    }
+
+    // 构建API URL
+    let apiUrl = process.env.NEXT_PUBLIC_API_URL + "/api/stream/health";
+
+    // 如果使用Cookie池且有selectedCookieId，添加到URL参数
+    if (useCookiePool && selectedCookieId) {
+      apiUrl += `?cookie_id=${encodeURIComponent(selectedCookieId)}`;
+      console.log(`[健康检查] 使用Cookie池ID: ${selectedCookieId}`);
+    }
+
+    // 构建请求头
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+
+    // 只有在不使用Cookie池时才添加Cookie头
+    if (!useCookiePool) {
+      const cookie = localStorage.getItem("music_cookie");
+      if (cookie) {
+        headers[HTTP_HEADERS.QQ_COOKIE] = cookie;
+      }
+    }
+
+    const response = await fetch(apiUrl, {
+      method: "GET",
+      headers: headers,
+    });
 
     if (response.ok) {
       const healthData = await response.json();
@@ -1194,12 +1246,36 @@ async function downloadSong(task: DownloadTask): Promise<void> {
       },
     }));
 
+    // 获取Cookie或Cookie池设置
+    const settings = useSettingsStore.getState();
+    const useCookiePool = settings.useCookiePool;
+    const cookie = useCookiePool
+      ? ""
+      : localStorage.getItem("music_cookie") || "";
+    const cookieId = useCookiePool ? settings.selectedCookieId : "";
+    const enableFallback = settings.enableQualityFallback;
+    const shouldAddMetadata = settings.autoAddMetadata || settings.autoAddCover;
+
+    // 记录详细的Cookie使用日志
+    console.log(`[下载管理器] Cookie使用详情:`, {
+      taskId: task.id,
+      songName: task.songName,
+      useCookiePool: useCookiePool, // 是否使用Cookie池
+      hasCookie: !!cookie, // 是否有自定义Cookie
+      cookieLength: cookie?.length || 0,
+      hasCookieId: !!cookieId, // 是否有Cookie ID
+      cookieId: cookieId || "未选择", // Cookie ID值
+      useCustomCookie: !useCookiePool && !!cookie, // 是否使用自定义Cookie
+      usePoolCookie: useCookiePool && !!cookieId, // 是否使用Cookie池中的Cookie
+    });
+
     // 获取歌曲URL
     const response = await musicApi.getSongUrl({
       mid: task.songMid,
       quality: task.quality,
-      cookie: localStorage.getItem("music_cookie") || "",
-      enableFallback: useSettingsStore.getState().enableQualityFallback,
+      cookie: cookie,
+      cookie_id: cookieId,
+      enableFallback: enableFallback,
     });
 
     if (response.code !== 0 || !response.data?.url) {
@@ -1254,10 +1330,6 @@ async function downloadSong(task: DownloadTask): Promise<void> {
       throw new Error(`获取到的下载链接格式无效: ${validSongUrl}`);
     }
 
-    // 获取设置
-    const settings = useSettingsStore.getState();
-    const shouldAddMetadata = settings.autoAddMetadata || settings.autoAddCover;
-
     // 开始下载歌曲
     const streamUrl = musicApi.getStreamUrl(
       validSongUrl,
@@ -1265,10 +1337,11 @@ async function downloadSong(task: DownloadTask): Promise<void> {
       task.songName,
       task.artist,
       task.albumMid,
-      shouldAddMetadata
+      shouldAddMetadata,
+      useCookiePool ? cookieId : undefined // 仅在使用Cookie池时传递cookie_id参数
     );
 
-    // 为URL对象添加redirect参数
+    // 为URL对象添加参数
     const finalUrl = new URL(streamUrl);
 
     // 使用fetch API下载歌曲，添加Cookie头
