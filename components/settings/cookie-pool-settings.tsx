@@ -1,14 +1,13 @@
 import React, { useState, useEffect } from "react";
 import {
-  Cookie,
-  PlusCircle,
-  Cloud,
   RefreshCw,
-  Info,
-  Check,
-  ShieldCheck,
   AlertCircle,
+  Check,
   Server,
+  ShieldCheck,
+  Info,
+  Cloud,
+  PlusCircle,
 } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -24,11 +23,11 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Separator } from "@/components/ui/separator";
 
 import useSettingsStore from "@/lib/store/useSettingsStore";
 import cookiePoolApi from "@/lib/api/cookie-pool-client";
 import { CookieStatsResponse, CookiePoolItem } from "@/lib/types/cookie-pool";
-import { Separator } from "@/components/ui/separator";
 
 const CookiePoolSettings: React.FC = () => {
   const {
@@ -48,14 +47,13 @@ const CookiePoolSettings: React.FC = () => {
   const [retrying, setRetrying] = useState(false);
   const [lastRetryTime, setLastRetryTime] = useState(0);
 
-  // 添加自动重试机制
+  // 自动重试机制
   useEffect(() => {
-    // 如果有API错误且最后重试时间超过10秒，自动重试
     if (apiError && Date.now() - lastRetryTime > 10000) {
       setLastRetryTime(Date.now());
       handleRetry();
     }
-  }, [apiError]);
+  }, [apiError, lastRetryTime]);
 
   // 处理重试
   const handleRetry = async () => {
@@ -64,14 +62,13 @@ const CookiePoolSettings: React.FC = () => {
       await loadCookieData();
       setApiError(null);
     } catch (error) {
-      // 重试仍然失败
       setApiError(error instanceof Error ? error.message : "API连接失败");
     } finally {
       setRetrying(false);
     }
   };
 
-  // 修改加载Cookie数据函数，增加错误处理
+  // 加载Cookie数据
   const loadCookieData = async () => {
     try {
       setLoading(true);
@@ -90,7 +87,7 @@ const CookiePoolSettings: React.FC = () => {
       if (listResponse.code === 0 && listResponse.data) {
         setCookies(listResponse.data.cookies || []);
 
-        // 如果未选择Cookie但列表有可用Cookie，自动选择第一个
+        // 自动选择逻辑
         if (
           useCookiePool &&
           !selectedCookieId &&
@@ -102,32 +99,7 @@ const CookiePoolSettings: React.FC = () => {
           );
           if (activeCookies.length > 0) {
             setSelectedCookieId(activeCookies[0].id);
-            toast.success("已自动选择可用的Cookie", {
-              description: "Cookie池连接成功",
-            });
-          }
-        } else if (
-          selectedCookieId &&
-          listResponse.data.cookies &&
-          !listResponse.data.cookies.some(
-            (c) => c.id === selectedCookieId && c.status === "active"
-          )
-        ) {
-          // 如果当前选择的Cookie不可用，尝试切换到其他可用Cookie
-          const activeCookies = listResponse.data.cookies.filter(
-            (c) => c.status === "active"
-          );
-          if (activeCookies.length > 0) {
-            toast.info("已自动切换到可用的Cookie", {
-              description: "您之前选择的Cookie已不可用",
-            });
-            setSelectedCookieId(activeCookies[0].id);
-          } else if (stats && stats.active_count === 0) {
-            // 如果没有可用的Cookie，清除选择并提示
-            setSelectedCookieId("");
-            toast.warning("当前没有可用的Cookie", {
-              description: "请稍后再试或提交新的Cookie",
-            });
+            toast.success("已自动选择可用的Cookie");
           }
         }
       } else {
@@ -136,10 +108,7 @@ const CookiePoolSettings: React.FC = () => {
     } catch (error) {
       console.error("获取Cookie池数据失败:", error);
       setApiError(error instanceof Error ? error.message : "API连接失败");
-      // 显示错误提示
-      toast.error("获取Cookie池数据失败", {
-        description: error instanceof Error ? error.message : "请检查网络连接",
-      });
+      toast.error("获取Cookie池数据失败");
     } finally {
       setLoading(false);
     }
@@ -149,19 +118,10 @@ const CookiePoolSettings: React.FC = () => {
   const handleTogglePool = (checked: boolean) => {
     setUseCookiePool(checked);
     if (checked) {
-      // 如果开启Cookie池，自动加载数据
       loadCookieData();
-      if (!apiError) {
-        // 如果开启Cookie池时没有错误，显示成功消息
-        toast.success("已启用Cookie池", {
-          description: "API请求将使用共享Cookie",
-        });
-      }
+      toast.success("已启用Cookie池");
     } else {
-      // 如果关闭Cookie池，显示提示信息
-      toast.info("已禁用Cookie池", {
-        description: "API请求将使用您的个人Cookie",
-      });
+      toast.info("已禁用Cookie池");
     }
   };
 
@@ -170,7 +130,7 @@ const CookiePoolSettings: React.FC = () => {
     if (useCookiePool) {
       loadCookieData();
     }
-  }, []); // 仅在组件挂载时加载，不依赖useCookiePool
+  }, []);
 
   // 提交Cookie到池
   const handleSubmitCookie = async () => {
@@ -184,28 +144,18 @@ const CookiePoolSettings: React.FC = () => {
       const response = await cookiePoolApi.submitCookie(newCookie);
 
       if (response.code === 0 && response.data) {
-        toast.success("Cookie提交成功", {
-          description: "您的Cookie已成功添加到Cookie池",
-        });
+        toast.success("Cookie提交成功");
         setNewCookie("");
-
-        // 如果用户已启用Cookie池，自动选择刚提交的Cookie
         if (useCookiePool) {
           setSelectedCookieId(response.data.cookie_id);
         }
-
-        // 重新加载统计信息
         loadCookieData();
       } else {
-        toast.error("提交失败", {
-          description: response.message,
-        });
+        toast.error("提交失败", { description: response.message });
       }
     } catch (error) {
       console.error("提交Cookie失败:", error);
-      toast.error("提交Cookie失败", {
-        description: "请检查网络连接",
-      });
+      toast.error("提交Cookie失败");
     } finally {
       setSubmitting(false);
     }
@@ -231,13 +181,37 @@ const CookiePoolSettings: React.FC = () => {
     }
   };
 
+  // 获取VIP等级样式（参考音质选择的VIP/SVIP样式）
+  const getVipBadge = (vipLevel: string) => {
+    const level = vipLevel.toUpperCase();
+
+    if (level.includes("SVIP") || level.includes("豪华")) {
+      return (
+        <span className="text-xs bg-gradient-to-r from-purple-500 to-pink-500 text-white px-2 py-0.5 rounded-full font-medium shadow-sm">
+          SVIP
+        </span>
+      );
+    } else if (level.includes("VIP") || level.includes("绿钻")) {
+      return (
+        <span className="text-xs bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200 px-2 py-0.5 rounded-full">
+          VIP
+        </span>
+      );
+    } else {
+      return (
+        <span className="text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded-full">
+          {vipLevel}
+        </span>
+      );
+    }
+  };
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
+      {/* Cookie池开关 */}
       <div className="flex items-center justify-between p-3 rounded-lg border">
         <div className="space-y-0.5">
-          <Label className="flex items-center gap-2 font-medium">
-            使用Cookie池
-          </Label>
+          <Label className="font-medium">使用Cookie池</Label>
           <p className="text-xs text-muted-foreground">
             启用后，将使用Cookie池中的Cookie进行API请求，而不是个人Cookie
           </p>
@@ -246,17 +220,20 @@ const CookiePoolSettings: React.FC = () => {
       </div>
 
       {useCookiePool && (
-        <div className="p-3 bg-slate-50 dark:bg-slate-900/20 rounded-lg border border-slate-200 dark:border-slate-800 space-y-4">
+        <div className="p-3 bg-muted/30 rounded-lg border space-y-4">
           {/* API错误提示 */}
           {apiError && !loading && (
-            <div className="p-2 bg-red-50 dark:bg-red-900/20 rounded border border-red-200 dark:border-red-800 mb-3">
+            <div className="p-2 bg-destructive/10 rounded border border-destructive/20">
               <div className="flex items-start gap-2">
-                <Server className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" />
-                <div className="flex-1">
-                  <p className="text-xs text-red-700 dark:text-red-400">
-                    API连接错误: {apiError}
+                <Server className="h-4 w-4 text-destructive mt-0.5 flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-destructive font-medium">
+                    API连接错误
                   </p>
-                  <div className="flex items-center gap-2 mt-1">
+                  <p className="text-xs text-muted-foreground truncate">
+                    {apiError}
+                  </p>
+                  <div className="flex flex-wrap items-center gap-2 mt-1">
                     <Button
                       variant="outline"
                       size="sm"
@@ -269,104 +246,101 @@ const CookiePoolSettings: React.FC = () => {
                           retrying ? "animate-spin" : ""
                         }`}
                       />
-                      {retrying ? "重试中..." : "立即重试"}
+                      {retrying ? "重试中..." : "重试"}
                     </Button>
-                    <p className="text-xs text-muted-foreground">
+                    <span className="text-xs text-muted-foreground">
                       {retrying ? "正在重新连接..." : "将在10秒后自动重试"}
-                    </p>
+                    </span>
                   </div>
                 </div>
               </div>
             </div>
           )}
 
+          {/* Cookie池状态 */}
           <div className="flex items-start justify-between">
-            <div className="space-y-1">
+            <div className="space-y-1 min-w-0 flex-1">
               <h5 className="text-sm font-medium">Cookie池状态</h5>
               {stats ? (
-                <div className="flex flex-col gap-2">
-                  <div className="flex items-center gap-2 text-xs">
+                <div className="space-y-2">
+                  <div className="flex flex-wrap items-center gap-3 text-xs">
                     <div className="flex items-center gap-1">
-                      <span
+                      <div
                         className={`w-2 h-2 rounded-full ${
                           stats.active_count > 0
                             ? "bg-green-500"
                             : "bg-gray-400"
                         }`}
-                      ></span>
+                      />
                       <span className="text-muted-foreground">
-                        总数:{" "}
-                        <span className="font-medium text-foreground">
-                          {stats.total_count}
-                        </span>
+                        总数: {stats.total_count}
                       </span>
                     </div>
                     <div className="flex items-center gap-1">
-                      <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                      <div className="w-2 h-2 rounded-full bg-green-500" />
                       <span className="text-muted-foreground">
-                        活跃:{" "}
-                        <span className="font-medium text-foreground">
-                          {stats.active_count}
-                        </span>
+                        活跃: {stats.active_count}
                       </span>
                     </div>
                     <div className="flex items-center gap-1">
-                      <span className="w-2 h-2 rounded-full bg-red-500"></span>
+                      <div className="w-2 h-2 rounded-full bg-red-500" />
                       <span className="text-muted-foreground">
-                        错误:{" "}
-                        <span className="font-medium text-foreground">
-                          {stats.error_count}
-                        </span>
+                        错误: {stats.error_count}
                       </span>
                     </div>
                   </div>
-                  {stats.active_count === 0 && (
-                    <Badge
-                      variant="outline"
-                      className="border-amber-500 text-amber-500 max-w-fit"
-                    >
-                      <AlertCircle className="h-3 w-3 mr-1" />
-                      无可用Cookie，请添加或稍后再试
-                    </Badge>
-                  )}
-                  {stats.active_count > 0 && (
-                    <Badge
-                      variant="outline"
-                      className="border-green-500 text-green-500 max-w-fit"
-                    >
-                      <Check className="h-3 w-3 mr-1" />
-                      Cookie池正常运行中
-                    </Badge>
-                  )}
+                  <Badge
+                    variant="outline"
+                    className={`text-xs max-w-fit ${
+                      stats.active_count === 0
+                        ? "border-amber-500 text-amber-600"
+                        : "border-green-500 text-green-600"
+                    }`}
+                  >
+                    {stats.active_count === 0 ? (
+                      <>
+                        <AlertCircle className="h-3 w-3 mr-1" />
+                        无可用Cookie
+                      </>
+                    ) : (
+                      <>
+                        <Check className="h-3 w-3 mr-1" />
+                        正常运行中
+                      </>
+                    )}
+                  </Badge>
                 </div>
               ) : loading ? (
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 animate-pulse">
-                    <div className="w-20 h-4 bg-muted rounded"></div>
-                    <div className="w-14 h-4 bg-muted rounded"></div>
-                    <div className="w-16 h-4 bg-muted rounded"></div>
+                    <Skeleton className="w-16 h-4" />
+                    <Skeleton className="w-12 h-4" />
+                    <Skeleton className="w-14 h-4" />
                   </div>
-                  <Badge variant="outline" className="animate-pulse max-w-fit">
+                  <Badge
+                    variant="outline"
+                    className="animate-pulse text-xs max-w-fit"
+                  >
                     <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
-                    正在加载状态...
+                    加载中...
                   </Badge>
                 </div>
               ) : (
                 <div className="space-y-2">
                   <p className="text-xs text-muted-foreground">
-                    无法获取Cookie池统计信息
+                    无法获取统计信息
                   </p>
                   <Badge
                     variant="outline"
-                    className="border-red-500 text-red-500 max-w-fit"
+                    className="border-red-500 text-red-600 text-xs max-w-fit"
                   >
                     <AlertCircle className="h-3 w-3 mr-1" />
-                    连接失败，请检查网络
+                    连接失败
                   </Badge>
                 </div>
               )}
             </div>
-            <div className="flex flex-col items-end gap-1">
+            <div className="flex flex-col items-end gap-1 ml-3">
               <Button
                 variant="outline"
                 size="sm"
@@ -374,14 +348,12 @@ const CookiePoolSettings: React.FC = () => {
                 disabled={loading}
               >
                 <RefreshCw
-                  className={`h-3.5 w-3.5 mr-1 ${
-                    loading ? "animate-spin" : ""
-                  }`}
+                  className={`h-3 w-3 mr-1 ${loading ? "animate-spin" : ""}`}
                 />
-                {loading ? "加载中" : "刷新"}
+                刷新
               </Button>
               <div className="flex items-center gap-1 text-xs">
-                <span
+                <div
                   className={`w-2 h-2 rounded-full ${
                     apiError
                       ? "bg-red-500"
@@ -389,96 +361,75 @@ const CookiePoolSettings: React.FC = () => {
                       ? "bg-amber-500"
                       : "bg-green-500"
                   }`}
-                ></span>
+                />
                 <span className="text-muted-foreground">
-                  {apiError
-                    ? "API连接失败"
-                    : loading
-                    ? "正在连接..."
-                    : "API已连接"}
+                  {apiError ? "连接失败" : loading ? "连接中..." : "已连接"}
                 </span>
               </div>
             </div>
           </div>
 
+          {/* Cookie选择 */}
           <div className="space-y-2">
-            <Label
-              htmlFor="cookie-select"
-              className="text-sm flex items-center gap-1.5"
-            >
+            <Label className="text-sm flex items-center gap-1.5">
               <ShieldCheck className="h-3.5 w-3.5 text-primary" />
-              选择要使用的Cookie
+              选择Cookie
             </Label>
             {loading ? (
-              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-9 w-full" />
             ) : (
-              <>
-                <Select
-                  value={selectedCookieId}
-                  onValueChange={handleSelectCookie}
-                  disabled={
-                    cookies.filter((c) => c.status === "active").length === 0
-                  }
-                >
-                  <SelectTrigger id="cookie-select" className="w-full">
-                    <SelectValue
-                      placeholder={
-                        cookies.filter((c) => c.status === "active").length ===
-                        0
-                          ? "暂无可用Cookie"
-                          : "选择一个Cookie"
-                      }
-                    />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {cookies.length === 0 ? (
-                      <SelectItem value="none" disabled>
-                        暂无可用Cookie
-                      </SelectItem>
-                    ) : (
-                      cookies.map((cookie) => {
-                        const isActive = cookie.status === "active";
-                        const isSelected = selectedCookieId === cookie.id;
-
-                        return (
-                          <SelectItem
-                            key={cookie.id}
-                            value={cookie.id}
-                            disabled={!isActive}
-                          >
-                            <div className="flex items-center justify-between w-full">
-                              <div className="flex items-center gap-2 flex-shrink-0">
-                                {isActive ? (
-                                  <ShieldCheck className="h-4 w-4 text-green-500" />
-                                ) : (
-                                  <AlertCircle className="h-4 w-4 text-red-500" />
-                                )}
-                                <span className="font-medium">
-                                  {cookie.nickname}
-                                </span>
-                                <span
-                                  className={`ml-1 text-xs px-1.5 py-0.5 rounded-full ${
-                                    cookie.vip_level.includes("豪华")
-                                      ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white"
-                                      : cookie.vip_level.includes("绿钻")
-                                      ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
-                                      : "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300"
-                                  }`}
-                                >
-                                  {cookie.vip_level}
-                                </span>
-                              </div>
-                              <span className="text-xs text-muted-foreground ml-6 flex-shrink-0">
-                                {formatDate(cookie.added_time)}
+              <Select
+                value={selectedCookieId}
+                onValueChange={handleSelectCookie}
+                disabled={
+                  cookies.filter((c) => c.status === "active").length === 0
+                }
+              >
+                <SelectTrigger className="w-full h-9">
+                  <SelectValue
+                    placeholder={
+                      cookies.filter((c) => c.status === "active").length === 0
+                        ? "暂无可用Cookie"
+                        : "选择一个Cookie"
+                    }
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  {cookies.length === 0 ? (
+                    <SelectItem value="none" disabled>
+                      暂无可用Cookie
+                    </SelectItem>
+                  ) : (
+                    cookies.map((cookie) => {
+                      const isActive = cookie.status === "active";
+                      return (
+                        <SelectItem
+                          key={cookie.id}
+                          value={cookie.id}
+                          disabled={!isActive}
+                        >
+                          <div className="flex items-center justify-between w-full min-w-0">
+                            <div className="flex items-center gap-2 min-w-0 flex-1">
+                              {isActive ? (
+                                <ShieldCheck className="h-3.5 w-3.5 text-green-500 flex-shrink-0" />
+                              ) : (
+                                <AlertCircle className="h-3.5 w-3.5 text-red-500 flex-shrink-0" />
+                              )}
+                              <span className="font-medium text-sm truncate">
+                                {cookie.nickname}
                               </span>
+                              {getVipBadge(cookie.vip_level)}
                             </div>
-                          </SelectItem>
-                        );
-                      })
-                    )}
-                  </SelectContent>
-                </Select>
-              </>
+                            <span className="text-xs text-muted-foreground ml-2 flex-shrink-0 hidden sm:block">
+                              {formatDate(cookie.added_time)}
+                            </span>
+                          </div>
+                        </SelectItem>
+                      );
+                    })
+                  )}
+                </SelectContent>
+              </Select>
             )}
             <p className="text-xs text-muted-foreground">
               从Cookie池中选择一个可用的Cookie进行API请求
@@ -487,11 +438,10 @@ const CookiePoolSettings: React.FC = () => {
         </div>
       )}
 
+      {/* 提示信息 */}
       <div className="p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
         <div className="flex items-start gap-2">
-          <div className="text-amber-600 dark:text-amber-400 mt-0.5">
-            <Info className="h-4 w-4" />
-          </div>
+          <Info className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
           <div className="text-xs text-amber-800 dark:text-amber-200">
             <strong>提示：</strong>
             Cookie池与个人Cookie为二选一关系。启用Cookie池后，您的个人Cookie将不再生效。
@@ -501,6 +451,7 @@ const CookiePoolSettings: React.FC = () => {
 
       <Separator />
 
+      {/* Cookie提交表单 */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <h4 className="text-sm font-medium flex items-center gap-1.5">
@@ -525,22 +476,21 @@ const CookiePoolSettings: React.FC = () => {
 
         <Textarea
           value={newCookie}
-          onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
-            setNewCookie(e.target.value)
-          }
+          onChange={(e) => setNewCookie(e.target.value)}
           placeholder="粘贴QQ音乐Cookie，格式: uin=xxx; qm_keyst=xxx; ..."
           rows={2}
-          className="resize-none"
+          className="resize-none text-sm"
         />
 
         <div className="flex justify-end">
           <Button
             type="submit"
-            disabled={submitting}
+            disabled={submitting || !newCookie.trim()}
             onClick={handleSubmitCookie}
+            size="sm"
           >
             <Cloud className="h-4 w-4 mr-1.5" />
-            提交Cookie
+            {submitting ? "提交中..." : "提交Cookie"}
           </Button>
         </div>
       </div>
