@@ -81,9 +81,9 @@ export const EnhancedLyricsDisplay: React.FC<EnhancedLyricsDisplayProps> =
     // 单行模式
     if (mode === "current") {
       return (
-        <div className={cn("relative py-1 px-2 h-8", className)}>
-          <div className="h-full overflow-hidden flex items-center">
-            <div className="text-sm font-medium text-primary break-words leading-tight line-clamp-2 w-full">
+        <div className={cn("relative py-1 px-2 h-6", className)}>
+          <div className="h-full overflow-hidden flex items-center justify-center">
+            <div className="text-xs text-muted-foreground break-words leading-tight line-clamp-1 w-full text-center">
               {currentLine.text}
             </div>
           </div>
@@ -123,20 +123,7 @@ export const EnhancedLyricsDisplay: React.FC<EnhancedLyricsDisplayProps> =
 // 简化版歌词组件 - 移动端优化
 export const CompactEnhancedLyricsDisplay: React.FC<EnhancedLyricsDisplayProps> =
   React.memo(({ className }) => {
-    const { currentLine, hasLyrics } = useLyrics();
-
-    // 如果没有歌词或当前行为空，不显示
-    if (!hasLyrics || !currentLine?.text) {
-      return null;
-    }
-
     return (
-      <div className={cn("relative py-1 px-2 h-6", className)}>
-        <div className="h-full overflow-hidden flex items-center justify-center">
-          <div className="text-xs text-muted-foreground break-words leading-tight line-clamp-1 w-full text-center">
-            {currentLine.text}
-          </div>
-        </div>
-      </div>
+      <EnhancedLyricsDisplay className={cn("py-1", className)} mode="current" />
     );
   });
