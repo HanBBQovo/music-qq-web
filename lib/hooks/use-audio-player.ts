@@ -35,11 +35,11 @@ export const useAudioPlayer = () => {
     _getNextIndex,
   } = usePlayerStore();
 
-  // 创建节流的时间更新函数 - 每500ms最多更新一次
+  // 创建节流的时间更新函数 - 30ms间隔，提高歌词同步精度
   const throttledSetCurrentTime = useCallback(
     throttle((time: number) => {
       setCurrentTime(time);
-    }, 500),
+    }, 30),
     [setCurrentTime]
   );
 

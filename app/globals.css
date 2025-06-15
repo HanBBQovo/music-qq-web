@@ -268,6 +268,21 @@
     @apply ml-[-41px];
     content: counter(step);
   }
+
+  /* 行数限制工具类 */
+  .line-clamp-1 {
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
 }
 
 /* 自定义动画 */
@@ -473,11 +488,12 @@ select:focus {
 
 /* 下载管理器特殊动画 */
 @keyframes downloadPulse {
-  0%, 100% { 
+  0%,
+  100% {
     transform: scale(1);
     opacity: 1;
   }
-  50% { 
+  50% {
     transform: scale(1.05);
     opacity: 0.8;
   }
@@ -494,11 +510,19 @@ select:focus {
 
 /* 现代卡片渐变 */
 .modern-gradient {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.1) 0%,
+    rgba(255, 255, 255, 0.05) 100%
+  );
 }
 
 .dark .modern-gradient {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.02) 100%);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.08) 0%,
+    rgba(255, 255, 255, 0.02) 100%
+  );
 }
 
 /* 动效按钮增强 */
@@ -513,14 +537,23 @@ select:focus {
 
 /* 进度条增强效果 */
 .progress-enhanced {
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.4),
+    transparent
+  );
   background-size: 200% 100%;
   animation: shimmer 2s infinite;
 }
 
 @keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
 }
 
 /* 渐变文字 */
@@ -584,5 +617,100 @@ select:focus {
 }
 
 .download-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(139, 92, 246, 0.5);
+  background: hsl(var(--primary));
+}
+
+/* 简化歌词样式 */
+.lyrics-container {
+  overflow: hidden;
+  position: relative;
+}
+
+.lyrics-text {
+  white-space: nowrap;
+}
+
+/* 卡拉OK效果样式 */
+.karaoke-text {
+  position: relative;
+  display: inline-block;
+}
+
+.karaoke-sung {
+  position: absolute;
+  left: 0;
+  top: 0;
+  overflow: hidden;
+  transition: width 0.15s ease-linear;
+}
+
+/* 滚动条样式 */
+.scrollbar-thin {
+  scrollbar-width: thin;
+}
+
+.scrollbar-thumb-muted {
+  scrollbar-color: hsl(var(--muted)) transparent;
+}
+
+.scrollbar-track-transparent {
+  scrollbar-track-color: transparent;
+}
+
+/* 响应式动画速度调整 */
+@media (prefers-reduced-motion: reduce) {
+  .animate-marquee,
+  .animate-marquee-delayed,
+  .animate-marquee-fast {
+    animation: none;
+  }
+
+  .karaoke-active {
+    animation: none;
+  }
+}
+
+/* 移动端优化 */
+@media (max-width: 768px) {
+  .animate-marquee {
+    animation-duration: 10s;
+  }
+
+  .animate-marquee-fast {
+    animation-duration: 8s;
+  }
+}
+
+/* 歌词marquee动画 */
+@keyframes marquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-marquee {
+  animation: marquee 15s linear infinite;
+}
+
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+
+/* 保留基础动画 */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.5s ease-out;
 }

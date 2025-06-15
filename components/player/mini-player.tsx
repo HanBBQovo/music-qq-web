@@ -41,6 +41,10 @@ import { formatFileSize } from "@/lib/utils/audio-url";
 import React from "react";
 import { resetGlobalAudioAnalyser } from "@/lib/audio/audio-analyzer";
 import { DynamicCover } from "./dynamic-cover";
+import {
+  EnhancedLyricsDisplay,
+  CompactEnhancedLyricsDisplay,
+} from "./enhanced-lyrics-display";
 
 export function MiniPlayer() {
   const {
@@ -77,6 +81,7 @@ export function MiniPlayer() {
   const [localVolume, setLocalVolume] = useState(volume);
   const [isDragging, setIsDragging] = useState(false);
   const [localProgress, setLocalProgress] = useState(0);
+  const [draggingTime, setDraggingTime] = useState(0);
 
   // 恢复简单的进度条逻辑
   useEffect(() => {
@@ -254,7 +259,7 @@ export function MiniPlayer() {
         {!showPlayer && (
           <button
             onClick={() => setShowPlayer(true)}
-            className="fixed md:bottom-6 bottom-20 right-6 z-50 rounded-full p-3 bg-primary text-primary-foreground cursor-pointer select-none transition-all duration-200"
+            className="fixed md:bottom-10 bottom-24 right-6 z-50 rounded-full p-3 bg-primary text-primary-foreground cursor-pointer select-none transition-all duration-200"
             title="展开播放器"
             style={{
               pointerEvents: "auto",
@@ -296,6 +301,9 @@ export function MiniPlayer() {
   const handleProgressChange = (value: number[]) => {
     const progress = value[0];
     setLocalProgress(progress);
+    // 计算拖动时对应的时间
+    const newTime = (progress / 100) * duration;
+    setDraggingTime(newTime);
   };
 
   const handleProgressCommit = (value: number[]) => {
@@ -303,6 +311,7 @@ export function MiniPlayer() {
     const newTime = (progress / 100) * duration;
     seekTo(newTime);
     setIsDragging(false);
+    setDraggingTime(0);
   };
 
   const handlePlayModeClick = () => {
@@ -352,7 +361,7 @@ export function MiniPlayer() {
           {/* 桌面端单行布局 */}
           <div className="hidden md:flex items-center gap-4">
             {/* 歌曲信息 */}
-            <div className="flex items-center gap-3 min-w-0 flex-1">
+            <div className="flex items-center gap-3 min-w-0 flex-shrink-0 w-48">
               <div className="flex-shrink-0">
                 <DynamicCover
                   src={currentSong.cover}
@@ -372,8 +381,17 @@ export function MiniPlayer() {
               </div>
             </div>
 
+            {/* 歌词显示区域 - 桌面端 (扩大并左移) */}
+            <div className="flex-1 min-w-0 max-w-md mr-4">
+              <EnhancedLyricsDisplay
+                className="text-left"
+                showKaraokeEffect={true}
+                mode="dual"
+              />
+            </div>
+
             {/* 播放控制 */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-shrink-0">
               <Button
                 variant="ghost"
                 size="sm"
@@ -422,7 +440,7 @@ export function MiniPlayer() {
             {/* 进度条 */}
             <div className="flex items-center gap-2 flex-1 max-w-md">
               <span className="text-xs text-muted-foreground w-10 text-right">
-                {formatTime(currentTime)}
+                {formatTime(isDragging ? draggingTime : currentTime)}
               </span>
               <Slider
                 value={[localProgress]}
@@ -439,7 +457,7 @@ export function MiniPlayer() {
             </div>
 
             {/* 右侧控制 */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-shrink-0">
               {/* 播放模式 */}
               <Button
                 variant="ghost"
@@ -573,7 +591,7 @@ export function MiniPlayer() {
             </div>
           </div>
 
-          {/* 手机端三排布局 */}
+          {/* 手机端布局 */}
           <div className="md:hidden space-y-2">
             {/* 第一排：歌曲信息 + 核心播放控制 */}
             <div className="flex items-center gap-3">
@@ -648,7 +666,12 @@ export function MiniPlayer() {
               </div>
             </div>
 
-            {/* 第二排：辅助功能按钮 */}
+            {/* 第二排：歌词显示 - 独立行 */}
+            <div className="px-1">
+              <CompactEnhancedLyricsDisplay className="text-center" />
+            </div>
+
+            {/* 第三排：辅助功能按钮 */}
             <div className="flex items-center justify-center gap-2">
               {/* 播放模式 */}
               <Button
@@ -773,11 +796,11 @@ export function MiniPlayer() {
               </Button>
             </div>
 
-            {/* 第三排：进度条 */}
+            {/* 第四排：进度条 */}
             <div className="px-1">
               <div className="flex items-center gap-2">
                 <span className="text-xs text-muted-foreground w-8 text-right">
-                  {formatTime(currentTime)}
+                  {formatTime(isDragging ? draggingTime : currentTime)}
                 </span>
                 <Slider
                   value={[localProgress]}
@@ -804,7 +827,7 @@ export function MiniPlayer() {
       {!showPlayer && (
         <button
           onClick={() => setShowPlayer(true)}
-          className="fixed md:bottom-6 bottom-20 right-6 z-50 rounded-full p-3 bg-primary text-primary-foreground cursor-pointer select-none transition-all duration-200"
+          className="fixed md:bottom-10 bottom-24 right-6 z-50 rounded-full p-3 bg-primary text-primary-foreground cursor-pointer select-none transition-all duration-200"
           title="展开播放器"
           style={{
             pointerEvents: "auto",
