@@ -93,7 +93,6 @@ export const useLyrics = () => {
 
       if (response.code === 0 && response.data?.lyric) {
         const parsedLyrics = parseLRC(response.data.lyric);
-        console.log("歌词解析完成:", parsedLyrics.length, "行");
         setState((prev) => ({
           ...prev,
           lyrics: parsedLyrics,
@@ -173,13 +172,6 @@ export const useLyrics = () => {
             ? state.lyrics[newLineIndex + 1]
             : null;
 
-        console.log("歌词行变化:", {
-          time: currentTime.toFixed(2),
-          lineIndex: newLineIndex,
-          currentText: currentLine?.text,
-          nextText: nextLine?.text,
-        });
-
         setState((prev) => ({
           ...prev,
           currentLineIndex: newLineIndex,
@@ -207,17 +199,6 @@ export const useLyrics = () => {
 
     const elapsedTime = currentTime - lineStartTime;
     const progress = Math.max(0, Math.min(1, elapsedTime / lineDuration));
-
-    // 调试输出
-    if (currentTime > lineStartTime && currentTime < lineEndTime) {
-      console.log("卡拉OK进度:", {
-        currentTime: currentTime.toFixed(2),
-        lineStart: lineStartTime.toFixed(2),
-        lineEnd: lineEndTime.toFixed(2),
-        progress: (progress * 100).toFixed(1) + "%",
-        text: state.currentLine.text,
-      });
-    }
 
     return progress;
   }, [state.currentLine, state.nextLine, currentTime]);
