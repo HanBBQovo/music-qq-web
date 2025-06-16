@@ -142,10 +142,6 @@ export function SettingsDialog({
     // 组件挂载后，从localStorage直接读取cookie值
     if (typeof window !== "undefined") {
       const storedCookie = localStorage.getItem("music_cookie") || "";
-      console.log("[设置弹框] 从localStorage读取cookie:", {
-        cookieLength: storedCookie.length,
-        cookiePreview: storedCookie.substring(0, 50) + "...",
-      });
       setCookieValue(storedCookie);
     }
   }, []);
@@ -153,7 +149,6 @@ export function SettingsDialog({
   // 当store中的cookie更新时，同步到本地状态
   useEffect(() => {
     if (cookie && cookie !== cookieValue) {
-      console.log("[设置弹框] 从store同步cookie到本地状态");
       setCookieValue(cookie);
     }
   }, [cookie]);

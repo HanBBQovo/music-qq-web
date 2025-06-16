@@ -170,14 +170,8 @@ export async function getAudioUrl(
     });
 
     if (response.ok) {
-      console.log(`✅ 成功获取《${song.title}》的音频流URL`);
-
-      // 调试：打印所有响应头
-      console.log("🔍 所有响应头:", Array.from(response.headers.entries()));
-
       // 解析音质信息
       const qualityInfo = parseQualityInfo(response);
-      console.log("🎵 解析的音质信息:", qualityInfo);
 
       // 检测音质降级响应头
       const actualQuality = response.headers.get("X-Quality");
@@ -740,13 +734,6 @@ export function parseQualityInfo(response: Response): QualityInfo {
         console.warn("解析X-Qualities-JSON失败:", jsonError);
       }
     }
-
-    console.log("🔍 解析的音质信息:", {
-      availableQualities,
-      qualitySizes,
-      recommendedQuality,
-      qualityDetails,
-    });
 
     return {
       availableQualities,

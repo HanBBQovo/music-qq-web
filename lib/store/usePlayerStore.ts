@@ -1,9 +1,10 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { Song, PlayMode } from "../types/music";
-import type { AudioQuality } from "../api/types";
+import type { AudioQuality, LyricLine } from "../api/types";
 import { getAudioUrl } from "../utils/audio-url";
 import { toast } from "sonner";
+import musicApi from "../api/client";
 
 // 播放器状态接口
 interface PlayerState {
@@ -35,6 +36,11 @@ interface PlayerState {
   showPlayer: boolean;
   showPlaylist: boolean;
 
+  // KRC歌词状态
+  krcLyrics: LyricLine[] | null;
+  isKrcLyricsLoading: boolean;
+  krcLyricsError: string | null;
+
   // 播放控制方法
   play: () => void;
   pause: () => void;
@@ -59,6 +65,9 @@ interface PlayerState {
   // 播放歌曲
   playSong: (song: Song, quality?: AudioQuality) => Promise<void>;
   playSongList: (songs: Song[], startIndex?: number) => Promise<void>;
+
+  // KRC歌词获取
+  fetchKrcLyrics: (force?: boolean) => Promise<void>;
 
   // UI 控制
   setShowPlayer: (show: boolean) => void;
@@ -91,6 +100,11 @@ export const usePlayerStore = create<PlayerState>()(
 
       showPlayer: false,
       showPlaylist: false,
+
+      // KRC歌词初始状态
+      krcLyrics: null,
+      isKrcLyricsLoading: false,
+      krcLyricsError: null,
 
       // 播放控制方法
       play: () => set({ isPlaying: true }),
@@ -171,6 +185,9 @@ export const usePlayerStore = create<PlayerState>()(
               currentIndex: -1,
               currentSong: null,
               isPlaying: false,
+              krcLyrics: null,
+              isKrcLyricsLoading: false,
+              krcLyricsError: null,
             };
           }
 
@@ -194,6 +211,9 @@ export const usePlayerStore = create<PlayerState>()(
               currentIndex: newCurrentIndex,
               currentSong: newCurrentSong,
               isPlaying: false, // 停止播放，等待后续自动播放新歌曲
+              krcLyrics: null,
+              isKrcLyricsLoading: false,
+              krcLyricsError: null,
             };
           } else {
             // 删除的不是当前播放的歌曲，需要在新播放列表中重新查找当前歌曲
@@ -214,6 +234,9 @@ export const usePlayerStore = create<PlayerState>()(
                   currentIndex: newCurrentIndex,
                   currentSong: currentState.currentSong, // 保持当前歌曲对象引用不变
                   isPlaying: currentState.isPlaying, // 保持播放状态不变
+                  krcLyrics: null,
+                  isKrcLyricsLoading: false,
+                  krcLyricsError: null,
                 };
               }
             }
@@ -224,6 +247,9 @@ export const usePlayerStore = create<PlayerState>()(
               currentIndex: newPlaylist.length > 0 ? 0 : -1,
               currentSong: newPlaylist.length > 0 ? newPlaylist[0] : null,
               isPlaying: false,
+              krcLyrics: null,
+              isKrcLyricsLoading: false,
+              krcLyricsError: null,
             };
           }
         });
@@ -243,6 +269,9 @@ export const usePlayerStore = create<PlayerState>()(
           currentIndex: -1,
           currentSong: null,
           isPlaying: false,
+          krcLyrics: null,
+          isKrcLyricsLoading: false,
+          krcLyricsError: null,
         }),
 
       moveInPlaylist: (fromIndex, toIndex) => {
@@ -390,41 +419,18 @@ export const usePlayerStore = create<PlayerState>()(
               };
             }
           });
+
+          // 自动获取歌词
+          get().fetchKrcLyrics(true);
         } catch (error) {
           console.error("播放歌曲失败:", error);
-
-          // 注意：不在这里显示toast，因为audio-url.ts中已经显示了详细的错误信息
-          // 避免重复的错误提示
-
-          // 即使获取URL失败，也要设置为当前歌曲但不播放
-          set((state) => {
-            let index = state.playlist.findIndex(
-              (s) => s.mid === song.mid || s.id === song.id
-            );
-            if (index === -1) {
-              const newPlaylist = [...state.playlist, song];
-              index = newPlaylist.length - 1;
-              return {
-                playlist: newPlaylist,
-                currentSong: song,
-                currentIndex: index,
-                isPlaying: false,
-                showPlayer: true,
-                currentTime: 0,
-                duration: song.duration || 0,
-              };
-            } else {
-              return {
-                currentSong: song,
-                currentIndex: index,
-                isPlaying: false,
-                showPlayer: true,
-                currentTime: 0,
-                duration: song.duration || 0,
-              };
-            }
+          toast.error(`播放 ${song.title} 失败，请检查网络或稍后重试`);
+          // 播放失败也需要清除loading状态
+          set({
+            krcLyrics: null,
+            isKrcLyricsLoading: false,
+            krcLyricsError: "播放失败，无法获取歌词",
           });
-          throw error;
         }
       },
 
@@ -480,12 +486,6 @@ export const usePlayerStore = create<PlayerState>()(
         const { currentSong, currentTime, isPlaying } = get();
         if (!currentSong) return;
 
-        console.log(
-          `🔄 正在切换音质: ${
-            get().currentQuality
-          } -> ${quality}, 当前时间: ${currentTime.toFixed(2)}s`
-        );
-
         // 1. 保存当前播放状态和时间
         const savedTime = currentTime;
         const wasPlaying = isPlaying;
@@ -498,12 +498,9 @@ export const usePlayerStore = create<PlayerState>()(
 
         // 3. 获取新音质的URL
         try {
-          console.log(`📡 正在获取新音质(${quality})的URL...`);
-
           // 创建临时歌曲对象，移除现有URL强制重新获取
           const tempSong = { ...currentSong, url: undefined };
           const newUrl = await getAudioUrl(tempSong, quality);
-          console.log(`✅ 成功获取新音质URL:`, newUrl.substring(0, 80) + "...");
 
           // 4. 创建更新的歌曲对象
           const updatedSong = {
@@ -567,6 +564,54 @@ export const usePlayerStore = create<PlayerState>()(
           }
         }
       },
+
+      // 获取KRC歌词
+      fetchKrcLyrics: async (force = false) => {
+        const { currentSong, krcLyrics, isKrcLyricsLoading } = get();
+
+        // 如果没有当前歌曲，或正在加载，或非强制模式下已有歌词，则不执行
+        if (
+          !currentSong ||
+          isKrcLyricsLoading ||
+          (!force && krcLyrics && krcLyrics.length > 0)
+        ) {
+          return;
+        }
+
+        set({ isKrcLyricsLoading: true, krcLyricsError: null });
+
+        try {
+          const res = await musicApi.getLyric({
+            id: currentSong.id,
+            mid: currentSong.mid,
+            format: "krc",
+          });
+
+          if (res.data.krcData && res.data.krcData.lines) {
+            const processedLines = res.data.krcData.lines.map((line) => ({
+              ...line,
+              words: line.words.map((word) => ({
+                ...word,
+                text: word.text === " " ? "\u00a0" : word.text,
+              })),
+            }));
+            set({ krcLyrics: processedLines, isKrcLyricsLoading: false });
+          } else {
+            set({
+              krcLyricsError: "没有可用的逐字歌词",
+              isKrcLyricsLoading: false,
+              krcLyrics: [],
+            });
+          }
+        } catch (err) {
+          console.error("获取KRC歌词失败:", err);
+          set({
+            krcLyricsError: "无法加载歌词",
+            isKrcLyricsLoading: false,
+            krcLyrics: [],
+          });
+        }
+      },
     }),
     {
       name: "music-player-storage",
@@ -616,12 +661,6 @@ if (typeof window !== "undefined") {
               console.error("解析设置失败:", error);
             }
           }
-
-          console.log("[播放器] Cookie使用信息:", {
-            useCookiePool,
-            hasCookieId: !!selectedCookieId,
-            cookieId: selectedCookieId || "未设置",
-          });
 
           // 使用与audio-url.ts相同的API路径构造逻辑
           const API_BASE_URL =
@@ -680,7 +719,6 @@ if (typeof window !== "undefined") {
           // 在URL中添加cookie_id参数（如果使用Cookie池）
           if (useCookiePool && selectedCookieId) {
             streamUrl += `&cookie_id=${encodeURIComponent(selectedCookieId)}`;
-            console.log("[播放器] 使用Cookie池ID请求:", streamUrl);
           }
 
           // 构建请求头 - 只有在不使用Cookie池时才发送cookie头
@@ -714,8 +752,6 @@ if (typeof window !== "undefined") {
               qualitySizes: qualityInfo.qualitySizes,
               recommendedQuality: qualityInfo.recommendedQuality,
             });
-
-            console.log("✅ 成功恢复音质信息:", qualityInfo);
           }
         } catch (error) {
           console.warn("⚠️ 恢复音质信息失败:", error);
@@ -742,17 +778,7 @@ if (typeof window !== "undefined") {
     const currentIdentifier = currentSong.mid || currentSong.id;
     const isMatch = currentIdentifier === songId;
 
-    console.log("🔍 音质降级匹配:", {
-      eventSongId: songId,
-      currentIdentifier: currentIdentifier,
-      isMatch: isMatch,
-    });
-
     if (isMatch) {
-      console.log(
-        `🔊 音质自动降级: ${requestedQuality} -> ${actualQuality}, 原因: ${fallbackReason}`
-      );
-
       // 更新当前音质状态
       usePlayerStore.setState({ currentQuality: actualQuality });
 
@@ -774,7 +800,6 @@ if (typeof window !== "undefined") {
 
   // 监听音质信息更新事件
   window.addEventListener("quality-info-updated", (event: any) => {
-    console.log("📡 收到 quality-info-updated 事件:", event.detail);
     const { songId, qualityInfo } = event.detail;
 
     // 检查是否是当前播放的歌曲（简单mid匹配）
@@ -789,23 +814,13 @@ if (typeof window !== "undefined") {
     const currentIdentifier = currentSong.mid || currentSong.id;
     const isMatch = currentIdentifier === songId;
 
-    console.log("🔍 音质信息匹配:", {
-      eventSongId: songId,
-      currentIdentifier: currentIdentifier,
-      isMatch: isMatch,
-    });
-
     if (isMatch) {
-      console.log(`📊 音质信息更新成功:`, qualityInfo);
-
       // 更新音质信息
       usePlayerStore.setState({
         availableQualities: qualityInfo.availableQualities,
         qualitySizes: qualityInfo.qualitySizes,
         recommendedQuality: qualityInfo.recommendedQuality,
       });
-    } else {
-      console.log("❌ 歌曲不匹配，跳过音质信息更新");
     }
   });
 }

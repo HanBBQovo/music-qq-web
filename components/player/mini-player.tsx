@@ -41,10 +41,11 @@ import { formatFileSize } from "@/lib/utils/audio-url";
 import React from "react";
 import { resetGlobalAudioAnalyser } from "@/lib/audio/audio-analyzer";
 import { DynamicCover } from "./dynamic-cover";
-import {
-  EnhancedLyricsDisplay,
-  CompactEnhancedLyricsDisplay,
-} from "./enhanced-lyrics-display";
+import { KaraokeLyricsDisplay } from "./karaoke-lyrics-display";
+// import {
+//   EnhancedLyricsDisplay,
+//   CompactEnhancedLyricsDisplay,
+// } from "./enhanced-lyrics-display";
 
 export function MiniPlayer() {
   const {
@@ -357,7 +358,7 @@ export function MiniPlayer() {
           showPlayer ? "translate-y-0" : "translate-y-full"
         )}
       >
-        <div className="container mx-auto px-4 py-3">
+        <div className="container mx-auto px-4 py-4">
           {/* 桌面端单行布局 */}
           <div className="hidden md:flex items-center gap-4">
             {/* 歌曲信息 */}
@@ -383,11 +384,7 @@ export function MiniPlayer() {
 
             {/* 歌词显示区域 - 桌面端 (扩大并左移) */}
             <div className="flex-1 min-w-0 max-w-md mr-4">
-              <EnhancedLyricsDisplay
-                className="text-left"
-                showKaraokeEffect={true}
-                mode="dual"
-              />
+              <KaraokeLyricsDisplay className="text-left" mode="dual" />
             </div>
 
             {/* 播放控制 */}
@@ -668,7 +665,7 @@ export function MiniPlayer() {
 
             {/* 第二排：歌词显示 - 独立行 */}
             <div className="px-1">
-              <CompactEnhancedLyricsDisplay className="text-center" />
+              <KaraokeLyricsDisplay className="text-center" mode="compact" />
             </div>
 
             {/* 第三排：辅助功能按钮 */}
@@ -827,7 +824,7 @@ export function MiniPlayer() {
       {!showPlayer && (
         <button
           onClick={() => setShowPlayer(true)}
-          className="fixed md:bottom-10 bottom-24 right-6 z-50 rounded-full p-3 bg-primary text-primary-foreground cursor-pointer select-none transition-all duration-200"
+          className="fixed md:bottom-12 bottom-31 right-6 z-50 rounded-full p-3 bg-primary text-primary-foreground cursor-pointer select-none transition-all duration-200"
           title="展开播放器"
           style={{
             pointerEvents: "auto",

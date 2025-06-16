@@ -106,6 +106,11 @@ export type SearchResult =
 export interface Lyric {
   lyric: string;
   trans?: string;
+  krcData?: {
+    lines: LyricLine[];
+  };
+  hasWordTimestamp?: boolean;
+  format?: "lrc" | "krc";
 }
 
 // 音质选项
@@ -271,13 +276,35 @@ export interface SongUrlResponse {
 export interface LyricParams {
   id?: string;
   mid?: string;
+  format?: "lrc" | "krc";
   cookie_id?: string;
 }
+
+// KRC逐字歌词的类型
+export type Word = {
+  text: string;
+  startTime: number; // ms
+  duration: number; // ms
+};
+
+export type LyricLine = {
+  startTime: number; // ms
+  duration: number; // ms
+  words: Word[];
+};
 
 // 歌词响应接口
 export interface LyricResponse {
   code: number;
-  data: Lyric;
+  data: {
+    lyric: string;
+    trans?: string;
+    krcData?: {
+      lines: LyricLine[];
+    };
+    hasWordTimestamp?: boolean;
+    format?: "lrc" | "krc";
+  };
   message: string;
 }
 

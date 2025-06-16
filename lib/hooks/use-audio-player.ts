@@ -16,6 +16,7 @@ export const useAudioPlayer = () => {
   const [isRetrying, setIsRetrying] = useState(false);
   const maxRetries = 3;
   const retryTimeouts = useRef<NodeJS.Timeout[]>([]);
+  const animationFrameId = useRef<number | null>(null);
 
   // 从状态管理中获取播放器状态和方法
   const {
@@ -34,14 +35,6 @@ export const useAudioPlayer = () => {
     playNext,
     _getNextIndex,
   } = usePlayerStore();
-
-  // 创建节流的时间更新函数 - 30ms间隔，提高歌词同步精度
-  const throttledSetCurrentTime = useCallback(
-    throttle((time: number) => {
-      setCurrentTime(time);
-    }, 30),
-    [setCurrentTime]
-  );
 
   // 创建音频元素
   const createAudioElement = useCallback(
@@ -103,6 +96,9 @@ export const useAudioPlayer = () => {
               console.log(`✅ 第 ${attempt} 次重试成功`);
               setError(null);
               setRetryCount(0);
+              // 播放成功后手动启动RAF循环
+              const { play } = usePlayerStore.getState();
+              play();
             }
           }
           setIsRetrying(false);
@@ -140,6 +136,7 @@ export const useAudioPlayer = () => {
       audioRef.current.removeEventListener("pause", handlePause);
       audioRef.current.removeEventListener("ended", handleEnded);
       audioRef.current.removeEventListener("error", handleError);
+      // timeupdate 事件仍可用于低频任务，如更新缓冲条
       audioRef.current.removeEventListener("timeupdate", handleTimeUpdate);
       audioRef.current.removeEventListener("progress", handleProgress);
     }
@@ -163,6 +160,7 @@ export const useAudioPlayer = () => {
     audioRef.current.addEventListener("pause", handlePause);
     audioRef.current.addEventListener("ended", handleEnded);
     audioRef.current.addEventListener("error", handleError);
+    // timeupdate 事件仍可用于低频任务，如更新缓冲条
     audioRef.current.addEventListener("timeupdate", handleTimeUpdate);
     audioRef.current.addEventListener("progress", handleProgress);
 
@@ -174,6 +172,36 @@ export const useAudioPlayer = () => {
       cleanupRetryTimeouts();
     };
   }, [currentSong?.url]); // 移除volume依赖，避免音量变化时重新创建音频元素
+
+  // 高精度时间更新循环
+  useEffect(() => {
+    const frameUpdater = () => {
+      if (audioRef.current) {
+        setCurrentTime(audioRef.current.currentTime);
+      }
+      animationFrameId.current = requestAnimationFrame(frameUpdater);
+    };
+
+    if (isPlaying) {
+      // 停止任何可能正在运行的旧循环
+      if (animationFrameId.current) {
+        cancelAnimationFrame(animationFrameId.current);
+      }
+      animationFrameId.current = requestAnimationFrame(frameUpdater);
+    } else {
+      if (animationFrameId.current) {
+        cancelAnimationFrame(animationFrameId.current);
+        animationFrameId.current = null;
+      }
+    }
+
+    // 清理函数
+    return () => {
+      if (animationFrameId.current) {
+        cancelAnimationFrame(animationFrameId.current);
+      }
+    };
+  }, [isPlaying, setCurrentTime]);
 
   // 事件处理器
   const handleLoadStart = useCallback(() => {
@@ -224,11 +252,15 @@ export const useAudioPlayer = () => {
 
   const handlePlay = useCallback(() => {
     setStatus(PlayerStatus.PLAYING);
-  }, []);
+    // 确保调用Zustand的play方法来同步状态并启动RAF循环
+    play();
+  }, [play]);
 
   const handlePause = useCallback(() => {
     setStatus(PlayerStatus.PAUSED);
-  }, []);
+    // 确保调用Zustand的pause方法来同步状态并停止RAF循环
+    pause();
+  }, [pause]);
 
   const handleEnded = useCallback(() => {
     setStatus(PlayerStatus.ENDED);
@@ -244,6 +276,12 @@ export const useAudioPlayer = () => {
     } else if (PLAYER_CONFIG.AUTO_PLAY_NEXT) {
       // 自动播放下一首
       playNext();
+    }
+
+    // timeupdate 事件处理器现在只用于低频更新，比如缓冲进度
+    // (如果需要的话，目前它什么都不做)
+    if (audioRef.current) {
+      // 我们可以用它来更新缓冲信息，而不是当前时间
     }
   }, [playMode, playNext, setCurrentTime]);
 
@@ -349,9 +387,9 @@ export const useAudioPlayer = () => {
   const handleTimeUpdate = useCallback(() => {
     if (audioRef.current) {
       // 使用节流的时间更新，减少状态更新频率
-      throttledSetCurrentTime(audioRef.current.currentTime);
+      // throttledSetCurrentTime(audioRef.current.currentTime);
     }
-  }, [throttledSetCurrentTime]);
+  }, []);
 
   const handleProgress = useCallback(() => {
     if (audioRef.current && audioRef.current.buffered.length > 0) {

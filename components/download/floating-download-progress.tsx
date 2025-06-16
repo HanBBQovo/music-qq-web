@@ -693,7 +693,7 @@ const FloatingDownloadButton = React.memo(function FloatingDownloadButton() {
   return (
     <>
       <button
-        className="fixed right-6 z-50 rounded-full p-3 bg-primary text-primary-foreground cursor-pointer select-none transition-all duration-200 md:bottom-24 bottom-40"
+        className="fixed right-6 z-50 rounded-full p-3 bg-primary text-primary-foreground cursor-pointer select-none transition-all duration-200 md:bottom-26 bottom-47"
         onClick={() => setIsOpen(true)}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}

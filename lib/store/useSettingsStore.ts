@@ -56,23 +56,13 @@ export const useSettingsStore = create<SettingsState>()(
       // Cookie设置
       cookie: "",
       setCookie: (cookie: string) => {
-        console.log("[设置Store] setCookie调用:", {
-          newCookie: cookie.substring(0, 50) + "...",
-          cookieLength: cookie.length,
-          timestamp: new Date().toISOString(),
-        });
-
         try {
           // 同时保存到localStorage，供API客户端使用
           localStorage.setItem("music_cookie", cookie);
-          console.log("[设置Store] localStorage已保存music_cookie");
 
           // 更新zustand store状态
           set({ cookie });
-          console.log("[设置Store] zustand store状态已更新");
-        } catch (error) {
-          console.error("[设置Store] setCookie失败:", error);
-        }
+        } catch (error) {}
       },
 
       // Cookie池设置
@@ -137,18 +127,8 @@ export const useSettingsStore = create<SettingsState>()(
     {
       name: "settings-store", // localStorage存储的键名
       onRehydrateStorage: () => {
-        console.log("[设置Store] onRehydrateStorage开始恢复设置...");
-
         // 当store从持久化存储中恢复后，确保cookie同步到localStorage
         return (rehydratedState) => {
-          console.log("[设置Store] 设置恢复完成:", {
-            hasState: !!rehydratedState,
-            cookie: rehydratedState?.cookie?.substring(0, 50) + "..." || "无",
-            cookieLength: rehydratedState?.cookie?.length || 0,
-            defaultQuality: rehydratedState?.defaultQuality,
-            useCookiePool: rehydratedState?.useCookiePool || false,
-          });
-
           if (
             rehydratedState &&
             rehydratedState.cookie &&
@@ -156,12 +136,7 @@ export const useSettingsStore = create<SettingsState>()(
           ) {
             try {
               localStorage.setItem("music_cookie", rehydratedState.cookie);
-              console.log("[设置Store] 恢复时同步cookie到localStorage成功");
-            } catch (error) {
-              console.error("[设置Store] 恢复时同步cookie失败:", error);
-            }
-          } else {
-            console.log("[设置Store] 没有cookie需要恢复或使用Cookie池");
+            } catch (error) {}
           }
         };
       },
