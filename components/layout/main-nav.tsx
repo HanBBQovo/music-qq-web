@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -51,9 +52,13 @@ export function MainNav() {
       <div className="flex h-16 items-center px-4 lg:px-6">
         <div className="mr-6 flex items-center">
           <Link href="/" className="mr-8 flex items-center space-x-3 group">
-            <div className="p-2 rounded-xl bg-gradient-to-br from-purple-500 to-blue-600 group-hover:from-purple-600 group-hover:to-blue-700 transition-all duration-200 shadow-lg group-hover:shadow-xl">
-              <MusicIcon className="h-6 w-6 text-white" />
-            </div>
+            <Image
+              src="/logo.webp"
+              alt="MusicHub Logo"
+              width={40}
+              height={40}
+              className="rounded-xl group-hover:opacity-90 transition-opacity"
+            />
             <span className="hidden font-bold text-lg inline-block bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
               MusicHub
             </span>
@@ -108,9 +113,13 @@ export function MainNav() {
                     <SheetHeader className="border-b">
                       <div className="flex items-center justify-between w-full">
                         <div className="flex items-center space-x-3">
-                          <div className="p-2 rounded-xl bg-gradient-to-br from-purple-500 to-blue-600">
-                            <MusicIcon className="h-5 w-5 text-white" />
-                          </div>
+                          <Image
+                            src="/logo.webp"
+                            alt="MusicHub Logo"
+                            width={32}
+                            height={32}
+                            className="rounded-lg"
+                          />
                           <SheetTitle className="font-bold text-lg bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
                             MusicHub
                           </SheetTitle>

@@ -16,7 +16,7 @@ const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 export const cookiePoolApi = {
   /**
    * 提交Cookie到池中
-   * @param cookie QQ音乐Cookie字符串
+   * @param cookie 音乐Cookie字符串
    * @returns 响应对象，包含cookie_id
    */
   submitCookie: async (cookie: string): Promise<SubmitCookieResponse> => {

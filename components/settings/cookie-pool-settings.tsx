@@ -471,13 +471,13 @@ const CookiePoolSettings: React.FC = () => {
         </div>
 
         <p className="text-xs text-muted-foreground">
-          您可以将自己的QQ音乐Cookie提交到公共Cookie池，与他人共享VIP特权
+          您可以将自己的音乐Cookie提交到公共Cookie池，与他人共享VIP特权
         </p>
 
         <Textarea
           value={newCookie}
           onChange={(e) => setNewCookie(e.target.value)}
-          placeholder="粘贴QQ音乐Cookie，格式: uin=xxx; qm_keyst=xxx; ..."
+          placeholder="粘贴音乐Cookie，格式: uin=xxx; qm_keyst=xxx; ..."
           rows={2}
           className="resize-none text-sm"
         />
