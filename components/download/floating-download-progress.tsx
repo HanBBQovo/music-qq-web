@@ -20,6 +20,8 @@ import { formatFileSize } from "@/lib/utils";
 // Types
 interface FloatingDownloadProgressProps {
   className?: string;
+  /** 关闭弹窗的回调，由父组件控制显示/隐藏 */
+  onClose: () => void;
 }
 
 interface DownloadTask {
@@ -38,7 +40,7 @@ interface DownloadTask {
 
 // Component
 export const FloatingDownloadProgress: React.FC<FloatingDownloadProgressProps> =
-  React.memo(function FloatingDownloadProgress({ className }) {
+  React.memo(function FloatingDownloadProgress({ className, onClose }) {
     // 优化状态订阅，分离频繁变化的状态
     const tasks = useDownloadStore((state) => state.tasks);
 
@@ -49,10 +51,8 @@ export const FloatingDownloadProgress: React.FC<FloatingDownloadProgressProps> =
     const retryTask = useDownloadStore((state) => state.retryTask);
     const removeTask = useDownloadStore((state) => state.removeTask);
 
-    const [isOpen, setIsOpen] = React.useState(false);
     const [activeTab, setActiveTab] = React.useState("downloading");
     const [isExpanded, setIsExpanded] = React.useState(true);
-    const [isHovered, setIsHovered] = React.useState(false);
 
     // 页面刷新后状态检查 - 只在组件挂载时执行一次
     React.useEffect(() => {
@@ -480,196 +480,169 @@ export const FloatingDownloadProgress: React.FC<FloatingDownloadProgressProps> =
 
     return (
       <>
-        {!isOpen && (
-          <button
-            className={`fixed right-6 z-50 rounded-full p-3 bg-primary text-primary-foreground cursor-pointer select-none transition-all duration-200 md:bottom-24 bottom-40 ${
-              className || ""
-            }`}
-            onClick={() => setIsOpen(true)}
-            onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={() => setIsHovered(false)}
-            style={{
-              pointerEvents: "auto",
-              transform: isHovered ? "scale(1.05)" : "scale(1)",
-              boxShadow: isHovered
-                ? "0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)"
-                : "0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)",
-              willChange: "transform, box-shadow",
-            }}
-          >
-            <Download className="h-6 w-6" />
-            {downloadCount > 0 && (
-              <Badge className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center text-xs bg-destructive text-destructive-foreground pointer-events-none">
-                {downloadCount > 9 ? "9+" : downloadCount}
-              </Badge>
-            )}
-          </button>
-        )}
-
         <AnimatePresence>
-          {isOpen && (
-            <motion.div
-              className={getContainerClasses()}
-              style={{ width: 350 }}
-              initial={{ opacity: 0, y: 50, scale: 0.9 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 50, scale: 0.9 }}
-              transition={{ duration: 0.2 }}
-            >
-              <div className={getHeaderClasses()}>
-                <div className="flex items-center">
-                  <Download className="h-4 w-4 mr-2" />
-                  <h3 className="font-medium text-sm">下载管理</h3>
-                  <Badge className="ml-2" variant="outline">
-                    {downloadCount}
-                  </Badge>
-                </div>
-
-                <div className="flex items-center space-x-1">
-                  <button
-                    onClick={() => setIsExpanded(!isExpanded)}
-                    className={getButtonClasses()}
-                    aria-label={isExpanded ? "收起" : "展开"}
-                  >
-                    {isExpanded ? (
-                      <ChevronDown className="h-4 w-4" />
-                    ) : (
-                      <ChevronUp className="h-4 w-4" />
-                    )}
-                  </button>
-                  <button
-                    onClick={() => setIsOpen(false)}
-                    className={getButtonClasses()}
-                    aria-label="关闭"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                </div>
+          {/*始终渲染弹窗，父组件控制挂载*/}
+          <motion.div
+            className={getContainerClasses()}
+            style={{ width: 350 }}
+            initial={{ opacity: 0, y: 50, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 50, scale: 0.9 }}
+            transition={{ duration: 0.2 }}
+          >
+            <div className={getHeaderClasses()}>
+              <div className="flex items-center">
+                <Download className="h-4 w-4 mr-2" />
+                <h3 className="font-medium text-sm">下载管理</h3>
+                <Badge className="ml-2" variant="outline">
+                  {downloadCount}
+                </Badge>
               </div>
 
-              {isExpanded && (
-                <Tabs
-                  defaultValue="downloading"
-                  value={activeTab}
-                  onValueChange={setActiveTab}
+              <div className="flex items-center space-x-1">
+                <button
+                  onClick={() => setIsExpanded(!isExpanded)}
+                  className={getButtonClasses()}
+                  aria-label={isExpanded ? "收起" : "展开"}
                 >
-                  <TabsList className="w-full grid grid-cols-3 mx-2 my-2">
-                    <TabsTrigger value="downloading" className="text-xs px-2">
-                      队列 ({downloadCount})
-                    </TabsTrigger>
-                    <TabsTrigger value="completed" className="text-xs px-2">
-                      已完成 ({completedItems.length})
-                    </TabsTrigger>
-                    <TabsTrigger value="failed" className="text-xs px-2">
-                      失败 ({failedItems.length})
-                    </TabsTrigger>
-                  </TabsList>
+                  {isExpanded ? (
+                    <ChevronDown className="h-4 w-4" />
+                  ) : (
+                    <ChevronUp className="h-4 w-4" />
+                  )}
+                </button>
+                <button
+                  onClick={onClose}
+                  className={getButtonClasses()}
+                  aria-label="关闭"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
 
-                  <TabsContent
-                    value="downloading"
-                    className="max-h-[300px] min-h-[120px] overflow-y-auto"
-                  >
-                    {downloadCount === 0 ? (
-                      <div className="p-8 text-center text-muted-foreground text-sm">
-                        暂无下载任务
-                      </div>
-                    ) : (
-                      <div className="space-y-0">
-                        {downloadingItems.map((task) => (
-                          <DownloadItem
-                            key={task.id}
-                            task={task}
-                            onPause={pauseTask}
-                            onResume={resumeTask}
-                            onCancel={cancelTask}
-                            onRetry={retryTask}
-                            onRemove={removeTask}
-                          />
-                        ))}
-                      </div>
-                    )}
-                  </TabsContent>
+            {isExpanded && (
+              <Tabs
+                defaultValue="downloading"
+                value={activeTab}
+                onValueChange={setActiveTab}
+              >
+                <TabsList className="w-full grid grid-cols-3 mx-2 my-2">
+                  <TabsTrigger value="downloading" className="text-xs px-2">
+                    队列 ({downloadCount})
+                  </TabsTrigger>
+                  <TabsTrigger value="completed" className="text-xs px-2">
+                    已完成 ({completedItems.length})
+                  </TabsTrigger>
+                  <TabsTrigger value="failed" className="text-xs px-2">
+                    失败 ({failedItems.length})
+                  </TabsTrigger>
+                </TabsList>
 
-                  <TabsContent
-                    value="completed"
-                    className="max-h-[300px] min-h-[120px] overflow-y-auto"
-                  >
-                    {completedItems.length === 0 ? (
-                      <div className="p-8 text-center text-muted-foreground text-sm">
-                        暂无已完成的下载
-                      </div>
-                    ) : (
-                      <div className="space-y-0">
-                        {completedItems.map((task) => (
-                          <DownloadItem
-                            key={task.id}
-                            task={task}
-                            onPause={pauseTask}
-                            onResume={resumeTask}
-                            onCancel={cancelTask}
-                            onRetry={retryTask}
-                            onRemove={removeTask}
-                          />
-                        ))}
-                      </div>
-                    )}
-                  </TabsContent>
-
-                  <TabsContent
-                    value="failed"
-                    className="max-h-[300px] min-h-[120px] overflow-y-auto"
-                  >
-                    {failedItems.length === 0 ? (
-                      <div className="p-8 text-center text-muted-foreground text-sm">
-                        暂无失败的下载
-                      </div>
-                    ) : (
-                      <div className="space-y-0">
-                        {failedItems.map((task) => (
-                          <DownloadItem
-                            key={task.id}
-                            task={task}
-                            onPause={pauseTask}
-                            onResume={resumeTask}
-                            onCancel={cancelTask}
-                            onRetry={retryTask}
-                            onRemove={removeTask}
-                          />
-                        ))}
-                      </div>
-                    )}
-                  </TabsContent>
-                </Tabs>
-              )}
-
-              {isExpanded && (
-                <div className="p-3 border-t border-border/30">
-                  <div className="flex justify-center items-center w-full">
-                    <div className="text-xs flex items-center gap-4">
-                      <span className="flex items-center gap-1.5">
-                        <div className="w-3 h-3 bg-blue-500 rounded-full shadow-md animate-pulse"></div>
-                        <span className="text-blue-700 dark:text-blue-300 font-bold">
-                          {downloadCount} 进行中
-                        </span>
-                      </span>
-                      <span className="flex items-center gap-1.5">
-                        <div className="w-3 h-3 bg-green-500 rounded-full shadow-md"></div>
-                        <span className="text-green-700 dark:text-green-300 font-bold">
-                          {completedItems.length} 已完成
-                        </span>
-                      </span>
-                      <span className="flex items-center gap-1.5">
-                        <div className="w-3 h-3 bg-red-500 rounded-full shadow-md"></div>
-                        <span className="text-red-700 dark:text-red-300 font-bold">
-                          {failedItems.length} 失败
-                        </span>
-                      </span>
+                <TabsContent
+                  value="downloading"
+                  className="max-h-[300px] min-h-[120px] overflow-y-auto"
+                >
+                  {downloadCount === 0 ? (
+                    <div className="p-8 text-center text-muted-foreground text-sm">
+                      暂无下载任务
                     </div>
+                  ) : (
+                    <div className="space-y-0">
+                      {downloadingItems.map((task) => (
+                        <DownloadItem
+                          key={task.id}
+                          task={task}
+                          onPause={pauseTask}
+                          onResume={resumeTask}
+                          onCancel={cancelTask}
+                          onRetry={retryTask}
+                          onRemove={removeTask}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </TabsContent>
+
+                <TabsContent
+                  value="completed"
+                  className="max-h-[300px] min-h-[120px] overflow-y-auto"
+                >
+                  {completedItems.length === 0 ? (
+                    <div className="p-8 text-center text-muted-foreground text-sm">
+                      暂无已完成的下载
+                    </div>
+                  ) : (
+                    <div className="space-y-0">
+                      {completedItems.map((task) => (
+                        <DownloadItem
+                          key={task.id}
+                          task={task}
+                          onPause={pauseTask}
+                          onResume={resumeTask}
+                          onCancel={cancelTask}
+                          onRetry={retryTask}
+                          onRemove={removeTask}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </TabsContent>
+
+                <TabsContent
+                  value="failed"
+                  className="max-h-[300px] min-h-[120px] overflow-y-auto"
+                >
+                  {failedItems.length === 0 ? (
+                    <div className="p-8 text-center text-muted-foreground text-sm">
+                      暂无失败的下载
+                    </div>
+                  ) : (
+                    <div className="space-y-0">
+                      {failedItems.map((task) => (
+                        <DownloadItem
+                          key={task.id}
+                          task={task}
+                          onPause={pauseTask}
+                          onResume={resumeTask}
+                          onCancel={cancelTask}
+                          onRetry={retryTask}
+                          onRemove={removeTask}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </TabsContent>
+              </Tabs>
+            )}
+
+            {isExpanded && (
+              <div className="p-3 border-t border-border/30">
+                <div className="flex justify-center items-center w-full">
+                  <div className="text-xs flex items-center gap-4">
+                    <span className="flex items-center gap-1.5">
+                      <div className="w-3 h-3 bg-blue-500 rounded-full shadow-md animate-pulse"></div>
+                      <span className="text-blue-700 dark:text-blue-300 font-bold">
+                        {downloadCount} 进行中
+                      </span>
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <div className="w-3 h-3 bg-green-500 rounded-full shadow-md"></div>
+                      <span className="text-green-700 dark:text-green-300 font-bold">
+                        {completedItems.length} 已完成
+                      </span>
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <div className="w-3 h-3 bg-red-500 rounded-full shadow-md"></div>
+                      <span className="text-red-700 dark:text-red-300 font-bold">
+                        {failedItems.length} 失败
+                      </span>
+                    </span>
                   </div>
                 </div>
-              )}
-            </motion.div>
-          )}
+              </div>
+            )}
+          </motion.div>
         </AnimatePresence>
       </>
     );
@@ -713,7 +686,7 @@ const FloatingDownloadButton = React.memo(function FloatingDownloadButton() {
           </Badge>
         )}
       </button>
-      {isOpen && <FloatingDownloadProgress />}
+      {isOpen && <FloatingDownloadProgress onClose={() => setIsOpen(false)} />}
     </>
   );
 });
