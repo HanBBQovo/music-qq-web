@@ -155,11 +155,6 @@ export const FloatingDownloadProgress: React.FC<FloatingDownloadProgressProps> =
       }
     }
 
-    // 如果没有任何任务，不显示组件
-    if (tasks.length === 0) {
-      return null;
-    }
-
     // 简洁优化的样式类
     const getContainerClasses = () => {
       return "fixed bottom-20 right-6 z-50 overflow-hidden rounded-lg shadow-lg bg-background border border-border/80 hover:shadow-xl transition-all duration-300";
