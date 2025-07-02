@@ -260,23 +260,8 @@ export function MiniPlayer() {
         {!showPlayer && (
           <button
             onClick={() => setShowPlayer(true)}
-            className="fixed md:bottom-10 bottom-24 right-6 z-50 rounded-full p-3 bg-primary text-primary-foreground cursor-pointer select-none transition-all duration-200"
+            className="btn-float md:bottom-10 bottom-24"
             title="展开播放器"
-            style={{
-              pointerEvents: "auto",
-              boxShadow:
-                "0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = "scale(1.05)";
-              e.currentTarget.style.boxShadow =
-                "0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = "scale(1)";
-              e.currentTarget.style.boxShadow =
-                "0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)";
-            }}
           >
             <ChevronUp className="h-6 w-6" />
           </button>
@@ -824,23 +809,8 @@ export function MiniPlayer() {
       {!showPlayer && (
         <button
           onClick={() => setShowPlayer(true)}
-          className="fixed md:bottom-12 bottom-31 right-6 z-50 rounded-full p-3 bg-primary text-primary-foreground cursor-pointer select-none transition-all duration-200"
+          className="btn-float md:bottom-12 bottom-31"
           title="展开播放器"
-          style={{
-            pointerEvents: "auto",
-            boxShadow:
-              "0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.transform = "scale(1.05)";
-            e.currentTarget.style.boxShadow =
-              "0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.transform = "scale(1)";
-            e.currentTarget.style.boxShadow =
-              "0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)";
-          }}
         >
           <ChevronUp className="h-6 w-6" />
         </button>

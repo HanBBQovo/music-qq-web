@@ -43,46 +43,12 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { useDownloadStore } from "@/lib/store";
 import { type DownloadTask } from "@/lib/api/types";
-import { formatFileSize } from "@/lib/utils";
-
-// Helper functions
-function formatSpeed(bytesPerSecond: number): string {
-  if (!bytesPerSecond || bytesPerSecond <= 0) return "0 B/s";
-
-  if (bytesPerSecond >= 1024 * 1024) {
-    return `${(bytesPerSecond / (1024 * 1024)).toFixed(1)} MB/s`;
-  } else if (bytesPerSecond >= 1024) {
-    return `${(bytesPerSecond / 1024).toFixed(1)} KB/s`;
-  } else {
-    return `${Math.round(bytesPerSecond)} B/s`;
-  }
-}
-
-function formatTimeRemaining(seconds: number): string {
-  if (!seconds || seconds <= 0) return "";
-  if (seconds < 60) return `${Math.round(seconds)}秒`;
-  if (seconds < 3600) return `${Math.floor(seconds / 60)}分钟`;
-  return `${Math.floor(seconds / 3600)}小时`;
-}
-
-function getQualityDisplayName(quality: string): string {
-  switch (quality) {
-    case "128":
-      return "MP3 (128kbps)";
-    case "320":
-      return "MP3 (320kbps)";
-    case "flac":
-      return "FLAC 无损";
-    case "ATMOS_51":
-      return "臻品音质2.0";
-    case "ATMOS_2":
-      return "臻品全景声2.0";
-    case "MASTER":
-      return "臻品母带2.0";
-    default:
-      return quality;
-  }
-}
+import {
+  formatFileSize,
+  formatSpeed,
+  formatTimeRemaining,
+  getQualityDisplayName,
+} from "@/lib/utils/format";
 
 // 带动画的进度条组件
 function AnimatedProgress({

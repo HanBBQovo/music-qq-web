@@ -49,6 +49,7 @@ import {
 import { useSettingsStore } from "@/lib/store";
 import { usePlayerStore } from "@/lib/store/usePlayerStore";
 import type { Song as PlayerSong } from "@/lib/types/music";
+import { getQualityDisplayName, formatFileSize } from "@/lib/utils/format";
 
 export function SearchResults() {
   const searchParams = useSearchParams();
@@ -244,42 +245,6 @@ export function SearchResults() {
       song.size.sizeflac || 0,
       song.size.sizeape || 0
     );
-  }
-
-  // 添加音质显示名称函数
-  function getQualityDisplayName(quality: string): string {
-    switch (quality) {
-      case "128":
-        return "MP3 (128kbps)";
-      case "320":
-        return "MP3 (320kbps)";
-      case "flac":
-        return "FLAC 无损";
-      case "ATMOS_51":
-        return "臻品音质2.0";
-      case "ATMOS_2":
-        return "臻品全景声2.0";
-      case "MASTER":
-        return "臻品母带2.0";
-      default:
-        return quality;
-    }
-  }
-
-  // 格式化文件大小
-  function formatFileSize(bytes: number): string {
-    if (bytes === 0) return "未知";
-
-    const units = ["B", "KB", "MB", "GB"];
-    let size = bytes;
-    let unitIndex = 0;
-
-    while (size >= 1024 && unitIndex < units.length - 1) {
-      size /= 1024;
-      unitIndex++;
-    }
-
-    return `${size.toFixed(2)} ${units[unitIndex]}`;
   }
 
   // 格式化时长

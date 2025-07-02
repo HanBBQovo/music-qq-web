@@ -36,6 +36,7 @@ import { useDownloadStore } from "@/lib/store";
 import { useSettingsStore } from "@/lib/store";
 import { usePlayerStore } from "@/lib/store/usePlayerStore";
 import type { Song as PlayerSong } from "@/lib/types/music";
+import { getQualityDisplayName } from "@/lib/utils/format";
 
 interface ParseResultData {
   success: boolean;
@@ -364,25 +365,6 @@ export function ParseResultContent({ parseId }: ParseResultContentProps) {
     } catch (error: any) {
       setDownloadStatus((prev) => ({ ...prev, [index]: "failed" }));
       toast.error(`添加失败: ${songName} - ${error.message}`);
-    }
-  };
-
-  const getQualityDisplayName = (quality: string): string => {
-    switch (quality) {
-      case "128":
-        return "MP3 (128kbps)";
-      case "320":
-        return "MP3 (320kbps)";
-      case "flac":
-        return "FLAC 无损";
-      case "ATMOS_51":
-        return "臻品音质2.0";
-      case "ATMOS_2":
-        return "臻品全景声2.0";
-      case "MASTER":
-        return "臻品母带2.0";
-      default:
-        return quality;
     }
   };
 

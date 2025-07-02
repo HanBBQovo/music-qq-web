@@ -15,7 +15,12 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { useDownloadStore } from "@/lib/store";
-import { formatFileSize } from "@/lib/utils";
+import {
+  formatFileSize,
+  formatSpeed,
+  formatTimeRemaining,
+  getQualityDisplayName,
+} from "@/lib/utils/format";
 
 // Types
 interface FloatingDownloadProgressProps {
@@ -96,27 +101,6 @@ export const FloatingDownloadProgress: React.FC<FloatingDownloadProgressProps> =
       return count;
     }, [downloadingItems.length]);
 
-    // 格式化下载速度
-    const formatSpeed = React.useCallback((bytesPerSecond: number): string => {
-      if (!bytesPerSecond || bytesPerSecond <= 0) return "0 B/s";
-
-      if (bytesPerSecond >= 1024 * 1024) {
-        return `${(bytesPerSecond / (1024 * 1024)).toFixed(1)} MB/s`;
-      } else if (bytesPerSecond >= 1024) {
-        return `${(bytesPerSecond / 1024).toFixed(1)} KB/s`;
-      } else {
-        return `${Math.round(bytesPerSecond)} B/s`;
-      }
-    }, []);
-
-    // 格式化剩余时间
-    const formatTimeRemaining = React.useCallback((seconds: number): string => {
-      if (!seconds || seconds <= 0) return "";
-      if (seconds < 60) return `${Math.ceil(seconds)}秒`;
-      if (seconds < 3600) return `${Math.floor(seconds / 60)}分钟`;
-      return `${Math.floor(seconds / 3600)}小时`;
-    }, []);
-
     // 获取状态显示名称
     const getStatusText = React.useCallback((status: string) => {
       switch (status) {
@@ -134,26 +118,6 @@ export const FloatingDownloadProgress: React.FC<FloatingDownloadProgressProps> =
           return status;
       }
     }, []);
-
-    // 获取音质显示名称的函数
-    function getQualityDisplayName(quality: string): string {
-      switch (quality) {
-        case "128":
-          return "MP3 (128kbps)";
-        case "320":
-          return "MP3 (320kbps)";
-        case "flac":
-          return "FLAC 无损";
-        case "ATMOS_51":
-          return "臻品音质2.0";
-        case "ATMOS_2":
-          return "臻品全景声2.0";
-        case "MASTER":
-          return "臻品母带2.0";
-        default:
-          return quality;
-      }
-    }
 
     // 简洁优化的样式类
     const getContainerClasses = () => {
@@ -656,23 +620,12 @@ const FloatingDownloadButton = React.memo(function FloatingDownloadButton() {
   });
 
   const [isOpen, setIsOpen] = React.useState(false);
-  const [isHovered, setIsHovered] = React.useState(false);
 
   return (
     <>
       <button
-        className="fixed right-6 z-50 rounded-full p-3 bg-primary text-primary-foreground cursor-pointer select-none transition-all duration-200 md:bottom-26 bottom-47"
+        className="btn-float md:bottom-26 bottom-47"
         onClick={() => setIsOpen(true)}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-        style={{
-          pointerEvents: "auto",
-          transform: isHovered ? "scale(1.05)" : "scale(1)",
-          boxShadow: isHovered
-            ? "0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)"
-            : "0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)",
-          willChange: "transform, box-shadow",
-        }}
       >
         <Download className="h-6 w-6" />
         {downloadCount > 0 && (

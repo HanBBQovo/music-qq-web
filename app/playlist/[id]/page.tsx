@@ -29,11 +29,11 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import {
   Breadcrumb,
+  BreadcrumbList,
   BreadcrumbItem,
   BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
   BreadcrumbSeparator,
+  BreadcrumbPage,
 } from "@/components/ui/breadcrumb";
 import { toast } from "sonner";
 import {
@@ -55,6 +55,7 @@ import { useSearchStore } from "@/lib/store";
 import musicApi from "@/lib/api/client";
 import { usePlayerStore } from "@/lib/store/usePlayerStore";
 import type { Song as PlayerSong } from "@/lib/types/music";
+import { getQualityDisplayName, formatFileSize } from "@/lib/utils/format";
 
 export default function PlaylistDetailPage() {
   const params = useParams();
@@ -190,35 +191,6 @@ export default function PlaylistDetailPage() {
     } catch (error) {
       toast.error(`批量添加下载任务失败: ${(error as Error).message}`);
     }
-  }
-
-  // 获取音质显示名称
-  function getQualityDisplayName(quality: string): string {
-    switch (quality) {
-      case "128":
-        return "MP3 (128kbps)";
-      case "320":
-        return "MP3 (320kbps)";
-      case "flac":
-        return "FLAC 无损";
-      case "ATMOS_51":
-        return "臻品音质2.0";
-      case "ATMOS_2":
-        return "臻品全景声2.0";
-      case "MASTER":
-        return "臻品母带2.0";
-      default:
-        return quality;
-    }
-  }
-
-  // 格式化文件大小
-  function formatFileSize(bytes: number): string {
-    if (bytes === 0) return "0 B";
-    const k = 1024;
-    const sizes = ["B", "KB", "MB", "GB"];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
   }
 
   // 格式化时长
