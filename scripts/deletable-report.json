@@ -1,0 +1,176 @@
+[
+  {
+    "file": "lib/utils.ts",
+    "exportName": "formatDuration",
+    "kind": "FunctionDeclaration",
+    "deletable": true
+  },
+  {
+    "file": "lib/utils.ts",
+    "exportName": "formatFileSize",
+    "kind": "FunctionDeclaration",
+    "deletable": true
+  },
+  {
+    "file": "lib/utils.ts",
+    "exportName": "getCoverUrl",
+    "kind": "FunctionDeclaration",
+    "deletable": true
+  },
+  {
+    "file": "lib/utils.ts",
+    "exportName": "getSingerAvatarUrl",
+    "kind": "FunctionDeclaration",
+    "deletable": true
+  },
+  {
+    "file": "lib/utils.ts",
+    "exportName": "formatReleaseDate",
+    "kind": "FunctionDeclaration",
+    "deletable": true
+  },
+  {
+    "file": "lib/utils.ts",
+    "exportName": "cleanSongName",
+    "kind": "FunctionDeclaration",
+    "deletable": true
+  },
+  {
+    "file": "lib/utils.ts",
+    "exportName": "delay",
+    "kind": "FunctionDeclaration",
+    "deletable": true
+  },
+  {
+    "file": "components/parse/link-parser.tsx",
+    "exportName": "LinkParser",
+    "kind": "FunctionDeclaration",
+    "deletable": true
+  },
+  {
+    "file": "lib/api/types.ts",
+    "exportName": "Lyric",
+    "kind": "InterfaceDeclaration",
+    "deletable": true
+  },
+  {
+    "file": "lib/api/types.ts",
+    "exportName": "QualityInfo",
+    "kind": "InterfaceDeclaration",
+    "deletable": true
+  },
+  {
+    "file": "lib/api/types.ts",
+    "exportName": "ApiError",
+    "kind": "InterfaceDeclaration",
+    "deletable": true
+  },
+  {
+    "file": "lib/api/types.ts",
+    "exportName": "UserSettings",
+    "kind": "InterfaceDeclaration",
+    "deletable": true
+  },
+  {
+    "file": "lib/api/types.ts",
+    "exportName": "ApiResponse",
+    "kind": "InterfaceDeclaration",
+    "deletable": true
+  },
+  {
+    "file": "lib/constants/http-headers.ts",
+    "exportName": "CONTENT_TYPES",
+    "kind": "VariableDeclaration",
+    "deletable": true
+  },
+  {
+    "file": "lib/types/music.ts",
+    "exportName": "AudioQuality",
+    "kind": "EnumDeclaration",
+    "deletable": true
+  },
+  {
+    "file": "lib/types/music.ts",
+    "exportName": "PlayStats",
+    "kind": "InterfaceDeclaration",
+    "deletable": true
+  },
+  {
+    "file": "lib/types/music.ts",
+    "exportName": "SearchResultConverter",
+    "kind": "TypeAliasDeclaration",
+    "deletable": true
+  },
+  {
+    "file": "lib/types/music.ts",
+    "exportName": "PlayerEvents",
+    "kind": "InterfaceDeclaration",
+    "deletable": true
+  },
+  {
+    "file": "lib/utils/audio-url.ts",
+    "exportName": "getPlayInfo",
+    "kind": "FunctionDeclaration",
+    "deletable": true
+  },
+  {
+    "file": "lib/utils/audio-url.ts",
+    "exportName": "getAudioUrlWithQuality",
+    "kind": "FunctionDeclaration",
+    "deletable": true
+  },
+  {
+    "file": "lib/utils/audio-url.ts",
+    "exportName": "getAudioUrlsBatch",
+    "kind": "FunctionDeclaration",
+    "deletable": true
+  },
+  {
+    "file": "lib/utils/audio-url.ts",
+    "exportName": "preloadAudioUrl",
+    "kind": "FunctionDeclaration",
+    "deletable": true
+  },
+  {
+    "file": "lib/utils/audio-url.ts",
+    "exportName": "clearAudioUrlCache",
+    "kind": "FunctionDeclaration",
+    "deletable": true
+  },
+  {
+    "file": "lib/utils/audio-url.ts",
+    "exportName": "checkApiHealth",
+    "kind": "FunctionDeclaration",
+    "deletable": true
+  },
+  {
+    "file": "lib/utils/audio-url.ts",
+    "exportName": "validateAudioUrl",
+    "kind": "FunctionDeclaration",
+    "deletable": true
+  },
+  {
+    "file": "lib/utils/audio-url.ts",
+    "exportName": "getPlayStats",
+    "kind": "FunctionDeclaration",
+    "deletable": true
+  },
+  {
+    "file": "lib/utils/audio-url.ts",
+    "exportName": "getSupportedQualities",
+    "kind": "FunctionDeclaration",
+    "deletable": true
+  },
+  {
+    "file": "lib/utils/audio-url.ts",
+    "exportName": "setQQCookie",
+    "kind": "FunctionDeclaration",
+    "deletable": true
+  },
+  {
+    "file": "lib/utils/storage.ts",
+    "exportName": "playerStorage",
+    "kind": "VariableDeclaration",
+    "deletable": true
+  }
+]

@@ -21,11 +21,6 @@ export const HTTP_HEADERS = {
 } as const;
 
 // 内容类型常量
-export const CONTENT_TYPES = {
-  JSON: "application/json",
-  FORM_URLENCODED: "application/x-www-form-urlencoded",
-} as const;
-
 // 用户代理字符串
 export const USER_AGENTS = {
   DESKTOP: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",

@@ -27,13 +27,6 @@ export enum PlayerStatus {
 }
 
 // 音频质量枚举
-export enum AudioQuality {
-  STANDARD = "standard", // 标准音质
-  HIGH = "high", // 高音质
-  LOSSLESS = "lossless", // 无损音质
-  MASTER = "master", // 母带音质
-}
-
 // 搜索结果类型（与现有系统兼容）
 export interface SearchResultItem {
   id: string;
@@ -54,13 +47,6 @@ export interface PlayError {
 }
 
 // 播放统计信息
-export interface PlayStats {
-  totalPlayed: number;
-  totalDuration: number;
-  favoriteCount: number;
-  historyCount: number;
-}
-
 // 播放列表信息
 export interface PlaylistInfo {
   name: string;
@@ -88,16 +74,4 @@ export const PLAYER_CONFIG = {
 } as const;
 
 // 搜索结果转换为播放器歌曲格式的工具函数类型
-export type SearchResultConverter = (item: SearchResultItem) => Song;
-
 // 播放器事件类型
-export interface PlayerEvents {
-  onPlay?: (song: Song) => void;
-  onPause?: (song: Song) => void;
-  onNext?: (song: Song) => void;
-  onPrevious?: (song: Song) => void;
-  onEnd?: (song: Song) => void;
-  onError?: (error: PlayError) => void;
-  onTimeUpdate?: (currentTime: number, duration: number) => void;
-  onVolumeChange?: (volume: number) => void;
-}

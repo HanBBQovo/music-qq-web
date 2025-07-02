@@ -1,442 +1,518 @@
 [
   {
-    "file": "app/layout.tsx",
-    "exportName": "default",
-    "kind": "FunctionDeclaration"
-  },
-  {
-    "file": "app/layout.tsx",
-    "exportName": "metadata",
-    "kind": "VariableDeclaration"
-  },
-  {
     "file": "lib/utils.ts",
     "exportName": "formatDuration",
-    "kind": "FunctionDeclaration"
+    "kind": "FunctionDeclaration",
+    "deletable": true
   },
   {
     "file": "lib/utils.ts",
     "exportName": "formatFileSize",
-    "kind": "FunctionDeclaration"
+    "kind": "FunctionDeclaration",
+    "deletable": true
   },
   {
     "file": "lib/utils.ts",
     "exportName": "getCoverUrl",
-    "kind": "FunctionDeclaration"
+    "kind": "FunctionDeclaration",
+    "deletable": true
   },
   {
     "file": "lib/utils.ts",
     "exportName": "getSingerAvatarUrl",
-    "kind": "FunctionDeclaration"
+    "kind": "FunctionDeclaration",
+    "deletable": true
   },
   {
     "file": "lib/utils.ts",
     "exportName": "formatReleaseDate",
-    "kind": "FunctionDeclaration"
+    "kind": "FunctionDeclaration",
+    "deletable": true
   },
   {
     "file": "lib/utils.ts",
     "exportName": "cleanSongName",
-    "kind": "FunctionDeclaration"
+    "kind": "FunctionDeclaration",
+    "deletable": true
   },
   {
     "file": "lib/utils.ts",
     "exportName": "delay",
-    "kind": "FunctionDeclaration"
+    "kind": "FunctionDeclaration",
+    "deletable": true
   },
   {
     "file": "lib/utils.ts",
     "exportName": "extractSongIdFromUrl",
-    "kind": "FunctionDeclaration"
+    "kind": "FunctionDeclaration",
+    "deletable": false
   },
   {
     "file": "lib/utils.ts",
     "exportName": "extractPlaylistIdFromUrl",
-    "kind": "FunctionDeclaration"
+    "kind": "FunctionDeclaration",
+    "deletable": false
   },
   {
     "file": "lib/utils.ts",
     "exportName": "extractAlbumIdFromUrl",
-    "kind": "FunctionDeclaration"
+    "kind": "FunctionDeclaration",
+    "deletable": false
   },
   {
     "file": "components/download/floating-download-progress.tsx",
     "exportName": "FloatingDownloadProgress",
-    "kind": "VariableDeclaration"
+    "kind": "VariableDeclaration",
+    "deletable": false
   },
   {
     "file": "components/parse/link-parser.tsx",
     "exportName": "LinkParser",
-    "kind": "FunctionDeclaration"
+    "kind": "FunctionDeclaration",
+    "deletable": true
   },
   {
     "file": "components/ui/alert-dialog.tsx",
     "exportName": "AlertDialogPortal",
-    "kind": "FunctionDeclaration"
+    "kind": "FunctionDeclaration",
+    "deletable": false
   },
   {
     "file": "components/ui/alert-dialog.tsx",
     "exportName": "AlertDialogOverlay",
-    "kind": "FunctionDeclaration"
+    "kind": "FunctionDeclaration",
+    "deletable": false
   },
   {
     "file": "components/ui/alert-dialog.tsx",
     "exportName": "AlertDialogTrigger",
-    "kind": "FunctionDeclaration"
+    "kind": "FunctionDeclaration",
+    "deletable": false
   },
   {
     "file": "components/ui/alert.tsx",
     "exportName": "Alert",
-    "kind": "FunctionDeclaration"
+    "kind": "FunctionDeclaration",
+    "deletable": false
   },
   {
     "file": "components/ui/alert.tsx",
     "exportName": "AlertTitle",
-    "kind": "FunctionDeclaration"
+    "kind": "FunctionDeclaration",
+    "deletable": false
   },
   {
     "file": "components/ui/alert.tsx",
     "exportName": "AlertDescription",
-    "kind": "FunctionDeclaration"
+    "kind": "FunctionDeclaration",
+    "deletable": false
   },
   {
     "file": "components/ui/badge.tsx",
     "exportName": "badgeVariants",
-    "kind": "VariableDeclaration"
+    "kind": "VariableDeclaration",
+    "deletable": false
   },
   {
     "file": "components/ui/breadcrumb.tsx",
     "exportName": "BreadcrumbEllipsis",
-    "kind": "VariableDeclaration"
+    "kind": "VariableDeclaration",
+    "deletable": false
   },
   {
     "file": "components/ui/breadcrumb.tsx",
     "exportName": "BreadcrumbEllipsis",
-    "kind": "Identifier"
+    "kind": "Identifier",
+    "deletable": false
   },
   {
     "file": "components/ui/card.tsx",
     "exportName": "CardAction",
-    "kind": "FunctionDeclaration"
+    "kind": "FunctionDeclaration",
+    "deletable": false
   },
   {
     "file": "components/ui/collapsible.tsx",
     "exportName": "Collapsible",
-    "kind": "VariableDeclaration"
+    "kind": "VariableDeclaration",
+    "deletable": false
   },
   {
     "file": "components/ui/collapsible.tsx",
     "exportName": "CollapsibleTrigger",
-    "kind": "VariableDeclaration"
+    "kind": "VariableDeclaration",
+    "deletable": false
   },
   {
     "file": "components/ui/collapsible.tsx",
     "exportName": "CollapsibleContent",
-    "kind": "VariableDeclaration"
+    "kind": "VariableDeclaration",
+    "deletable": false
   },
   {
     "file": "components/ui/dialog.tsx",
     "exportName": "DialogClose",
-    "kind": "FunctionDeclaration"
+    "kind": "FunctionDeclaration",
+    "deletable": false
   },
   {
     "file": "components/ui/dialog.tsx",
     "exportName": "DialogOverlay",
-    "kind": "FunctionDeclaration"
+    "kind": "FunctionDeclaration",
+    "deletable": false
   },
   {
     "file": "components/ui/dialog.tsx",
     "exportName": "DialogPortal",
-    "kind": "FunctionDeclaration"
+    "kind": "FunctionDeclaration",
+    "deletable": false
   },
   {
     "file": "components/ui/dropdown-menu.tsx",
     "exportName": "DropdownMenuPortal",
-    "kind": "FunctionDeclaration"
+    "kind": "FunctionDeclaration",
+    "deletable": false
   },
   {
     "file": "components/ui/dropdown-menu.tsx",
     "exportName": "DropdownMenuGroup",
-    "kind": "FunctionDeclaration"
+    "kind": "FunctionDeclaration",
+    "deletable": false
   },
   {
     "file": "components/ui/dropdown-menu.tsx",
     "exportName": "DropdownMenuLabel",
-    "kind": "FunctionDeclaration"
+    "kind": "FunctionDeclaration",
+    "deletable": false
   },
   {
     "file": "components/ui/dropdown-menu.tsx",
     "exportName": "DropdownMenuCheckboxItem",
-    "kind": "FunctionDeclaration"
+    "kind": "FunctionDeclaration",
+    "deletable": false
   },
   {
     "file": "components/ui/dropdown-menu.tsx",
     "exportName": "DropdownMenuRadioGroup",
-    "kind": "FunctionDeclaration"
+    "kind": "FunctionDeclaration",
+    "deletable": false
   },
   {
     "file": "components/ui/dropdown-menu.tsx",
     "exportName": "DropdownMenuRadioItem",
-    "kind": "FunctionDeclaration"
+    "kind": "FunctionDeclaration",
+    "deletable": false
   },
   {
     "file": "components/ui/dropdown-menu.tsx",
     "exportName": "DropdownMenuShortcut",
-    "kind": "FunctionDeclaration"
+    "kind": "FunctionDeclaration",
+    "deletable": false
   },
   {
     "file": "components/ui/dropdown-menu.tsx",
     "exportName": "DropdownMenuSub",
-    "kind": "FunctionDeclaration"
+    "kind": "FunctionDeclaration",
+    "deletable": false
   },
   {
     "file": "components/ui/dropdown-menu.tsx",
     "exportName": "DropdownMenuSubTrigger",
-    "kind": "FunctionDeclaration"
+    "kind": "FunctionDeclaration",
+    "deletable": false
   },
   {
     "file": "components/ui/dropdown-menu.tsx",
     "exportName": "DropdownMenuSubContent",
-    "kind": "FunctionDeclaration"
+    "kind": "FunctionDeclaration",
+    "deletable": false
   },
   {
     "file": "components/ui/form.tsx",
     "exportName": "useFormField",
-    "kind": "VariableDeclaration"
+    "kind": "VariableDeclaration",
+    "deletable": false
   },
   {
     "file": "components/ui/form.tsx",
     "exportName": "FormLabel",
-    "kind": "FunctionDeclaration"
+    "kind": "FunctionDeclaration",
+    "deletable": false
   },
   {
     "file": "components/ui/scroll-area.tsx",
     "exportName": "ScrollBar",
-    "kind": "FunctionDeclaration"
+    "kind": "FunctionDeclaration",
+    "deletable": false
   },
   {
     "file": "components/ui/select.tsx",
     "exportName": "SelectGroup",
-    "kind": "FunctionDeclaration"
+    "kind": "FunctionDeclaration",
+    "deletable": false
   },
   {
     "file": "components/ui/select.tsx",
     "exportName": "SelectLabel",
-    "kind": "FunctionDeclaration"
+    "kind": "FunctionDeclaration",
+    "deletable": false
   },
   {
     "file": "components/ui/select.tsx",
     "exportName": "SelectScrollDownButton",
-    "kind": "FunctionDeclaration"
+    "kind": "FunctionDeclaration",
+    "deletable": false
   },
   {
     "file": "components/ui/select.tsx",
     "exportName": "SelectScrollUpButton",
-    "kind": "FunctionDeclaration"
+    "kind": "FunctionDeclaration",
+    "deletable": false
   },
   {
     "file": "components/ui/select.tsx",
     "exportName": "SelectSeparator",
-    "kind": "FunctionDeclaration"
+    "kind": "FunctionDeclaration",
+    "deletable": false
   },
   {
     "file": "components/ui/sheet.tsx",
     "exportName": "SheetClose",
-    "kind": "FunctionDeclaration"
+    "kind": "FunctionDeclaration",
+    "deletable": false
   },
   {
     "file": "components/ui/sheet.tsx",
     "exportName": "SheetFooter",
-    "kind": "FunctionDeclaration"
+    "kind": "FunctionDeclaration",
+    "deletable": false
   },
   {
     "file": "components/ui/tabbed-panel.tsx",
     "exportName": "TabDefinition",
-    "kind": "InterfaceDeclaration"
+    "kind": "InterfaceDeclaration",
+    "deletable": false
   },
   {
     "file": "components/ui/table.tsx",
     "exportName": "TableFooter",
-    "kind": "FunctionDeclaration"
+    "kind": "FunctionDeclaration",
+    "deletable": false
   },
   {
     "file": "components/ui/table.tsx",
     "exportName": "TableCaption",
-    "kind": "FunctionDeclaration"
+    "kind": "FunctionDeclaration",
+    "deletable": false
   },
   {
     "file": "lib/api/types.ts",
     "exportName": "Singer",
-    "kind": "InterfaceDeclaration"
+    "kind": "InterfaceDeclaration",
+    "deletable": false
   },
   {
     "file": "lib/api/types.ts",
     "exportName": "Album",
-    "kind": "InterfaceDeclaration"
+    "kind": "InterfaceDeclaration",
+    "deletable": false
   },
   {
     "file": "lib/api/types.ts",
     "exportName": "SongSearchResult",
-    "kind": "InterfaceDeclaration"
+    "kind": "InterfaceDeclaration",
+    "deletable": false
   },
   {
     "file": "lib/api/types.ts",
     "exportName": "AlbumSearchResult",
-    "kind": "InterfaceDeclaration"
+    "kind": "InterfaceDeclaration",
+    "deletable": false
   },
   {
     "file": "lib/api/types.ts",
     "exportName": "PlaylistSearchResult",
-    "kind": "InterfaceDeclaration"
+    "kind": "InterfaceDeclaration",
+    "deletable": false
   },
   {
     "file": "lib/api/types.ts",
     "exportName": "Lyric",
-    "kind": "InterfaceDeclaration"
+    "kind": "InterfaceDeclaration",
+    "deletable": true
   },
   {
     "file": "lib/api/types.ts",
     "exportName": "QualityInfo",
-    "kind": "InterfaceDeclaration"
+    "kind": "InterfaceDeclaration",
+    "deletable": true
   },
   {
     "file": "lib/api/types.ts",
     "exportName": "DownloadStatus",
-    "kind": "TypeAliasDeclaration"
+    "kind": "TypeAliasDeclaration",
+    "deletable": false
   },
   {
     "file": "lib/api/types.ts",
     "exportName": "ApiError",
-    "kind": "InterfaceDeclaration"
+    "kind": "InterfaceDeclaration",
+    "deletable": true
   },
   {
     "file": "lib/api/types.ts",
     "exportName": "UserSettings",
-    "kind": "InterfaceDeclaration"
+    "kind": "InterfaceDeclaration",
+    "deletable": true
   },
   {
     "file": "lib/api/types.ts",
     "exportName": "Word",
-    "kind": "TypeAliasDeclaration"
+    "kind": "TypeAliasDeclaration",
+    "deletable": false
   },
   {
     "file": "lib/api/types.ts",
     "exportName": "ApiResponse",
-    "kind": "InterfaceDeclaration"
+    "kind": "InterfaceDeclaration",
+    "deletable": true
   },
   {
     "file": "lib/constants/http-headers.ts",
     "exportName": "CONTENT_TYPES",
-    "kind": "VariableDeclaration"
+    "kind": "VariableDeclaration",
+    "deletable": true
   },
   {
     "file": "lib/styles/player-animations.ts",
     "exportName": "dynamicStyles",
-    "kind": "VariableDeclaration"
+    "kind": "VariableDeclaration",
+    "deletable": false
   },
   {
     "file": "lib/types/music.ts",
     "exportName": "AudioQuality",
-    "kind": "EnumDeclaration"
+    "kind": "EnumDeclaration",
+    "deletable": true
   },
   {
     "file": "lib/types/music.ts",
     "exportName": "SearchResultItem",
-    "kind": "InterfaceDeclaration"
+    "kind": "InterfaceDeclaration",
+    "deletable": false
   },
   {
     "file": "lib/types/music.ts",
     "exportName": "PlayStats",
-    "kind": "InterfaceDeclaration"
+    "kind": "InterfaceDeclaration",
+    "deletable": true
   },
   {
     "file": "lib/types/music.ts",
     "exportName": "SearchResultConverter",
-    "kind": "TypeAliasDeclaration"
+    "kind": "TypeAliasDeclaration",
+    "deletable": true
   },
   {
     "file": "lib/types/music.ts",
     "exportName": "PlayerEvents",
-    "kind": "InterfaceDeclaration"
+    "kind": "InterfaceDeclaration",
+    "deletable": true
   },
   {
     "file": "lib/utils/audio-url.ts",
     "exportName": "getQQCookie",
-    "kind": "FunctionDeclaration"
+    "kind": "FunctionDeclaration",
+    "deletable": false
   },
   {
     "file": "lib/utils/audio-url.ts",
     "exportName": "getPlayInfo",
-    "kind": "FunctionDeclaration"
+    "kind": "FunctionDeclaration",
+    "deletable": true
   },
   {
     "file": "lib/utils/audio-url.ts",
     "exportName": "getAudioUrlWithQuality",
-    "kind": "FunctionDeclaration"
+    "kind": "FunctionDeclaration",
+    "deletable": true
   },
   {
     "file": "lib/utils/audio-url.ts",
     "exportName": "getAudioUrlsBatch",
-    "kind": "FunctionDeclaration"
+    "kind": "FunctionDeclaration",
+    "deletable": true
   },
   {
     "file": "lib/utils/audio-url.ts",
     "exportName": "preloadAudioUrl",
-    "kind": "FunctionDeclaration"
+    "kind": "FunctionDeclaration",
+    "deletable": true
   },
   {
     "file": "lib/utils/audio-url.ts",
     "exportName": "clearAudioUrlCache",
-    "kind": "FunctionDeclaration"
+    "kind": "FunctionDeclaration",
+    "deletable": true
   },
   {
     "file": "lib/utils/audio-url.ts",
     "exportName": "checkApiHealth",
-    "kind": "FunctionDeclaration"
+    "kind": "FunctionDeclaration",
+    "deletable": true
   },
   {
     "file": "lib/utils/audio-url.ts",
     "exportName": "validateAudioUrl",
-    "kind": "FunctionDeclaration"
+    "kind": "FunctionDeclaration",
+    "deletable": true
   },
   {
     "file": "lib/utils/audio-url.ts",
     "exportName": "getPlayStats",
-    "kind": "FunctionDeclaration"
+    "kind": "FunctionDeclaration",
+    "deletable": true
   },
   {
     "file": "lib/utils/audio-url.ts",
     "exportName": "getSupportedQualities",
-    "kind": "FunctionDeclaration"
+    "kind": "FunctionDeclaration",
+    "deletable": true
   },
   {
     "file": "lib/utils/audio-url.ts",
     "exportName": "setQQCookie",
-    "kind": "FunctionDeclaration"
+    "kind": "FunctionDeclaration",
+    "deletable": true
   },
   {
     "file": "lib/utils/audio-url.ts",
     "exportName": "QualityInfo",
-    "kind": "InterfaceDeclaration"
+    "kind": "InterfaceDeclaration",
+    "deletable": false
   },
   {
     "file": "lib/utils/storage.ts",
     "exportName": "playerStorage",
-    "kind": "VariableDeclaration"
+    "kind": "VariableDeclaration",
+    "deletable": true
   },
   {
     "file": "lib/utils/storage.ts",
     "exportName": "IndexedDBHelper",
-    "kind": "ClassDeclaration"
+    "kind": "ClassDeclaration",
+    "deletable": false
   },
   {
     "file": "lib/utils/storage.ts",
     "exportName": "LocalStorageHelper",
-    "kind": "ClassDeclaration"
+    "kind": "ClassDeclaration",
+    "deletable": false
   },
   {
     "file": "lib/utils/storage.ts",
     "exportName": "PlayerStorage",
-    "kind": "ClassDeclaration"
+    "kind": "ClassDeclaration",
+    "deletable": false
   }
 ]

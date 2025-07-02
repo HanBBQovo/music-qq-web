@@ -477,7 +477,5 @@ class PlayerStorage {
 }
 
 // 创建全局存储实例
-export const playerStorage = new PlayerStorage();
-
 // 导出工具类
 export { IndexedDBHelper, LocalStorageHelper, PlayerStorage };

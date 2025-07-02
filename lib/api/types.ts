@@ -103,16 +103,6 @@ export type SearchResult =
   | PlaylistSearchResult;
 
 // 歌词类型
-export interface Lyric {
-  lyric: string;
-  trans?: string;
-  krcData?: {
-    lines: LyricLine[];
-  };
-  hasWordTimestamp?: boolean;
-  format?: "lrc" | "krc";
-}
-
 // 音质选项
 export type AudioQuality =
   | "128"
@@ -123,14 +113,6 @@ export type AudioQuality =
   | "MASTER";
 
 // 音质信息
-export interface QualityInfo {
-  size: number;
-  extension: string;
-  displayName: string;
-  quality: string;
-  vip: boolean;
-}
-
 // 歌曲下载URL信息
 export interface SongUrlInfo {
   code: number;
@@ -212,20 +194,7 @@ export interface DownloadTask {
 }
 
 // API错误
-export interface ApiError {
-  code: number;
-  message: string;
-}
-
 // 用户设置
-export interface UserSettings {
-  cookie?: string;
-  defaultQuality: AudioQuality;
-  saveLocation?: string;
-  autoAddMetadata: boolean;
-  autoAddCover: boolean;
-}
-
 // 搜索参数接口
 export interface SearchParams {
   key: string;
@@ -337,8 +306,3 @@ export interface PlaylistResponse {
 }
 
 // 通用API响应接口
-export interface ApiResponse<T> {
-  code: number;
-  data: T;
-  message: string;
-}
