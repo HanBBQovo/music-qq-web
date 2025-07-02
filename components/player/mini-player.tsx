@@ -96,13 +96,6 @@ export function MiniPlayer() {
 
   // 生成动态音质选项
   const generateQualityOptions = () => {
-    // console.log("🎛️ 生成音质选项，当前状态:", {
-    //   availableQualities,
-    //   qualitySizes,
-    //   recommendedQuality,
-    //   hasAvailableQualities: availableQualities.length > 0,
-    // });
-
     // 所有可能的音质选项（作为fallback）
     const allQualityOptions: Array<{
       value: AudioQuality;
@@ -160,7 +153,7 @@ export function MiniPlayer() {
       });
     }
 
-    // Fallback: 返回所有选项（都标记为可用）
+    // Fallback: 返回所有选项
     return allQualityOptions.map((option) => ({
       ...option,
       isAvailable: true,

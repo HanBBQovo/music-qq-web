@@ -1,6 +1,5 @@
-
-import type { Song, PlayMode } from '@/lib/types/music';
-import type { AudioQuality, LyricLine } from '@/lib/api/types';
+import type { Song, PlayMode } from "@/lib/types/music";
+import type { AudioQuality, LyricLine } from "@/lib/api/types";
 
 // 单个 slice 的接口定义
 

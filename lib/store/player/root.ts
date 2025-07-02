@@ -238,6 +238,9 @@ export const usePlayerStore = create<PlayerStoreState>()(
           playlist: state.playlist,
           currentIndex: state.currentIndex,
           currentSong: state.currentSong,
+          qualitySizes: state.qualitySizes,
+          availableQualities: state.availableQualities,
+          recommendedQuality: state.recommendedQuality,
         }),
       }
     )
