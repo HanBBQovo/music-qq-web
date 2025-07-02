@@ -55,6 +55,7 @@ import musicApi from "@/lib/api/client";
 import { usePlayerStore } from "@/lib/store/usePlayerStore";
 import type { Song as PlayerSong } from "@/lib/types/music";
 import { getQualityDisplayName, formatFileSize } from "@/lib/utils/format";
+import RemoteImage from "@/components/ui/remote-image";
 
 export default function PlaylistDetailPage() {
   const params = useParams();
@@ -415,20 +416,9 @@ export default function PlaylistDetailPage() {
               {/* 歌单封面 */}
               <div className="w-full md:w-48 h-48 relative overflow-hidden rounded-lg flex-shrink-0">
                 {(cachedPlaylistInfo?.picUrl || playlist.logo) && (
-                  <img
-                    src={cachedPlaylistInfo?.picUrl || playlist.logo}
+                  <RemoteImage
+                    src={cachedPlaylistInfo?.picUrl || playlist.logo || ""}
                     alt={playlist.name}
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      // 如果图片加载失败，显示占位符
-                      const target = e.target as HTMLImageElement;
-                      target.style.display = "none";
-                      const placeholder =
-                        target.nextElementSibling as HTMLDivElement;
-                      if (placeholder) {
-                        placeholder.style.display = "flex";
-                      }
-                    }}
                   />
                 )}
                 <div
@@ -576,20 +566,9 @@ export default function PlaylistDetailPage() {
                         <TableCell className="text-center">
                           <div className="w-10 h-10 relative overflow-hidden rounded-lg flex-shrink-0 mx-auto">
                             {song.album.cover ? (
-                              <img
-                                src={song.album.cover}
+                              <RemoteImage
+                                src={song.album.cover || ""}
                                 alt={song.album.name}
-                                className="w-full h-full object-cover"
-                                onError={(e) => {
-                                  // 如果封面加载失败，显示序号
-                                  const target = e.target as HTMLImageElement;
-                                  target.style.display = "none";
-                                  const fallback =
-                                    target.nextElementSibling as HTMLDivElement;
-                                  if (fallback) {
-                                    fallback.style.display = "flex";
-                                  }
-                                }}
                               />
                             ) : null}
                             <div
@@ -734,19 +713,9 @@ export default function PlaylistDetailPage() {
                       />
                       <div className="flex-shrink-0 w-12 h-12 relative overflow-hidden rounded-lg">
                         {song.album.cover ? (
-                          <img
-                            src={song.album.cover}
+                          <RemoteImage
+                            src={song.album.cover || ""}
                             alt={song.album.name}
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              const target = e.target as HTMLImageElement;
-                              target.style.display = "none";
-                              const fallback =
-                                target.nextElementSibling as HTMLDivElement;
-                              if (fallback) {
-                                fallback.style.display = "flex";
-                              }
-                            }}
                           />
                         ) : null}
                         <div
