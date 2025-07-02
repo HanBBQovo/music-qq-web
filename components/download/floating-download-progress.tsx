@@ -12,7 +12,7 @@ import {
   Trash,
   RotateCcw,
 } from "lucide-react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TabbedPanel } from "@/components/ui/tabbed-panel";
 import { Badge } from "@/components/ui/badge";
 import { useDownloadStore } from "@/lib/store";
 import {
@@ -21,6 +21,8 @@ import {
   formatTimeRemaining,
   getQualityDisplayName,
 } from "@/lib/utils/format";
+import { ProgressBar } from "@/components/ui/progress-bar";
+import { useStableSelector } from "@/lib/hooks/useStableSelector";
 
 // Types
 interface FloatingDownloadProgressProps {
@@ -56,7 +58,6 @@ export const FloatingDownloadProgress: React.FC<FloatingDownloadProgressProps> =
     const retryTask = useDownloadStore((state) => state.retryTask);
     const removeTask = useDownloadStore((state) => state.removeTask);
 
-    const [activeTab, setActiveTab] = React.useState("downloading");
     const [isExpanded, setIsExpanded] = React.useState(true);
 
     // 页面刷新后状态检查 - 只在组件挂载时执行一次
@@ -132,31 +133,6 @@ export const FloatingDownloadProgress: React.FC<FloatingDownloadProgressProps> =
       return "h-8 w-8 rounded-full flex items-center justify-center transition-colors duration-200 hover:bg-muted";
     };
 
-    // Progress bar component - 简洁优化版本
-    const DownloadProgress = React.memo(function DownloadProgress({
-      progress,
-      isDownloading,
-    }: {
-      progress: number;
-      isDownloading: boolean;
-    }) {
-      // 四舍五入到整数，减少无意义的更新
-      const roundedProgress = Math.round(progress);
-
-      return (
-        <div className="h-2 bg-muted w-full rounded-full overflow-hidden">
-          <div
-            className={`h-full rounded-full transition-all duration-300 ease-out ${
-              isDownloading
-                ? "bg-gradient-to-r from-primary to-primary/80"
-                : "bg-muted-foreground/50"
-            }`}
-            style={{ width: `${Math.max(0, Math.min(100, roundedProgress))}%` }}
-          />
-        </div>
-      );
-    });
-
     // Download item component - 高度优化版本，防止频繁重渲染
     const DownloadItem = React.memo(
       function DownloadItem({
@@ -180,25 +156,25 @@ export const FloatingDownloadProgress: React.FC<FloatingDownloadProgressProps> =
           task.status === "pending";
 
         // 使用独立的状态订阅，避免父组件传递频繁变化的状态
-        const taskSpeed = useDownloadStore((state) => {
+        const taskSpeed = useStableSelector(useDownloadStore, (state) => {
           const speed = state.downloadSpeeds[task.id] || 0;
           // 量化到50KB/s，减少无意义更新
           return Math.round(speed / (50 * 1024)) * (50 * 1024);
-        });
+        }) as number;
 
-        const taskTime = useDownloadStore((state) => {
+        const taskTime = useStableSelector(useDownloadStore, (state) => {
           const time = state.estimatedTimes[task.id] || 0;
           // 量化到5秒，减少无意义更新
           return Math.round(time / 5) * 5;
-        });
+        }) as number;
 
         // 独立订阅进度，避免tasks数组变化导致的重渲染
-        const taskProgress = useDownloadStore((state) => {
+        const taskProgress = useStableSelector(useDownloadStore, (state) => {
           const progressInfo = state.taskProgress[task.id];
           if (!progressInfo) return 0;
           // 量化到整数，减少无意义更新
           return Math.round(progressInfo.progress);
-        });
+        }) as number;
 
         // 稳定的进度显示，只在整数变化时更新
         const stableProgress = taskProgress;
@@ -386,9 +362,9 @@ export const FloatingDownloadProgress: React.FC<FloatingDownloadProgressProps> =
 
             {isActive && (
               <div className="space-y-2 mt-3">
-                <DownloadProgress
-                  progress={stableProgress}
-                  isDownloading={task.status === "downloading"}
+                <ProgressBar
+                  value={stableProgress}
+                  color={task.status === "downloading" ? "primary" : "muted"}
                 />
                 <div className="flex justify-between text-xs text-muted-foreground">
                   <span className="truncate max-w-[120px]">
@@ -481,98 +457,83 @@ export const FloatingDownloadProgress: React.FC<FloatingDownloadProgressProps> =
             </div>
 
             {isExpanded && (
-              <Tabs
-                defaultValue="downloading"
-                value={activeTab}
-                onValueChange={setActiveTab}
-              >
-                <TabsList className="w-full grid grid-cols-3 mx-2 my-2">
-                  <TabsTrigger value="downloading" className="text-xs px-2">
-                    队列 ({downloadCount})
-                  </TabsTrigger>
-                  <TabsTrigger value="completed" className="text-xs px-2">
-                    已完成 ({completedItems.length})
-                  </TabsTrigger>
-                  <TabsTrigger value="failed" className="text-xs px-2">
-                    失败 ({failedItems.length})
-                  </TabsTrigger>
-                </TabsList>
-
-                <TabsContent
-                  value="downloading"
-                  className="max-h-[300px] min-h-[120px] overflow-y-auto"
-                >
-                  {downloadCount === 0 ? (
-                    <div className="p-8 text-center text-muted-foreground text-sm">
-                      暂无下载任务
-                    </div>
-                  ) : (
-                    <div className="space-y-0">
-                      {downloadingItems.map((task) => (
-                        <DownloadItem
-                          key={task.id}
-                          task={task}
-                          onPause={pauseTask}
-                          onResume={resumeTask}
-                          onCancel={cancelTask}
-                          onRetry={retryTask}
-                          onRemove={removeTask}
-                        />
-                      ))}
-                    </div>
-                  )}
-                </TabsContent>
-
-                <TabsContent
-                  value="completed"
-                  className="max-h-[300px] min-h-[120px] overflow-y-auto"
-                >
-                  {completedItems.length === 0 ? (
-                    <div className="p-8 text-center text-muted-foreground text-sm">
-                      暂无已完成的下载
-                    </div>
-                  ) : (
-                    <div className="space-y-0">
-                      {completedItems.map((task) => (
-                        <DownloadItem
-                          key={task.id}
-                          task={task}
-                          onPause={pauseTask}
-                          onResume={resumeTask}
-                          onCancel={cancelTask}
-                          onRetry={retryTask}
-                          onRemove={removeTask}
-                        />
-                      ))}
-                    </div>
-                  )}
-                </TabsContent>
-
-                <TabsContent
-                  value="failed"
-                  className="max-h-[300px] min-h-[120px] overflow-y-auto"
-                >
-                  {failedItems.length === 0 ? (
-                    <div className="p-8 text-center text-muted-foreground text-sm">
-                      暂无失败的下载
-                    </div>
-                  ) : (
-                    <div className="space-y-0">
-                      {failedItems.map((task) => (
-                        <DownloadItem
-                          key={task.id}
-                          task={task}
-                          onPause={pauseTask}
-                          onResume={resumeTask}
-                          onCancel={cancelTask}
-                          onRetry={retryTask}
-                          onRemove={removeTask}
-                        />
-                      ))}
-                    </div>
-                  )}
-                </TabsContent>
-              </Tabs>
+              <TabbedPanel
+                tabs={[
+                  {
+                    key: "downloading",
+                    label: `队列 (${downloadCount})`,
+                    render: () =>
+                      downloadCount === 0 ? (
+                        <div className="p-8 text-center text-muted-foreground text-sm">
+                          暂无下载任务
+                        </div>
+                      ) : (
+                        <div className="space-y-0">
+                          {downloadingItems.map((task) => (
+                            <DownloadItem
+                              key={task.id}
+                              task={task}
+                              onPause={pauseTask}
+                              onResume={resumeTask}
+                              onCancel={cancelTask}
+                              onRetry={retryTask}
+                              onRemove={removeTask}
+                            />
+                          ))}
+                        </div>
+                      ),
+                  },
+                  {
+                    key: "completed",
+                    label: `已完成 (${completedItems.length})`,
+                    render: () =>
+                      completedItems.length === 0 ? (
+                        <div className="p-8 text-center text-muted-foreground text-sm">
+                          暂无已完成的下载
+                        </div>
+                      ) : (
+                        <div className="space-y-0">
+                          {completedItems.map((task) => (
+                            <DownloadItem
+                              key={task.id}
+                              task={task}
+                              onPause={pauseTask}
+                              onResume={resumeTask}
+                              onCancel={cancelTask}
+                              onRetry={retryTask}
+                              onRemove={removeTask}
+                            />
+                          ))}
+                        </div>
+                      ),
+                  },
+                  {
+                    key: "failed",
+                    label: `失败 (${failedItems.length})`,
+                    render: () =>
+                      failedItems.length === 0 ? (
+                        <div className="p-8 text-center text-muted-foreground text-sm">
+                          暂无失败的下载
+                        </div>
+                      ) : (
+                        <div className="space-y-0">
+                          {failedItems.map((task) => (
+                            <DownloadItem
+                              key={task.id}
+                              task={task}
+                              onPause={pauseTask}
+                              onResume={resumeTask}
+                              onCancel={cancelTask}
+                              onRetry={retryTask}
+                              onRemove={removeTask}
+                            />
+                          ))}
+                        </div>
+                      ),
+                  },
+                ]}
+                defaultKey="downloading"
+              />
             )}
 
             {isExpanded && (

@@ -49,28 +49,7 @@ import {
   formatTimeRemaining,
   getQualityDisplayName,
 } from "@/lib/utils/format";
-
-// 带动画的进度条组件
-function AnimatedProgress({
-  value,
-  className,
-}: {
-  value: number;
-  className?: string;
-}) {
-  return (
-    <div
-      className={`h-2 bg-muted w-full rounded-full overflow-hidden ${
-        className || ""
-      }`}
-    >
-      <div
-        className="h-full rounded-full transition-all duration-300 ease-out bg-gradient-to-r from-primary to-primary/80"
-        style={{ width: `${Math.max(0, Math.min(100, value))}%` }}
-      />
-    </div>
-  );
-}
+import { ProgressBar } from "@/components/ui/progress-bar";
 
 // Download Statistics Component
 function DownloadStatistics() {
@@ -307,7 +286,7 @@ const DownloadTaskRow = React.memo(
                   / {formatFileSize(task.totalBytes || 0)}
                 </span>
               </div>
-              <AnimatedProgress value={taskProgress} className="h-2 w-full" />
+              <ProgressBar value={taskProgress} className="h-2 w-full" />
               <div className="flex justify-between text-xs text-muted-foreground">
                 <span className="truncate">
                   {task.status === "downloading"
@@ -722,7 +701,7 @@ const MobileTaskCard = React.memo(
                 / {formatFileSize(task.totalBytes || 0)}
               </span>
             </div>
-            <AnimatedProgress value={taskProgress} className="h-2 w-full" />
+            <ProgressBar value={taskProgress} className="h-2 w-full" />
             <div className="flex justify-between text-xs text-muted-foreground">
               <span className="truncate">
                 {task.status === "downloading"
