@@ -1,10 +1,6 @@
 "use client";
 
-import {
-  useState,
-  useEffect,
-  useRef,
-} from "react";
+import { useState, useEffect, useRef } from "react";
 import { usePlayerStore } from "@/lib/store/usePlayerStore";
 import { useAudioPlayer } from "@/lib/hooks/use-audio-player";
 import { Button } from "@/components/ui/button";
@@ -39,41 +35,37 @@ import React from "react";
 import { resetGlobalAudioAnalyser } from "@/lib/audio/audio-analyzer";
 import { DynamicCover } from "./dynamic-cover";
 import { KaraokeLyricsDisplay } from "./karaoke-lyrics-display";
-// import {
-//   EnhancedLyricsDisplay,
-//   CompactEnhancedLyricsDisplay,
-// } from "./enhanced-lyrics-display";
 
 export function MiniPlayer() {
-  const {
-    currentSong,
-    isPlaying,
-    volume,
-    currentTime,
-    duration,
-    playMode,
-    currentQuality,
-    showPlayer,
-    showPlaylist,
-    availableQualities,
-    qualitySizes,
-    recommendedQuality,
-    togglePlay,
-    setVolume,
-    setCurrentTime,
-    playNext,
-    playPrevious,
-    setPlayMode,
-    setShowPlayer,
-    setShowPlaylist,
-    switchQuality,
-  } = usePlayerStore();
+  // 单字段选择，避免快照重建
+  const currentSong = usePlayerStore((s) => s.currentSong);
+  const isPlaying = usePlayerStore((s) => s.isPlaying);
+  const volume = usePlayerStore((s) => s.volume);
+  const currentTime = usePlayerStore((s) => s.currentTime);
+  const duration = usePlayerStore((s) => s.duration);
+  const playMode = usePlayerStore((s) => s.playMode);
+  const currentQuality = usePlayerStore((s) => s.currentQuality);
+  const showPlayer = usePlayerStore((s) => s.showPlayer);
+  const showPlaylist = usePlayerStore((s) => s.showPlaylist);
+  const availableQualities = usePlayerStore((s) => s.availableQualities);
+  const qualitySizes = usePlayerStore((s) => s.qualitySizes);
+  const recommendedQuality = usePlayerStore((s) => s.recommendedQuality);
+
+  const togglePlay = usePlayerStore((s) => s.togglePlay);
+  const setVolume = usePlayerStore((s) => s.setVolume);
+  const setCurrentTime = usePlayerStore((s) => s.setCurrentTime);
+  const playNext = usePlayerStore((s) => s.playNext);
+  const playPrevious = usePlayerStore((s) => s.playPrevious);
+  const setPlayMode = usePlayerStore((s) => s.setPlayMode);
+  const setShowPlayer = usePlayerStore((s) => s.setShowPlayer);
+  const setShowPlaylist = usePlayerStore((s) => s.setShowPlaylist);
+  const switchQuality = usePlayerStore((s) => s.switchQuality);
 
   // 简化渲染追踪，只在开发时使用
   const renderCountRef = useRef(0);
   renderCountRef.current += 1;
 
-  // 使用音频播放器hook，获取audioElement引用和loading状态
+  // 使用音频播放器hook
   const { seekTo, audioElement, isLoading } = useAudioPlayer();
 
   const [localVolume, setLocalVolume] = useState(volume);

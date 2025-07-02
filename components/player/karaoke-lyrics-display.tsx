@@ -14,14 +14,12 @@ export const KaraokeLyricsDisplay = React.memo(function KaraokeLyricsDisplay({
   className,
   mode = "dual",
 }: KaraokeLyricsDisplayProps) {
-  const {
-    currentSong,
-    isPlaying,
-    krcLyrics: lyricLines,
-    isKrcLyricsLoading: isLoading,
-    krcLyricsError: error,
-    fetchKrcLyrics,
-  } = usePlayerStore();
+  const currentSong = usePlayerStore((s) => s.currentSong);
+  const isPlaying = usePlayerStore((s) => s.isPlaying);
+  const lyricLines = usePlayerStore((s) => s.krcLyrics);
+  const isLoading = usePlayerStore((s) => s.isKrcLyricsLoading);
+  const error = usePlayerStore((s) => s.krcLyricsError);
+  const fetchKrcLyrics = usePlayerStore((s) => s.fetchKrcLyrics);
 
   const [foregroundColor, setForegroundColor] = useState(
     "hsl(262.1 83.3% 57.8%)"

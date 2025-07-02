@@ -71,15 +71,13 @@ export function ParseResultContent({ parseId }: ParseResultContentProps) {
   const { defaultQuality } = useSettingsStore();
 
   // 播放器状态管理
-  const {
-    playSong,
-    playSongList,
-    addToPlaylist,
-    addMultipleToPlaylist,
-    currentSong,
-    isPlaying,
-    togglePlay,
-  } = usePlayerStore();
+  const playSong = usePlayerStore((s) => s.playSong);
+  const playSongList = usePlayerStore((s) => s.playSongList);
+  const addToPlaylist = usePlayerStore((s) => s.addToPlaylist);
+  const addMultipleToPlaylist = usePlayerStore((s) => s.addMultipleToPlaylist);
+  const currentSong = usePlayerStore((s) => s.currentSong);
+  const isPlaying = usePlayerStore((s) => s.isPlaying);
+  const togglePlay = usePlayerStore((s) => s.togglePlay);
 
   useEffect(() => {
     // 从localStorage获取解析数据

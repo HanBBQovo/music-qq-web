@@ -123,7 +123,7 @@ const SongItem = memo(
     dragHandleProps,
     isDeleting = false,
   }: SongItemProps & { dragHandleProps?: any }) {
-    const { isPlaying } = usePlayerStore();
+    const isPlaying = usePlayerStore((s) => s.isPlaying);
 
     const handleClick = () => {
       if (isDeleting) {
@@ -309,18 +309,16 @@ const SongItem = memo(
 );
 
 export function PlaylistPanel() {
-  const {
-    playlist,
-    currentSong,
-    isPlaying,
-    showPlaylist,
-    setShowPlaylist,
-    playAtIndex,
-    removeFromPlaylist,
-    clearPlaylist,
-    togglePlay,
-    moveInPlaylist,
-  } = usePlayerStore();
+  const playlist = usePlayerStore((s) => s.playlist);
+  const currentSong = usePlayerStore((s) => s.currentSong);
+  const isPlaying = usePlayerStore((s) => s.isPlaying);
+  const showPlaylist = usePlayerStore((s) => s.showPlaylist);
+  const setShowPlaylist = usePlayerStore((s) => s.setShowPlaylist);
+  const playAtIndex = usePlayerStore((s) => s.playAtIndex);
+  const removeFromPlaylist = usePlayerStore((s) => s.removeFromPlaylist);
+  const clearPlaylist = usePlayerStore((s) => s.clearPlaylist);
+  const togglePlay = usePlayerStore((s) => s.togglePlay);
+  const moveInPlaylist = usePlayerStore((s) => s.moveInPlaylist);
 
   const { addTask } = useDownloadStore();
   const { defaultQuality } = useSettingsStore();
