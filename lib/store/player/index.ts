@@ -1,1 +1,3 @@
-export { usePlayerStore } from "../usePlayerStore";
+
+export { usePlayerStore } from './root';
+export * from './types';

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, memo } from "react";
-import { usePlayerStore } from "@/lib/store/usePlayerStore";
+import { usePlayerStore } from "@/lib/store/player";
 import { useDownloadStore } from "@/lib/store/useDownloadStore";
 import { useSettingsStore } from "@/lib/store/useSettingsStore";
 import { toast } from "sonner";

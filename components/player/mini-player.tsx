@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { usePlayerStore } from "@/lib/store/usePlayerStore";
+import { usePlayerStore } from "@/lib/store/player";
 import { useAudioPlayer } from "@/lib/hooks/use-audio-player";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";

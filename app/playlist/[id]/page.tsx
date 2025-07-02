@@ -52,7 +52,7 @@ import { useDownloadStore } from "@/lib/store";
 import { useSettingsStore } from "@/lib/store";
 import { useSearchStore } from "@/lib/store";
 import musicApi from "@/lib/api/client";
-import { usePlayerStore } from "@/lib/store/usePlayerStore";
+import { usePlayerStore } from "@/lib/store/player";
 import type { Song as PlayerSong } from "@/lib/types/music";
 import { getQualityDisplayName, formatFileSize } from "@/lib/utils/format";
 import RemoteImage from "@/components/ui/remote-image";

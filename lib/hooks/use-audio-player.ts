@@ -1,5 +1,5 @@
 import { useEffect, useRef, useCallback, useState } from "react";
-import { usePlayerStore } from "../store/usePlayerStore";
+import { usePlayerStore } from "../store/player";
 import { PlayerStatus, PlayError, PLAYER_CONFIG } from "../types/music";
 
 // 音频播放Hook
@@ -8,6 +8,7 @@ export const useAudioPlayer = () => {
   const [status, setStatus] = useState<PlayerStatus>(PlayerStatus.IDLE);
   const [error, setError] = useState<PlayError | null>(null);
   const [buffered, setBuffered] = useState(0);
+  const [isSeeking, setIsSeeking] = useState(false);
   const preloadAudioRef = useRef<HTMLAudioElement | null>(null);
 
   // 重试相关状态
@@ -18,22 +19,15 @@ export const useAudioPlayer = () => {
   const animationFrameId = useRef<number | null>(null);
 
   // 从状态管理中获取播放器状态和方法
-  const {
-    currentSong,
-    isPlaying,
-    volume,
-    currentTime,
-    duration,
-    playMode,
-    playlist,
-    currentIndex,
-    play,
-    pause,
-    setCurrentTime,
-    setDuration,
-    playNext,
-    _getNextIndex,
-  } = usePlayerStore();
+  const currentSong = usePlayerStore((s) => s.currentSong);
+  const isPlaying = usePlayerStore((s) => s.isPlaying);
+  const volume = usePlayerStore((s) => s.volume);
+  const storeCurrentTime = usePlayerStore((s) => s.currentTime);
+  const playMode = usePlayerStore((s) => s.playMode);
+  const playlist = usePlayerStore((s) => s.playlist);
+  const currentIndex = usePlayerStore((s) => s.currentIndex);
+  const { play, pause, setCurrentTime, setDuration, playNext, _getNextIndex } =
+    usePlayerStore.getState();
 
   // 创建音频元素
   const createAudioElement = useCallback(
@@ -96,7 +90,6 @@ export const useAudioPlayer = () => {
               setError(null);
               setRetryCount(0);
               // 播放成功后手动启动RAF循环
-              const { play } = usePlayerStore.getState();
               play();
             }
           }
@@ -220,12 +213,14 @@ export const useAudioPlayer = () => {
     setError(null);
 
     // 检查是否需要跳转到指定时间（音质切换场景）
-    if (audioRef.current && currentTime > 0) {
-      const timeDiff = Math.abs(currentTime - audioRef.current.currentTime);
+    if (audioRef.current && storeCurrentTime > 0) {
+      const timeDiff = Math.abs(
+        storeCurrentTime - audioRef.current.currentTime
+      );
       if (timeDiff > 1) {
         audioRef.current.currentTime = Math.max(
           0,
-          Math.min(currentTime, audioRef.current.duration || 0)
+          Math.min(storeCurrentTime, audioRef.current.duration || 0)
         );
       }
     }
@@ -243,11 +238,10 @@ export const useAudioPlayer = () => {
         setStatus(PlayerStatus.ERROR);
 
         // 确保播放状态设置为暂停
-        const { pause } = usePlayerStore.getState();
         pause();
       });
     }
-  }, [isPlaying, status, currentSong, currentTime]);
+  }, [isPlaying, status, currentSong, storeCurrentTime]);
 
   const handlePlay = useCallback(() => {
     setStatus(PlayerStatus.PLAYING);
@@ -370,7 +364,6 @@ export const useAudioPlayer = () => {
       setStatus(PlayerStatus.ERROR);
 
       // 确保播放状态设置为暂停
-      const { pause } = usePlayerStore.getState();
       pause();
 
       // 如果可以重试且还没超过重试次数
@@ -414,7 +407,6 @@ export const useAudioPlayer = () => {
       setStatus(PlayerStatus.ERROR);
 
       // 确保播放状态设置为暂停
-      const { pause } = usePlayerStore.getState();
       pause();
 
       // 如果可以重试且还没超过重试次数
@@ -510,33 +502,33 @@ export const useAudioPlayer = () => {
     setVolumeLevel(volume);
   }, [volume, setVolumeLevel]);
 
-  // 监听currentTime变化（用于手动拖拽进度条等场景）
-  const lastSeekTimeRef = useRef<number>(0);
+  // Effect for seeking audio
   useEffect(() => {
-    // 只处理音频已经在播放中的时间跳转（如拖拽进度条）
-    if (
-      audioRef.current &&
-      audioRef.current.readyState >= 2 &&
-      status === PlayerStatus.PLAYING
-    ) {
-      const timeDiff = Math.abs(currentTime - audioRef.current.currentTime);
+    const audio = audioRef.current;
+    if (!audio || isSeeking) return;
 
-      // 只有当时间差异较大时才进行跳转（大于1秒），且不是音质切换场景
-      if (timeDiff > 1 && currentTime !== lastSeekTimeRef.current) {
-        console.log(
-          `🎯 播放中的时间跳转: ${audioRef.current.currentTime.toFixed(
-            2
-          )}s -> ${currentTime.toFixed(2)}s`
-        );
-        audioRef.current.currentTime = Math.max(
-          0,
-          Math.min(currentTime, audioRef.current.duration || 0)
-        );
-        lastSeekTimeRef.current = currentTime;
-        console.log(`✅ 跳转完成: ${audioRef.current.currentTime.toFixed(2)}s`);
+    // 当 store 的时间被设置为 0 时，这是一个强烈的"新歌曲"或"重新开始"信号。
+    // 在这种情况下，我们应该无条件地将播放头重置到 0，忽略阈值判断。
+    if (storeCurrentTime === 0) {
+      if (audio.currentTime !== 0) {
+        audio.currentTime = 0;
       }
+      return;
     }
-  }, [currentTime, status]);
+
+    // 对于其他 seek 操作（如拖动进度条），保留阈值以防止抖动。
+    if (Math.abs(audio.currentTime - storeCurrentTime) > 1.5) {
+      audio.currentTime = storeCurrentTime;
+    }
+  }, [storeCurrentTime, isSeeking]);
+
+  // Effect to handle volume changes
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    audio.volume = volume;
+  }, [volume]);
 
   // 预加载下一首歌曲
   useEffect(() => {
@@ -605,7 +597,6 @@ export const useAudioPlayer = () => {
                       .play()
                       .then(() => {
                         // 播放成功后更新store状态
-                        const { play } = usePlayerStore.getState();
                         play();
                       })
                       .catch((error) => {
@@ -625,7 +616,6 @@ export const useAudioPlayer = () => {
             } else {
               // 即使超时，也尝试恢复播放状态
               if (shouldResumePlayback) {
-                const { play } = usePlayerStore.getState();
                 play();
               }
             }

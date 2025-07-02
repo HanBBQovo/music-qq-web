@@ -47,7 +47,7 @@ import {
   useSearchResults,
 } from "@/lib/store";
 import { useSettingsStore } from "@/lib/store";
-import { usePlayerStore } from "@/lib/store/usePlayerStore";
+import { usePlayerStore } from "@/lib/store/player";
 import type { Song as PlayerSong } from "@/lib/types/music";
 import { getQualityDisplayName, formatFileSize } from "@/lib/utils/format";
 import { startProgress, doneProgress } from "@/lib/utils/progress";

@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { usePlayerStore } from "../store/usePlayerStore";
+import { usePlayerStore } from "@/lib/store/player";
 
 interface KeyboardShortcuts {
   enabled?: boolean;

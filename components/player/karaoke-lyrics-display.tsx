@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState, useMemo } from "react";
-import { usePlayerStore } from "@/lib/store/usePlayerStore";
+import { usePlayerStore } from "@/lib/store/player";
 import { type LyricLine } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 

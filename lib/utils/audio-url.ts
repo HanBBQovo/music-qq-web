@@ -57,204 +57,156 @@ export function getQQCookie(): string {
   return "";
 }
 
+const qualityPriority: AudioQuality[] = [
+  "ATMOS_51",
+  "ATMOS_2",
+  "MASTER",
+  "flac",
+  "320",
+  "128",
+];
+
 /**
  * 获取歌曲的音频流URL
  * @param song 歌曲信息
- * @param quality 音质偏好（默认320）
+ * @param requestedQuality 请求的音质（默认320）
  * @returns Promise<string> 音频流URL
  */
 export async function getAudioUrl(
   song: Song,
-  quality: AudioQuality = "320"
+  requestedQuality: AudioQuality = "320"
 ): Promise<string> {
-  // 如果歌曲已经有URL，直接返回
-  if (song.url) {
-    return song.url;
+  if (song.url && song.url.includes(`quality=${requestedQuality}`)) {
+    // 如果URL存在且音质匹配，可以先尝试验证一下
+    try {
+      const headResponse = await fetch(song.url, { method: "HEAD" });
+      if (headResponse.ok) return song.url;
+    } catch (e) {
+      // 验证失败，继续执行获取逻辑
+    }
   }
 
-  try {
-    // 获取歌曲的MID，优先使用mid字段，确保是音乐MID格式
-    let mid = song.mid || song.id || "";
-    if (!mid) {
-      throw new Error("歌曲MID不能为空");
-    }
+  let mid = song.mid || song.id || "";
+  if (!mid) throw new Error("歌曲MID不能为空");
 
-    // 验证MID格式：音乐MID通常是字母数字组合，如 '003a2DsM1zYZd3'
-    // 如果是纯数字，可能不是正确的音乐MID
-    if (/^\d+$/.test(mid)) {
-      console.warn(
-        `⚠️ 检测到疑似数字ID而非音乐MID: ${mid}，歌曲：${song.title}`
+  const settingsStr = localStorage.getItem("settings-store");
+  let useCookiePool = false;
+  let selectedCookieId = "";
+  let cookie = "";
+
+  if (settingsStr) {
+    try {
+      const parsedSettings = JSON.parse(settingsStr);
+      useCookiePool = parsedSettings.state?.useCookiePool || false;
+      selectedCookieId = useCookiePool
+        ? parsedSettings.state?.selectedCookieId || ""
+        : "";
+    } catch (error) {
+      console.error("解析设置失败:", error);
+    }
+  }
+
+  if (!useCookiePool) {
+    cookie = getQQCookie();
+  }
+
+  const startIndex = qualityPriority.indexOf(requestedQuality);
+  if (startIndex === -1) {
+    // 如果请求的音质不在优先级列表中，从最高音质开始尝试
+    console.warn(`请求的音质 ${requestedQuality} 无效，将从最高音质开始尝试。`);
+  }
+
+  const qualitiesToTry =
+    startIndex !== -1
+      ? qualityPriority.slice(startIndex)
+      : [...qualityPriority];
+
+  for (const currentQuality of qualitiesToTry) {
+    try {
+      let streamUrl = buildApiUrl(
+        `/api/play/stream?mid=${encodeURIComponent(
+          mid
+        )}&quality=${currentQuality}&autoFallback=false&redirect=true` // 禁用后端自动降级
       );
-      // 如果song.mid存在且不是纯数字，优先使用
-      if (song.mid && !/^\d+$/.test(song.mid)) {
-        mid = song.mid;
-        console.log(`✅ 使用正确的MID字段: ${mid}`);
-      } else if (song.id && !/^\d+$/.test(song.id)) {
-        mid = song.id;
-        console.log(`✅ 使用ID字段作为MID: ${mid}`);
-      } else {
-        console.error(`❌ 无法找到有效的音乐MID，歌曲：${song.title}`);
-        throw new Error(`无效的音乐MID格式: ${mid}`);
+
+      if (useCookiePool && selectedCookieId) {
+        streamUrl += `&cookie_id=${encodeURIComponent(selectedCookieId)}`;
       }
-    }
 
-    // 获取Cookie或Cookie池设置
-    const settingsStr = localStorage.getItem("settings-store");
-    let useCookiePool = false;
-    let selectedCookieId = "";
-    let cookie = "";
+      console.log(
+        `🎵 正在尝试获取《${song.title}》的音频流，音质: ${currentQuality}`
+      );
 
-    if (settingsStr) {
-      try {
-        const parsedSettings = JSON.parse(settingsStr);
-        useCookiePool = parsedSettings.state?.useCookiePool || false;
-        selectedCookieId = useCookiePool
-          ? parsedSettings.state?.selectedCookieId || ""
-          : "";
-      } catch (error) {
-        console.error("解析设置失败:", error);
+      const headers: Record<string, string> = {
+        Range: "bytes=0-1",
+        "User-Agent": USER_AGENTS.DESKTOP,
+      };
+
+      if (!useCookiePool && cookie) {
+        headers[HTTP_HEADERS.QQ_COOKIE] = cookie;
       }
-    }
 
-    // 只有在不使用Cookie池时才获取自定义Cookie
-    if (!useCookiePool) {
-      cookie = getQQCookie();
-    }
+      const response = await fetch(streamUrl, {
+        method: "HEAD",
+        headers: headers,
+      });
 
-    console.log("[音频URL] Cookie使用信息:", {
-      useCookiePool,
-      hasCookieId: !!selectedCookieId,
-      cookieId: selectedCookieId || "未设置",
-      hasCookie: !!cookie,
-    });
+      if (response.ok) {
+        console.log(`✅ 音质 ${currentQuality} 可用，URL: ${streamUrl}`);
+        const qualityInfo = parseQualityInfo(response);
 
-    // 构建流式播放API URL
-    let streamUrl = buildApiUrl(
-      `/api/play/stream?mid=${encodeURIComponent(
-        mid
-      )}&quality=${quality}&autoFallback=true&redirect=true`
-    );
-
-    // 如果使用Cookie池，添加cookie_id参数
-    if (useCookiePool && selectedCookieId) {
-      streamUrl += `&cookie_id=${encodeURIComponent(selectedCookieId)}`;
-      console.log(`[音频URL] 使用Cookie池ID请求: ${streamUrl}`);
-    }
-
-    console.log(`🎵 正在获取《${song.title}》的音频流:`, {
-      mid,
-      originalSongId: song.id,
-      originalSongMid: song.mid,
-      quality,
-      useCookiePool,
-      hasCookieId: !!selectedCookieId,
-      hasCookie: !!cookie,
-      url: streamUrl,
-    });
-
-    // 构建请求头
-    const headers: Record<string, string> = {
-      Range: "bytes=0-1023",
-      "User-Agent": USER_AGENTS.DESKTOP,
-    };
-
-    // 只有在不使用Cookie池时才添加cookie头
-    if (!useCookiePool && cookie) {
-      headers[HTTP_HEADERS.QQ_COOKIE] = cookie;
-    }
-
-    // 验证流式播放URL是否可访问
-    const response = await fetch(streamUrl, {
-      method: "HEAD",
-      headers: headers,
-    });
-
-    if (response.ok) {
-      // 解析音质信息
-      const qualityInfo = parseQualityInfo(response);
-
-      // 检测音质降级响应头
-      const actualQuality = response.headers.get("X-Quality");
-      const requestedQuality = response.headers.get("X-Requested-Quality");
-      const qualityFallback = response.headers.get("X-Quality-Fallback");
-      const fallbackReason = response.headers.get("X-Fallback-Reason");
-
-      // 如果发生了音质降级，发送事件通知播放器
-      if (qualityFallback === "true" && actualQuality && requestedQuality) {
-        console.warn(`⚠️ 音质自动降级: ${requestedQuality} → ${actualQuality}`);
-        console.warn(`降级原因: ${fallbackReason || "请求的音质不可用"}`);
-
-        // 处理降级原因，避免显示编码内容
-        const cleanReason = cleanFallbackReason(fallbackReason);
-
-        // 更新播放器的当前音质状态（不在这里显示toast，由usePlayerStore统一处理）
         if (typeof window !== "undefined") {
-          // 发送自定义事件通知播放器更新音质状态
+          if (currentQuality !== requestedQuality) {
+            window.dispatchEvent(
+              new CustomEvent("quality-fallback", {
+                detail: {
+                  songId: mid,
+                  requestedQuality,
+                  actualQuality: currentQuality,
+                  fallbackReason: `音质 ${requestedQuality} 不可用`,
+                },
+              })
+            );
+          }
           window.dispatchEvent(
-            new CustomEvent("quality-fallback", {
-              detail: {
-                songId: mid,
-                requestedQuality,
-                actualQuality,
-                fallbackReason: cleanReason, // 使用清理后的原因
-              },
+            new CustomEvent("quality-info-updated", {
+              detail: { songId: mid, qualityInfo },
             })
           );
         }
-      }
 
-      // 发送音质信息更新事件
-      if (typeof window !== "undefined") {
-        window.dispatchEvent(
-          new CustomEvent("quality-info-updated", {
-            detail: {
-              songId: mid,
-              qualityInfo,
-            },
-          })
-        );
-      }
-
-      return streamUrl;
-    } else {
-      console.warn(
-        `⚠️ 音频流不可用: HTTP ${response.status}, 尝试获取错误详情`
-      );
-
-      // 提取响应头中的错误信息
-      const errorCode = response.headers.get("x-error-code");
-      const errorMessage = response.headers.get("x-error-message");
-      const errorDetail = response.headers.get("x-error-detail");
-
-      let friendlyMessage = `音频流不可用: HTTP ${response.status}`;
-
-      // 如果有中文错误信息，尝试解码
-      if (errorMessage) {
-        try {
-          // 解码base64编码的中文消息
-          const decodedMessage = decodeURIComponent(escape(atob(errorMessage)));
-          friendlyMessage = decodedMessage;
-        } catch (e) {
-          console.warn("解码错误消息失败:", e);
-          friendlyMessage = errorMessage;
+        return streamUrl;
+      } else {
+        const errorMessage =
+          response.headers.get("x-error-message") || `HTTP ${response.status}`;
+        let decodedMessage = errorMessage;
+        if (
+          /^[A-Za-z0-9+/]+=*$/.test(errorMessage) &&
+          errorMessage.length > 20
+        ) {
+          try {
+            decodedMessage = decodeURIComponent(escape(atob(errorMessage)));
+          } catch (e) {
+            // 解码失败，使用原信息
+          }
         }
+        throw new Error(`音质 ${currentQuality} 不可用: ${decodedMessage}`);
       }
-
-      console.warn(`❌ 错误详情: 代码=${errorCode}, 消息=${friendlyMessage}`);
-      throw new Error(friendlyMessage);
+    } catch (error) {
+      if (error instanceof Error) {
+        console.warn(`⚠️ ${error.message}`);
+      }
+      if (currentQuality === qualitiesToTry[qualitiesToTry.length - 1]) {
+        toast.error(`播放失败: ${song.title}`, {
+          description: "所有可用音质均尝试失败。",
+        });
+        throw new Error(`获取《${song.title}》音频流失败，所有音质均不可用。`);
+      }
     }
-  } catch (error) {
-    console.error(`❌ 获取《${song.title}》音频流失败:`, error);
-
-    // 显示播放失败的错误提示
-    toast.error(`播放失败: ${song.title}`, {
-      description: error instanceof Error ? error.message : "音频源不可用",
-      duration: 5000,
-    });
-
-    // 重新抛出错误，不使用测试音频备用方案
-    throw error;
   }
+
+  // 理论上不会执行到这里，因为上面的循环要么返回要么抛出错误
+  throw new Error(`无法为《${song.title}》获取任何有效的音频流。`);
 }
 
 /**
