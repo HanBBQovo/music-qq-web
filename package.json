@@ -7,6 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "lint:fix": "eslint --fix .",
+    "format": "prettier --write .",
+    "analyze": "ANALYZE=true next build",
     "find-unused": "tsx scripts/find-unused.ts",
     "remove-unused": "tsx scripts/remove-unused.ts",
     "clean-unused": "npm run find-unused && npm run remove-unused && npm run build"
@@ -36,6 +39,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "framer-motion": "^11.18.2",
+    "ky": "^1.8.1",
     "lucide-react": "^0.513.0",
     "music-metadata": "^11.2.3",
     "next": "15.3.3",
@@ -54,6 +58,7 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@hookform/resolvers": "^5.0.1",
+    "@next/bundle-analyzer": "^15.3.4",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20.17.57",
     "@types/react": "^19.1.6",

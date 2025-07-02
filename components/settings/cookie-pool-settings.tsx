@@ -25,9 +25,9 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 
-import useSettingsStore from "@/lib/store/useSettingsStore";
-import cookiePoolApi from "@/lib/api/cookie-pool-client";
-import { CookieStatsResponse, CookiePoolItem } from "@/lib/types/cookie-pool";
+import { useSettingsStore } from "@/lib/store/useSettingsStore";
+import { CookieStatsResponse, CookiePoolItem } from "@/lib/api/types";
+import musicApi from "@/lib/api/client";
 
 const CookiePoolSettings: React.FC = () => {
   const {
@@ -75,7 +75,7 @@ const CookiePoolSettings: React.FC = () => {
       setApiError(null);
 
       // 获取统计信息
-      const statsResponse = await cookiePoolApi.getCookieStats();
+      const statsResponse = await musicApi.getCookieStats();
       if (statsResponse.code === 0 && statsResponse.data) {
         setStats(statsResponse.data);
       } else {
@@ -83,7 +83,7 @@ const CookiePoolSettings: React.FC = () => {
       }
 
       // 获取Cookie列表
-      const listResponse = await cookiePoolApi.getCookieList();
+      const listResponse = await musicApi.getCookieList();
       if (listResponse.code === 0 && listResponse.data) {
         setCookies(listResponse.data.cookies || []);
 
@@ -141,7 +141,7 @@ const CookiePoolSettings: React.FC = () => {
 
     try {
       setSubmitting(true);
-      const response = await cookiePoolApi.submitCookie(newCookie);
+      const response = await musicApi.submitCookie(newCookie);
 
       if (response.code === 0 && response.data) {
         toast.success("Cookie提交成功");
