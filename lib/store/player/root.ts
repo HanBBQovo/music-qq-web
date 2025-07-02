@@ -4,6 +4,7 @@ import { toast } from "sonner";
 
 import musicApi from "@/lib/api/client";
 import { getAudioUrl } from "@/lib/utils/audio-url";
+import { withErrorHandling } from "@/lib/utils/error";
 
 import type { PlayerStoreState } from "./types";
 import type { Song } from "@/lib/types/music";
@@ -42,86 +43,77 @@ export const usePlayerStore = create<PlayerStoreState>()(
         },
 
         playSong: async (song, quality) => {
-          try {
-            const state = get();
-            const useQuality = quality || state.currentQuality;
+          // 1. 立即更新UI，显示歌曲信息，准备播放
+          const state = get();
+          const useQuality = quality || state.currentQuality;
+          let songIndex = state.playlist.findIndex(
+            (s) => s.mid === song.mid || s.id === song.id
+          );
 
-            set((state) => {
-              let index = state.playlist.findIndex(
-                (s) => s.mid === song.mid || s.id === song.id
-              );
+          if (songIndex === -1) {
+            const newPlaylist = [...state.playlist, song];
+            songIndex = newPlaylist.length - 1;
 
-              if (index === -1) {
-                const newPlaylist = [...state.playlist, song];
-                index = newPlaylist.length - 1;
-
-                return {
-                  playlist: newPlaylist,
-                  currentSong: song,
-                  currentIndex: index,
-                  currentQuality: useQuality,
-                  isPlaying: false,
-                  showPlayer: true,
-                  currentTime: 0,
-                  duration: song.duration || 0,
-                };
-              } else {
-                return {
-                  currentSong: song,
-                  currentIndex: index,
-                  currentQuality: useQuality,
-                  isPlaying: false,
-                  showPlayer: true,
-                  currentTime: 0,
-                  duration: song.duration || 0,
-                };
-              }
-            });
-
-            const url = await getAudioUrl(
-              { ...song, url: undefined },
-              useQuality
-            );
-            const songWithUrl = { ...song, url };
-
-            set((state) => {
-              let index = state.playlist.findIndex(
-                (s) => s.mid === song.mid || s.id === song.id
-              );
-
-              if (index === -1) {
-                const newPlaylist = [...state.playlist, songWithUrl];
-                index = newPlaylist.length - 1;
-
-                return {
-                  playlist: newPlaylist,
-                  currentSong: songWithUrl,
-                  currentIndex: index,
-                  isPlaying: true,
-                };
-              } else {
-                const newPlaylist = [...state.playlist];
-                newPlaylist[index] = songWithUrl;
-
-                return {
-                  playlist: newPlaylist,
-                  currentSong: songWithUrl,
-                  currentIndex: index,
-                  isPlaying: true,
-                };
-              }
-            });
-
-            get().fetchKrcLyrics(true);
-          } catch (error) {
-            console.error("播放歌曲失败:", error);
-            toast.error(`播放 ${song.title} 失败，请检查网络或稍后重试`);
             set({
-              krcLyrics: null,
-              isKrcLyricsLoading: false,
-              krcLyricsError: "播放失败，无法获取歌词",
+              playlist: newPlaylist,
+              currentSong: song,
+              currentIndex: songIndex,
+              currentQuality: useQuality,
+              isPlaying: false,
+              showPlayer: true,
+              currentTime: 0,
+              duration: song.duration || 0,
+            });
+          } else {
+            set({
+              currentSong: song,
+              currentIndex: songIndex,
+              currentQuality: useQuality,
+              isPlaying: false,
+              showPlayer: true,
+              currentTime: 0,
+              duration: song.duration || 0,
             });
           }
+
+          // 2. 异步获取播放URL并处理结果
+          await withErrorHandling({
+            apiCall: () => getAudioUrl({ ...song, url: undefined }, useQuality),
+            onSuccess: (url) => {
+              const songWithUrl = { ...song, url };
+              set((currentState) => {
+                const newPlaylist = [...currentState.playlist];
+                let currentIndex = currentState.playlist.findIndex(
+                  (s) => s.mid === song.mid || s.id === song.id
+                );
+                if (currentIndex === -1) {
+                  // 理论上不会发生，因为前面已经加进去了
+                  currentIndex = newPlaylist.length;
+                  newPlaylist.push(songWithUrl);
+                } else {
+                  newPlaylist[currentIndex] = songWithUrl;
+                }
+
+                return {
+                  playlist: newPlaylist,
+                  currentSong: songWithUrl,
+                  currentIndex: currentIndex,
+                  isPlaying: true, // 获取到URL后才真正开始播放
+                };
+              });
+
+              get().fetchKrcLyrics(true);
+            },
+            onError: () => {
+              // 错误toast由withErrorHandling处理
+              set({
+                // 可以选择在这里设置一个错误状态，或者让播放器停留在isPlaing: false的状态
+                isPlaying: false,
+                krcLyricsError: "播放失败，无法获取歌词",
+              });
+            },
+            errorMessage: `播放 ${song.title} 失败`,
+          });
         },
 
         switchQuality: async (quality: AudioQuality) => {
@@ -133,54 +125,49 @@ export const usePlayerStore = create<PlayerStoreState>()(
 
           set({ currentQuality: quality, isPlaying: false });
 
-          try {
-            const tempSong = { ...currentSong, url: undefined };
-            const newUrl = await getAudioUrl(tempSong, quality);
-            const updatedSong = { ...currentSong, url: newUrl };
+          await withErrorHandling({
+            apiCall: async () => {
+              const tempSong = { ...currentSong, url: undefined };
+              const newUrl = await getAudioUrl(tempSong, quality);
+              return { ...currentSong, url: newUrl };
+            },
+            onSuccess: (updatedSong) => {
+              set({
+                currentSong: updatedSong,
+                currentTime: savedTime,
+                isPlaying: false,
+              });
 
-            set({
-              currentSong: updatedSong,
-              currentTime: savedTime,
-              isPlaying: false,
-            });
+              if (typeof window !== "undefined") {
+                window.dispatchEvent(
+                  new CustomEvent("quality-switch", {
+                    detail: {
+                      songId: currentSong.mid || currentSong.id,
+                      targetTime: savedTime,
+                      shouldResumePlayback: wasPlaying,
+                    },
+                  })
+                );
+              }
 
-            if (typeof window !== "undefined") {
-              window.dispatchEvent(
-                new CustomEvent("quality-switch", {
-                  detail: {
-                    songId: currentSong.mid || currentSong.id,
-                    targetTime: savedTime,
-                    shouldResumePlayback: wasPlaying,
-                  },
-                })
-              );
-            }
-
-            toast.success(
-              `音质已切换到${
-                quality === "320"
-                  ? "高品音质"
-                  : quality === "flac"
-                  ? "无损音质"
-                  : quality
-              }`,
-              { duration: 2000 }
-            );
-          } catch (error) {
-            console.error("❌ 切换音质失败:", error);
-            const errorMessage =
-              error instanceof Error ? error.message : String(error);
-            if (
-              errorMessage.includes("降级") ||
-              errorMessage.includes("fallback")
-            ) {
-              console.log(`ℹ️ 音质自动降级通知: ${errorMessage}`);
-            } else {
-              console.log("🔄 发生错误，恢复原播放状态");
-              set({ isPlaying: wasPlaying });
-              toast.error(`音质切换失败: ${errorMessage}`, { duration: 3000 });
-            }
-          }
+              toast.success(`音质已切换到${getQualityDisplayName(quality)}`, {
+                duration: 2000,
+              });
+            },
+            onError: (error) => {
+              if (
+                error.message.includes("降级") ||
+                error.message.includes("fallback")
+              ) {
+                console.log(`ℹ️ 音质自动降级通知: ${error.message}`);
+              } else {
+                console.log("🔄 发生错误，恢复原播放状态");
+                set({ isPlaying: wasPlaying });
+                // toast 在 withErrorHandling 中处理
+              }
+            },
+            errorMessage: `音质切换失败`,
+          });
         },
 
         fetchKrcLyrics: async (force = false) => {
@@ -196,37 +183,41 @@ export const usePlayerStore = create<PlayerStoreState>()(
 
           set({ isKrcLyricsLoading: true, krcLyricsError: null });
 
-          try {
-            const res = await musicApi.getLyric({
-              id: currentSong.id,
-              mid: currentSong.mid,
-              format: "krc",
-            });
-
-            if (res.data.krcData && res.data.krcData.lines) {
-              const processedLines = res.data.krcData.lines.map((line) => ({
-                ...line,
-                words: line.words.map((word) => ({
-                  ...word,
-                  text: word.text === " " ? "\u00a0" : word.text,
-                })),
-              }));
-              set({ krcLyrics: processedLines, isKrcLyricsLoading: false });
-            } else {
+          await withErrorHandling({
+            apiCall: () =>
+              musicApi.getLyric({
+                id: currentSong.id,
+                mid: currentSong.mid,
+                format: "krc",
+              }),
+            onSuccess: (res) => {
+              if (res.data.krcData && res.data.krcData.lines) {
+                const processedLines = res.data.krcData.lines.map((line) => ({
+                  ...line,
+                  words: line.words.map((word) => ({
+                    ...word,
+                    text: word.text === " " ? "\u00a0" : word.text,
+                  })),
+                }));
+                set({ krcLyrics: processedLines, isKrcLyricsLoading: false });
+              } else {
+                set({
+                  krcLyricsError: "没有可用的逐字歌词",
+                  isKrcLyricsLoading: false,
+                  krcLyrics: [],
+                });
+              }
+            },
+            onError: () => {
               set({
-                krcLyricsError: "没有可用的逐字歌词",
+                krcLyricsError: "无法加载歌词",
                 isKrcLyricsLoading: false,
                 krcLyrics: [],
               });
-            }
-          } catch (err) {
-            console.error("获取KRC歌词失败:", err);
-            set({
-              krcLyricsError: "无法加载歌词",
-              isKrcLyricsLoading: false,
-              krcLyrics: [],
-            });
-          }
+            },
+            errorMessage: "获取KRC歌词失败",
+            showToast: false,
+          });
         },
       }),
       {

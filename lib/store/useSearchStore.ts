@@ -6,10 +6,12 @@ import {
   SearchResult,
   AlbumSearchItem,
   PlaylistSearchItem,
+  SearchResponse,
 } from "../api/types";
 import musicApi from "../api/client";
 import { toast } from "sonner";
 import { debounce } from "../utils";
+import { withErrorHandling } from "@/lib/utils/error";
 
 // 搜索结果缓存接口
 interface SearchCache {
@@ -93,147 +95,138 @@ export const useSearchStore = create<SearchState>()(
 
         set({ isLoading: true, isError: false, error: null });
 
-        try {
-          // 检查缓存
-          const cacheKey = getCacheKey(
-            state.searchParams.key,
-            state.searchParams.type
-          );
-          const cachedData = state.cache[cacheKey];
-          const now = Date.now();
+        const cacheKey = getCacheKey(
+          state.searchParams.key,
+          state.searchParams.type
+        );
+        const cachedData = state.cache[cacheKey];
+        const now = Date.now();
 
-          // 如果缓存存在且未过期，使用缓存数据
-          if (
-            cachedData &&
-            now - cachedData.timestamp < state.cacheExpiry &&
-            state.searchParams.page === 1
-          ) {
-            console.log("[搜索] 使用缓存数据:", cacheKey);
-            set({
-              searchResult: cachedData.result,
-              isLoading: false,
-            });
-            return;
-          }
-
-          // 显示搜索开始提示（只在实际发起网络请求时）
-          toast.success(`正在搜索"${state.searchParams.key}"`, {
-            description: `类型：${
-              state.searchParams.type === "song"
-                ? "歌曲"
-                : state.searchParams.type === "album"
-                ? "专辑"
-                : "歌单"
-            }`,
+        // 如果缓存存在且未过期，使用缓存数据
+        if (
+          cachedData &&
+          now - cachedData.timestamp < state.cacheExpiry &&
+          state.searchParams.page === 1
+        ) {
+          console.log("[搜索] 使用缓存数据:", cacheKey);
+          set({
+            searchResult: cachedData.result,
+            isLoading: false,
           });
+          return;
+        }
 
-          // 如果没有缓存或缓存已过期，请求新数据
-          const response = await musicApi.search(state.searchParams);
+        toast.success(`正在搜索"${state.searchParams.key}"`, {
+          description: `类型：${
+            state.searchParams.type === "song"
+              ? "歌曲"
+              : state.searchParams.type === "album"
+              ? "专辑"
+              : "歌单"
+          }`,
+        });
 
-          // 验证响应格式
-          if (!response) {
-            throw new Error("搜索返回了空响应");
-          }
+        await withErrorHandling<SearchResponse>({
+          apiCall: () => musicApi.search(state.searchParams),
+          onSuccess: (response) => {
+            if (!response || response.code !== 0 || !response.data) {
+              const errorMessage =
+                response?.message || `搜索失败，错误码: ${response?.code}`;
+              // 对于业务逻辑上的失败，我们手动触发onError的行为
+              toast.error("搜索失败", { description: errorMessage });
+              set({
+                isLoading: false,
+                isError: true,
+                error: errorMessage,
+                searchResult: null,
+              });
+              return;
+            }
 
-          // 验证响应状态码
-          if (response.code !== 0) {
-            throw new Error(
-              response.message || `搜索失败，错误码: ${response.code}`
-            );
-          }
-
-          // 验证数据是否存在
-          if (!response.data) {
-            throw new Error("搜索返回数据为空");
-          }
-
-          // 更新缓存
-          if (state.searchParams.page === 1) {
-            const newCache = {
-              ...state.cache,
-              [cacheKey]: {
-                key: state.searchParams.key,
-                type: state.searchParams.type,
-                result: response.data,
-                timestamp: now,
-              },
-            };
-
-            // 如果是歌单搜索，同时缓存歌单详情
-            const newPlaylistDetailCache = { ...state.playlistDetailCache };
-            if (response.data.type === "playlist") {
-              response.data.playlists.forEach((playlist) => {
-                newPlaylistDetailCache[playlist.id.toString()] = {
-                  playlist,
+            // 更新缓存
+            if (state.searchParams.page === 1) {
+              const newCache = {
+                ...state.cache,
+                [cacheKey]: {
+                  key: state.searchParams.key,
+                  type: state.searchParams.type,
+                  result: response.data,
                   timestamp: now,
-                };
+                },
+              };
+
+              const newPlaylistDetailCache = { ...state.playlistDetailCache };
+              if (response.data.type === "playlist") {
+                response.data.playlists.forEach(
+                  (playlist: PlaylistSearchItem) => {
+                    newPlaylistDetailCache[playlist.id.toString()] = {
+                      playlist,
+                      timestamp: now,
+                    };
+                  }
+                );
+              }
+
+              // 清理旧缓存
+              const cacheEntries = Object.entries(newCache);
+              if (cacheEntries.length > 20) {
+                // 最多保留20个缓存项
+                const oldestEntries = cacheEntries
+                  .sort((a, b) => a[1].timestamp - b[1].timestamp)
+                  .slice(0, cacheEntries.length - 20);
+
+                for (const [key] of oldestEntries) {
+                  delete newCache[key];
+                }
+              }
+
+              // 清理旧的歌单详情缓存
+              const playlistCacheEntries = Object.entries(
+                newPlaylistDetailCache
+              );
+              if (playlistCacheEntries.length > 50) {
+                const oldestPlaylistEntries = playlistCacheEntries
+                  .sort((a, b) => a[1].timestamp - b[1].timestamp)
+                  .slice(0, playlistCacheEntries.length - 50);
+
+                for (const [key] of oldestPlaylistEntries) {
+                  delete newPlaylistDetailCache[key];
+                }
+              }
+
+              set({
+                cache: newCache,
+                playlistDetailCache: newPlaylistDetailCache,
               });
             }
 
-            // 清理旧缓存
-            const cacheEntries = Object.entries(newCache);
-            if (cacheEntries.length > 20) {
-              // 最多保留20个缓存项
-              const oldestEntries = cacheEntries
-                .sort((a, b) => a[1].timestamp - b[1].timestamp)
-                .slice(0, cacheEntries.length - 20);
-
-              for (const [key] of oldestEntries) {
-                delete newCache[key];
-              }
-            }
-
-            // 清理旧的歌单详情缓存
-            const playlistCacheEntries = Object.entries(newPlaylistDetailCache);
-            if (playlistCacheEntries.length > 50) {
-              const oldestPlaylistEntries = playlistCacheEntries
-                .sort((a, b) => a[1].timestamp - b[1].timestamp)
-                .slice(0, playlistCacheEntries.length - 50);
-
-              for (const [key] of oldestPlaylistEntries) {
-                delete newPlaylistDetailCache[key];
-              }
-            }
-
             set({
-              cache: newCache,
-              playlistDetailCache: newPlaylistDetailCache,
+              searchResult: response.data,
+              isLoading: false,
             });
-          }
 
-          // 更新状态
-          set({
-            searchResult: response.data,
-            isLoading: false,
-          });
+            const hasResults =
+              (response.data.type === "song" &&
+                response.data.songs.length > 0) ||
+              (response.data.type === "album" &&
+                response.data.albums.length > 0) ||
+              (response.data.type === "playlist" &&
+                response.data.playlists.length > 0);
 
-          // 如果没有搜索结果，显示提示
-          const hasResults =
-            (response.data.type === "song" && response.data.songs.length > 0) ||
-            (response.data.type === "album" &&
-              response.data.albums.length > 0) ||
-            (response.data.type === "playlist" &&
-              response.data.playlists.length > 0);
-
-          if (!hasResults) {
-            toast.info(`未找到与"${state.searchParams.key}"相关的结果`);
-          }
-        } catch (error) {
-          console.error("搜索出错详情:", error);
-
-          // 设置错误状态
-          set({
-            isLoading: false,
-            isError: true,
-            error: error instanceof Error ? error.message : "搜索出错",
-            searchResult: null,
-          });
-
-          // 显示错误提示
-          toast.error(
-            `搜索失败: ${error instanceof Error ? error.message : "未知错误"}`
-          );
-        }
+            if (!hasResults) {
+              toast.info(`未找到与"${state.searchParams.key}"相关的结果`);
+            }
+          },
+          onError: (error: Error) => {
+            set({
+              isLoading: false,
+              isError: true,
+              error: error.message,
+              searchResult: null,
+            });
+          },
+          errorMessage: "搜索失败",
+        });
       }, SEARCH_DEBOUNCE_DELAY);
 
       return {
@@ -361,114 +354,92 @@ export const useSearchStore = create<SearchState>()(
           console.log("[加载更多] 开始加载下一页", { type: searchResult.type });
           set({ isLoadingMore: true });
 
-          try {
-            // 请求下一页数据
-            const nextPageParams = {
-              ...searchParams,
-              page: searchParams.page + 1,
-            };
+          const nextPageParams = {
+            ...searchParams,
+            page: searchParams.page + 1,
+          };
 
-            const response = await musicApi.search(nextPageParams);
+          await withErrorHandling<SearchResponse>({
+            apiCall: () => musicApi.search(nextPageParams),
+            onSuccess: (response) => {
+              if (response.code !== 0 || !response.data) {
+                // withErrorHandling 已经处理了 toast，这里只处理状态
+                set({ isLoadingMore: false });
+                return;
+              }
 
-            if (response.code !== 0 || !response.data) {
-              throw new Error("加载更多失败");
-            }
+              let updatedResult: SearchResult;
+              if (
+                response.data.type === "song" &&
+                searchResult.type === "song"
+              ) {
+                const existingSongs = searchResult.songs;
+                const existingIds = new Set(
+                  existingSongs.map((song: Song) => song.id)
+                );
+                const newSongs = response.data.songs.filter(
+                  (song: Song) => !existingIds.has(song.id)
+                );
+                updatedResult = {
+                  type: "song",
+                  songs: [...existingSongs, ...newSongs],
+                  total: response.data.total,
+                  hasMore: response.data.hasMore,
+                };
+              } else if (
+                response.data.type === "album" &&
+                searchResult.type === "album"
+              ) {
+                const existingAlbums = searchResult.albums;
+                const existingIds = new Set(
+                  existingAlbums.map((album: AlbumSearchItem) => album.id)
+                );
+                const newAlbums = response.data.albums.filter(
+                  (album: AlbumSearchItem) => !existingIds.has(album.id)
+                );
+                updatedResult = {
+                  type: "album",
+                  albums: [...existingAlbums, ...newAlbums],
+                  total: response.data.total,
+                  hasMore: response.data.hasMore,
+                };
+              } else if (
+                response.data.type === "playlist" &&
+                searchResult.type === "playlist"
+              ) {
+                const existingPlaylists = searchResult.playlists;
+                const existingIds = new Set(
+                  existingPlaylists.map(
+                    (playlist: PlaylistSearchItem) => playlist.id
+                  )
+                );
+                const newPlaylists = response.data.playlists.filter(
+                  (playlist: PlaylistSearchItem) =>
+                    !existingIds.has(playlist.id)
+                );
+                updatedResult = {
+                  type: "playlist",
+                  playlists: [...existingPlaylists, ...newPlaylists],
+                  total: response.data.total,
+                  hasMore: response.data.hasMore,
+                };
+              } else {
+                set({ isLoadingMore: false });
+                return;
+              }
 
-            // 根据搜索类型处理不同的数据合并
-            let updatedResult: SearchResult;
-
-            if (response.data.type === "song" && searchResult.type === "song") {
-              // 歌曲搜索：检查是否有重复歌曲
-              const existingSongs = searchResult.songs;
-              const existingIds = new Set(existingSongs.map((song) => song.id));
-              const newSongs = response.data.songs.filter(
-                (song) => !existingIds.has(song.id)
-              );
-
-              updatedResult = {
-                type: "song",
-                songs: [...existingSongs, ...newSongs],
-                total: response.data.total,
-                hasMore: response.data.hasMore,
-              };
-
-              console.log("[加载更多] 歌曲搜索状态更新:", {
-                原有歌曲数: existingSongs.length,
-                新增歌曲数: newSongs.length,
-                后端返回total: response.data.total,
-                hasMore: response.data.hasMore,
+              set({
+                searchResult: updatedResult,
+                searchParams: nextPageParams,
+                page: nextPageParams.page,
+                isLoadingMore: false,
               });
-            } else if (
-              response.data.type === "album" &&
-              searchResult.type === "album"
-            ) {
-              // 专辑搜索：检查是否有重复专辑
-              const existingAlbums = searchResult.albums;
-              const existingIds = new Set(
-                existingAlbums.map((album) => album.id)
-              );
-              const newAlbums = response.data.albums.filter(
-                (album) => !existingIds.has(album.id)
-              );
-
-              updatedResult = {
-                type: "album",
-                albums: [...existingAlbums, ...newAlbums],
-                total: response.data.total,
-                hasMore: response.data.hasMore,
-              };
-
-              console.log("[加载更多] 专辑搜索状态更新:", {
-                原有专辑数: existingAlbums.length,
-                新增专辑数: newAlbums.length,
-                后端返回total: response.data.total,
-                hasMore: response.data.hasMore,
-              });
-            } else if (
-              response.data.type === "playlist" &&
-              searchResult.type === "playlist"
-            ) {
-              // 歌单搜索：检查是否有重复歌单
-              const existingPlaylists = searchResult.playlists;
-              const existingIds = new Set(
-                existingPlaylists.map((playlist) => playlist.id)
-              );
-              const newPlaylists = response.data.playlists.filter(
-                (playlist) => !existingIds.has(playlist.id)
-              );
-
-              updatedResult = {
-                type: "playlist",
-                playlists: [...existingPlaylists, ...newPlaylists],
-                total: response.data.total,
-                hasMore: response.data.hasMore,
-              };
-
-              console.log("[加载更多] 歌单搜索状态更新:", {
-                原有歌单数: existingPlaylists.length,
-                新增歌单数: newPlaylists.length,
-                后端返回total: response.data.total,
-                hasMore: response.data.hasMore,
-              });
-            } else {
-              throw new Error("搜索类型不匹配");
-            }
-
-            set({
-              searchResult: updatedResult,
-              searchParams: nextPageParams,
-              page: nextPageParams.page,
-              isLoadingMore: false,
-            });
-          } catch (error) {
-            console.error("加载更多失败:", error);
-            set({ isLoadingMore: false });
-            toast.error(
-              `加载更多失败: ${
-                error instanceof Error ? error.message : "未知错误"
-              }`
-            );
-          }
+            },
+            onError: () => {
+              set({ isLoadingMore: false });
+            },
+            errorMessage: "加载更多失败",
+          });
         },
 
         // 重置搜索状态

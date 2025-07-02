@@ -6,6 +6,7 @@ import { saveBlob } from "../utils";
 import { toast } from "sonner";
 import { useSettingsStore } from "./useSettingsStore";
 import { HTTP_HEADERS } from "@/lib/constants/http-headers";
+import { withErrorHandling } from "@/lib/utils/error";
 
 interface DownloadState {
   // 下载任务列表
@@ -336,35 +337,19 @@ export const useDownloadStore = create<DownloadState>()(
 
       // 添加下载任务
       addTask: async (song: Song, quality?: AudioQuality) => {
-        // 获取当前状态
         const { tasks } = get();
-        const selectedQuality: AudioQuality =
-          quality || getUserDefaultQuality();
+        const targetQuality = quality || getUserDefaultQuality();
 
-        // 防重复处理：检查是否在短时间内重复调用
-        const now = Date.now();
-        const requestKey = `${song.mid}-${selectedQuality}`;
-        const lastRequestTime = (globalThis as any).__lastAddTaskTime__ || {};
-
-        if (
-          lastRequestTime[requestKey] &&
-          now - lastRequestTime[requestKey] < 500
-        ) {
+        // 检查任务是否已存在
+        const existingTask = tasks.find(
+          (t) => t.songMid === song.mid && t.quality === targetQuality
+        );
+        if (existingTask) {
+          toast.info(`任务 "${song.name}" (${targetQuality}) 已存在`);
           return;
         }
 
-        // 记录本次请求时间
-        (globalThis as any).__lastAddTaskTime__ = {
-          ...lastRequestTime,
-          [requestKey]: now,
-        };
-
-        // 生成唯一任务ID（包含时间戳确保唯一性）
-        const taskId = `${song.mid}-${selectedQuality}-${now}`;
-
-        // 创建新任务（先用估算大小）
-        const estimatedSize = getFileSizeByQuality(song, selectedQuality);
-
+        const taskId = `${song.mid}-${targetQuality}-${Date.now()}`;
         const newTask: DownloadTask = {
           id: taskId,
           songId: song.id,
@@ -373,63 +358,37 @@ export const useDownloadStore = create<DownloadState>()(
           artist: song.singer.map((s) => s.name).join(", "),
           albumName: song.album.name,
           albumMid: song.album.mid,
-          quality: selectedQuality,
+          quality: targetQuality,
           progress: 0,
           status: "pending",
           createdAt: new Date(),
-          fileSize: estimatedSize,
-          totalBytes: estimatedSize,
         };
 
-        // 添加任务
-        set((state) => ({
-          tasks: [newTask, ...state.tasks],
-        }));
+        set((state) => ({ tasks: [...state.tasks, newTask] }));
+        toast.success(`任务 "${song.name}" 已添加到队列`);
 
-        toast.success(`已添加下载任务: ${song.name}`);
-
-        // 异步预获取文件大小，优先级更高
-        prefetchFileSize(song.mid, selectedQuality)
-          .then((actualSize) => {
-            if (actualSize && actualSize !== estimatedSize) {
-              // 更新任务的文件大小
-              set((state) => ({
-                tasks: state.tasks.map((task) =>
-                  task.id === taskId
-                    ? {
-                        ...task,
-                        fileSize: actualSize,
-                        totalBytes: actualSize,
-                      }
-                    : task
-                ),
-              }));
-            } else if (!actualSize && estimatedSize === 0) {
-              // 如果预获取失败且估算大小也是0，设置一个默认值
-              const defaultSize =
-                selectedQuality === "flac" || selectedQuality === "MASTER"
-                  ? 50 * 1024 * 1024
-                  : 10 * 1024 * 1024;
-
-              set((state) => ({
-                tasks: state.tasks.map((task) =>
-                  task.id === taskId
-                    ? {
-                        ...task,
-                        fileSize: defaultSize,
-                        totalBytes: defaultSize,
-                      }
-                    : task
-                ),
-              }));
+        await withErrorHandling({
+          apiCall: () => prefetchFileSize(song.mid, targetQuality),
+          onSuccess: (size) => {
+            if (size !== null) {
+              get().updateTaskProgress(taskId, 0, 0, size);
+              get().processQueue();
+            } else {
+              // 如果size为null，也视为一种错误
+              get().updateTaskStatus(taskId, "error", "无法获取文件大小");
+              toast.error(`无法获取 "${song.name}" 的文件信息，任务已取消`);
             }
-          })
-          .catch((error) => {
-            console.warn(`[更新大小] 预获取文件大小失败:`, error);
-          });
-
-        // 处理队列
-        get().processQueue();
+          },
+          onError: (error) => {
+            get().updateTaskStatus(taskId, "error", error.message);
+            // Toast由withErrorHandling处理，但我们可以提供更具体的上下文
+            toast.error(`添加下载任务失败: ${song.name}`, {
+              description: error.message,
+            });
+          },
+          errorMessage: `添加下载任务失败`,
+          showToast: false, // 我们在onError和onSuccess中自定义toast，所以禁用默认的
+        });
       },
 
       // 批量添加下载任务

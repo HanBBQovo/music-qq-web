@@ -28,6 +28,8 @@ import { Separator } from "@/components/ui/separator";
 import { useSettingsStore } from "@/lib/store/useSettingsStore";
 import { CookieStatsResponse, CookiePoolItem } from "@/lib/api/types";
 import musicApi from "@/lib/api/client";
+import { withErrorHandling } from "@/lib/utils/error";
+import { CookieListResponse } from "@/lib/api/types";
 
 const CookiePoolSettings: React.FC = () => {
   const {
@@ -70,48 +72,48 @@ const CookiePoolSettings: React.FC = () => {
 
   // 加载Cookie数据
   const loadCookieData = async () => {
-    try {
-      setLoading(true);
-      setApiError(null);
+    setLoading(true);
+    setApiError(null);
 
-      // 获取统计信息
-      const statsResponse = await musicApi.getCookieStats();
-      if (statsResponse.code === 0 && statsResponse.data) {
-        setStats(statsResponse.data);
-      } else {
-        throw new Error(statsResponse.message || "获取Cookie池统计失败");
-      }
-
-      // 获取Cookie列表
-      const listResponse = await musicApi.getCookieList();
-      if (listResponse.code === 0 && listResponse.data) {
-        setCookies(listResponse.data.cookies || []);
-
-        // 自动选择逻辑
-        if (
-          useCookiePool &&
-          !selectedCookieId &&
-          listResponse.data.cookies &&
-          listResponse.data.cookies.length > 0
-        ) {
-          const activeCookies = listResponse.data.cookies.filter(
-            (c) => c.status === "active"
-          );
-          if (activeCookies.length > 0) {
-            setSelectedCookieId(activeCookies[0].id);
-            toast.success("已自动选择可用的Cookie");
-          }
+    await withErrorHandling<[CookieStatsResponse, CookieListResponse]>({
+      apiCall: () =>
+        Promise.all([musicApi.getCookieStats(), musicApi.getCookieList()]),
+      onSuccess: ([statsResponse, listResponse]) => {
+        if (statsResponse.code === 0 && statsResponse.data) {
+          setStats(statsResponse.data);
+        } else {
+          // 如果单个API失败，可以记录或设置特定错误
+          console.error("获取Cookie池统计失败:", statsResponse.message);
         }
-      } else {
-        throw new Error(listResponse.message || "获取Cookie列表失败");
-      }
-    } catch (error) {
-      console.error("获取Cookie池数据失败:", error);
-      setApiError(error instanceof Error ? error.message : "API连接失败");
-      toast.error("获取Cookie池数据失败");
-    } finally {
-      setLoading(false);
-    }
+
+        if (listResponse.code === 0 && listResponse.data) {
+          setCookies(listResponse.data.cookies || []);
+          if (
+            useCookiePool &&
+            !selectedCookieId &&
+            listResponse.data.cookies &&
+            listResponse.data.cookies.length > 0
+          ) {
+            const activeCookies = listResponse.data.cookies.filter(
+              (c) => c.status === "active"
+            );
+            if (activeCookies.length > 0) {
+              setSelectedCookieId(activeCookies[0].id);
+              toast.success("已自动选择可用的Cookie");
+            }
+          }
+        } else {
+          console.error("获取Cookie列表失败:", listResponse.message);
+        }
+      },
+      onError: (error) => {
+        setApiError(error.message);
+        // Toast由withErrorHandling处理
+      },
+      errorMessage: "获取Cookie池数据失败",
+    });
+
+    setLoading(false);
   };
 
   // 切换Cookie池
@@ -139,26 +141,28 @@ const CookiePoolSettings: React.FC = () => {
       return;
     }
 
-    try {
-      setSubmitting(true);
-      const response = await musicApi.submitCookie(newCookie);
+    setSubmitting(true);
 
-      if (response.code === 0 && response.data) {
-        toast.success("Cookie提交成功");
-        setNewCookie("");
-        if (useCookiePool) {
-          setSelectedCookieId(response.data.cookie_id);
+    await withErrorHandling({
+      apiCall: () => musicApi.submitCookie(newCookie),
+      onSuccess: (response) => {
+        if (response.code === 0 && response.data) {
+          toast.success("Cookie提交成功");
+          setNewCookie("");
+          if (useCookiePool) {
+            setSelectedCookieId(response.data.cookie_id);
+          }
+          loadCookieData();
+        } else {
+          // 处理业务逻辑错误
+          toast.error("提交失败", { description: response.message });
         }
-        loadCookieData();
-      } else {
-        toast.error("提交失败", { description: response.message });
-      }
-    } catch (error) {
-      console.error("提交Cookie失败:", error);
-      toast.error("提交Cookie失败");
-    } finally {
-      setSubmitting(false);
-    }
+      },
+      // onError的toast由withErrorHandling处理
+      errorMessage: "提交Cookie失败",
+    });
+
+    setSubmitting(false);
   };
 
   // 选择Cookie
