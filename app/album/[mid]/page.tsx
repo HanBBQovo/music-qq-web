@@ -48,6 +48,7 @@ import { usePlayerStore } from "@/lib/store/usePlayerStore";
 import type { Song as PlayerSong } from "@/lib/types/music";
 import musicApi from "@/lib/api/client";
 import { getQualityDisplayName, formatFileSize } from "@/lib/utils/format";
+import RemoteImage from "@/components/ui/remote-image";
 
 export default function AlbumDetailPage() {
   const params = useParams();
@@ -392,20 +393,10 @@ export default function AlbumDetailPage() {
               {/* 专辑封面 */}
               <div className="w-full md:w-48 h-48 flex-shrink-0">
                 {coverFromUrl || album.cover ? (
-                  <img
-                    src={coverFromUrl || album.cover}
+                  <RemoteImage
+                    src={coverFromUrl || album.cover || ""}
                     alt={album.name}
-                    className="w-full h-full object-cover rounded-lg shadow-lg"
-                    onError={(e) => {
-                      // 如果图片加载失败，显示占位符
-                      const target = e.target as HTMLImageElement;
-                      target.style.display = "none";
-                      const placeholder =
-                        target.nextElementSibling as HTMLDivElement;
-                      if (placeholder) {
-                        placeholder.style.display = "flex";
-                      }
-                    }}
+                    className="rounded-lg shadow-lg"
                   />
                 ) : null}
                 <div

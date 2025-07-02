@@ -15,6 +15,37 @@ const nextConfig = {
       },
     ];
   },
+  experimental: {
+    esmExternals: false,
+  },
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "**.qqmusic.qq.com",
+      },
+      {
+        protocol: "https",
+        hostname: "**.p2.music.126.net",
+      },
+      {
+        protocol: "https",
+        hostname: "**.music.126.net",
+      },
+      {
+        protocol: "https",
+        hostname: "**.y.qq.com",
+      },
+      {
+        protocol: "https",
+        hostname: "**.qlogo.cn",
+      },
+      {
+        protocol: "https",
+        hostname: "**.gtimg.cn",
+      },
+    ],
+  },
 };
 
 module.exports = nextConfig;
