@@ -50,6 +50,7 @@ import { useSettingsStore } from "@/lib/store";
 import { usePlayerStore } from "@/lib/store/usePlayerStore";
 import type { Song as PlayerSong } from "@/lib/types/music";
 import { getQualityDisplayName, formatFileSize } from "@/lib/utils/format";
+import { startProgress, doneProgress } from "@/lib/utils/progress";
 
 export function SearchResults() {
   const searchParams = useSearchParams();
@@ -91,6 +92,15 @@ export function SearchResults() {
   useEffect(() => {
     setSelectedSongs([]);
   }, [query, type]);
+
+  // 进度条效果
+  useEffect(() => {
+    if (isLoading) {
+      startProgress();
+    } else {
+      doneProgress();
+    }
+  }, [isLoading]);
 
   // 转换搜索结果歌曲为播放器歌曲格式
   function convertToPlayerSong(song: Song): PlayerSong {

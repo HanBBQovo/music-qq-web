@@ -8,6 +8,7 @@ import { ClientKeyboardShortcuts } from "@/components/client-keyboard-shortcuts"
 import { MainNav } from "@/components/layout/main-nav";
 import { Footer } from "@/components/layout/footer";
 import { FloatingDownloadButton } from "@/components/download/floating-download-progress";
+import TopProgressClient from "@/components/ui/top-progress-client";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -27,6 +28,7 @@ export default function RootLayout({
         <Providers>
           <div className="flex flex-col min-h-screen">
             <MainNav />
+            <TopProgressClient />
             <main className="flex-1 pb-20">{children}</main>
             <Footer />
             <MiniPlayer />

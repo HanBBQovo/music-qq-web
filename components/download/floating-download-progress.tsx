@@ -24,6 +24,9 @@ import {
 import { ProgressBar } from "@/components/ui/progress-bar";
 import { useStableSelector } from "@/lib/hooks/useStableSelector";
 
+// 全局标记：确保强制暂停逻辑只执行一次
+let hasCheckedDownloadingTasks = false;
+
 // Types
 interface FloatingDownloadProgressProps {
   className?: string;
@@ -60,9 +63,11 @@ export const FloatingDownloadProgress: React.FC<FloatingDownloadProgressProps> =
 
     const [isExpanded, setIsExpanded] = React.useState(true);
 
-    // 页面刷新后状态检查 - 只在组件挂载时执行一次
+    // 页面刷新后状态检查 - 全局只执行一次
     React.useEffect(() => {
-      // 只在组件首次挂载时检查是否有downloading状态的任务
+      if (hasCheckedDownloadingTasks) return;
+      hasCheckedDownloadingTasks = true;
+
       const downloadingTasks = tasks.filter(
         (task) => task.status === "downloading"
       );
@@ -71,12 +76,11 @@ export const FloatingDownloadProgress: React.FC<FloatingDownloadProgressProps> =
           `[下载弹窗] 发现${downloadingTasks.length}个downloading状态的任务，强制恢复为paused`
         );
         downloadingTasks.forEach((task) => {
-          // console.log(`[下载弹窗] 强制暂停任务: ${task.songName}`);
           pauseTask(task.id);
         });
       }
       // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []); // 只在组件挂载时执行一次，不要加入 tasks 依赖
+    }, []);
 
     // 稳定化任务过滤，避免重复计算导致的渲染问题
     const downloadingItems = React.useMemo(() => {

@@ -725,3 +725,11 @@ select:focus {
   box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1),
     0 8px 10px -6px rgb(0 0 0 / 0.1);
 }
+
+/* NProgress 主题覆写 */
+#nprogress .bar {
+  background: #a855f7 !important;
+}
+#nprogress .peg {
+  box-shadow: 0 0 10px #a855f7, 0 0 5px #a855f7 !important;
+}
