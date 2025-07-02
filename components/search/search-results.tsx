@@ -51,6 +51,7 @@ import { usePlayerStore } from "@/lib/store/usePlayerStore";
 import type { Song as PlayerSong } from "@/lib/types/music";
 import { getQualityDisplayName, formatFileSize } from "@/lib/utils/format";
 import { startProgress, doneProgress } from "@/lib/utils/progress";
+import RemoteImage from "@/components/ui/remote-image";
 
 export function SearchResults() {
   const searchParams = useSearchParams();
@@ -529,20 +530,9 @@ function SongSearchResults({
                     <TableCell className="text-center">
                       <div className="w-10 h-10 relative overflow-hidden rounded-lg flex-shrink-0 mx-auto">
                         {song.album.cover ? (
-                          <img
-                            src={song.album.cover}
+                          <RemoteImage
+                            src={song.album.cover || ""}
                             alt={song.album.name}
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              // 如果封面加载失败，显示音乐图标
-                              const target = e.target as HTMLImageElement;
-                              target.style.display = "none";
-                              const fallback =
-                                target.nextElementSibling as HTMLDivElement;
-                              if (fallback) {
-                                fallback.style.display = "flex";
-                              }
-                            }}
                           />
                         ) : null}
                         <div
@@ -736,7 +726,7 @@ function AlbumSearchResults({
               >
                 <div className="aspect-square relative overflow-hidden rounded-t-lg">
                   {album.picUrl ? (
-                    <img
+                    <RemoteImage
                       src={album.picUrl}
                       alt={album.name}
                       className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
@@ -844,7 +834,7 @@ function PlaylistSearchResults({
                 <div className="flex gap-4 p-4">
                   <div className="w-16 h-16 relative overflow-hidden rounded-lg flex-shrink-0">
                     {playlist.picUrl ? (
-                      <img
+                      <RemoteImage
                         src={playlist.picUrl}
                         alt={playlist.name}
                         className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
