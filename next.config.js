@@ -15,9 +15,6 @@ const nextConfig = {
       },
     ];
   },
-  experimental: {
-    esmExternals: false,
-  },
   images: {
     remotePatterns: [
       {
