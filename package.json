@@ -6,7 +6,10 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "find-unused": "tsx scripts/find-unused.ts",
+    "remove-unused": "tsx scripts/remove-unused.ts",
+    "clean-unused": "npm run find-unused && npm run remove-unused && npm run build"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -58,6 +61,8 @@
     "eslint": "^9",
     "eslint-config-next": "15.3.3",
     "tailwindcss": "^4",
+    "ts-morph": "^23.0.0",
+    "tsx": "^4.20.3",
     "tw-animate-css": "^1.3.4",
     "typescript": "^5"
   }

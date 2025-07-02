@@ -1,0 +1,442 @@
+[
+  {
+    "file": "app/layout.tsx",
+    "exportName": "default",
+    "kind": "FunctionDeclaration"
+  },
+  {
+    "file": "app/layout.tsx",
+    "exportName": "metadata",
+    "kind": "VariableDeclaration"
+  },
+  {
+    "file": "lib/utils.ts",
+    "exportName": "formatDuration",
+    "kind": "FunctionDeclaration"
+  },
+  {
+    "file": "lib/utils.ts",
+    "exportName": "formatFileSize",
+    "kind": "FunctionDeclaration"
+  },
+  {
+    "file": "lib/utils.ts",
+    "exportName": "getCoverUrl",
+    "kind": "FunctionDeclaration"
+  },
+  {
+    "file": "lib/utils.ts",
+    "exportName": "getSingerAvatarUrl",
+    "kind": "FunctionDeclaration"
+  },
+  {
+    "file": "lib/utils.ts",
+    "exportName": "formatReleaseDate",
+    "kind": "FunctionDeclaration"
+  },
+  {
+    "file": "lib/utils.ts",
+    "exportName": "cleanSongName",
+    "kind": "FunctionDeclaration"
+  },
+  {
+    "file": "lib/utils.ts",
+    "exportName": "delay",
+    "kind": "FunctionDeclaration"
+  },
+  {
+    "file": "lib/utils.ts",
+    "exportName": "extractSongIdFromUrl",
+    "kind": "FunctionDeclaration"
+  },
+  {
+    "file": "lib/utils.ts",
+    "exportName": "extractPlaylistIdFromUrl",
+    "kind": "FunctionDeclaration"
+  },
+  {
+    "file": "lib/utils.ts",
+    "exportName": "extractAlbumIdFromUrl",
+    "kind": "FunctionDeclaration"
+  },
+  {
+    "file": "components/download/floating-download-progress.tsx",
+    "exportName": "FloatingDownloadProgress",
+    "kind": "VariableDeclaration"
+  },
+  {
+    "file": "components/parse/link-parser.tsx",
+    "exportName": "LinkParser",
+    "kind": "FunctionDeclaration"
+  },
+  {
+    "file": "components/ui/alert-dialog.tsx",
+    "exportName": "AlertDialogPortal",
+    "kind": "FunctionDeclaration"
+  },
+  {
+    "file": "components/ui/alert-dialog.tsx",
+    "exportName": "AlertDialogOverlay",
+    "kind": "FunctionDeclaration"
+  },
+  {
+    "file": "components/ui/alert-dialog.tsx",
+    "exportName": "AlertDialogTrigger",
+    "kind": "FunctionDeclaration"
+  },
+  {
+    "file": "components/ui/alert.tsx",
+    "exportName": "Alert",
+    "kind": "FunctionDeclaration"
+  },
+  {
+    "file": "components/ui/alert.tsx",
+    "exportName": "AlertTitle",
+    "kind": "FunctionDeclaration"
+  },
+  {
+    "file": "components/ui/alert.tsx",
+    "exportName": "AlertDescription",
+    "kind": "FunctionDeclaration"
+  },
+  {
+    "file": "components/ui/badge.tsx",
+    "exportName": "badgeVariants",
+    "kind": "VariableDeclaration"
+  },
+  {
+    "file": "components/ui/breadcrumb.tsx",
+    "exportName": "BreadcrumbEllipsis",
+    "kind": "VariableDeclaration"
+  },
+  {
+    "file": "components/ui/breadcrumb.tsx",
+    "exportName": "BreadcrumbEllipsis",
+    "kind": "Identifier"
+  },
+  {
+    "file": "components/ui/card.tsx",
+    "exportName": "CardAction",
+    "kind": "FunctionDeclaration"
+  },
+  {
+    "file": "components/ui/collapsible.tsx",
+    "exportName": "Collapsible",
+    "kind": "VariableDeclaration"
+  },
+  {
+    "file": "components/ui/collapsible.tsx",
+    "exportName": "CollapsibleTrigger",
+    "kind": "VariableDeclaration"
+  },
+  {
+    "file": "components/ui/collapsible.tsx",
+    "exportName": "CollapsibleContent",
+    "kind": "VariableDeclaration"
+  },
+  {
+    "file": "components/ui/dialog.tsx",
+    "exportName": "DialogClose",
+    "kind": "FunctionDeclaration"
+  },
+  {
+    "file": "components/ui/dialog.tsx",
+    "exportName": "DialogOverlay",
+    "kind": "FunctionDeclaration"
+  },
+  {
+    "file": "components/ui/dialog.tsx",
+    "exportName": "DialogPortal",
+    "kind": "FunctionDeclaration"
+  },
+  {
+    "file": "components/ui/dropdown-menu.tsx",
+    "exportName": "DropdownMenuPortal",
+    "kind": "FunctionDeclaration"
+  },
+  {
+    "file": "components/ui/dropdown-menu.tsx",
+    "exportName": "DropdownMenuGroup",
+    "kind": "FunctionDeclaration"
+  },
+  {
+    "file": "components/ui/dropdown-menu.tsx",
+    "exportName": "DropdownMenuLabel",
+    "kind": "FunctionDeclaration"
+  },
+  {
+    "file": "components/ui/dropdown-menu.tsx",
+    "exportName": "DropdownMenuCheckboxItem",
+    "kind": "FunctionDeclaration"
+  },
+  {
+    "file": "components/ui/dropdown-menu.tsx",
+    "exportName": "DropdownMenuRadioGroup",
+    "kind": "FunctionDeclaration"
+  },
+  {
+    "file": "components/ui/dropdown-menu.tsx",
+    "exportName": "DropdownMenuRadioItem",
+    "kind": "FunctionDeclaration"
+  },
+  {
+    "file": "components/ui/dropdown-menu.tsx",
+    "exportName": "DropdownMenuShortcut",
+    "kind": "FunctionDeclaration"
+  },
+  {
+    "file": "components/ui/dropdown-menu.tsx",
+    "exportName": "DropdownMenuSub",
+    "kind": "FunctionDeclaration"
+  },
+  {
+    "file": "components/ui/dropdown-menu.tsx",
+    "exportName": "DropdownMenuSubTrigger",
+    "kind": "FunctionDeclaration"
+  },
+  {
+    "file": "components/ui/dropdown-menu.tsx",
+    "exportName": "DropdownMenuSubContent",
+    "kind": "FunctionDeclaration"
+  },
+  {
+    "file": "components/ui/form.tsx",
+    "exportName": "useFormField",
+    "kind": "VariableDeclaration"
+  },
+  {
+    "file": "components/ui/form.tsx",
+    "exportName": "FormLabel",
+    "kind": "FunctionDeclaration"
+  },
+  {
+    "file": "components/ui/scroll-area.tsx",
+    "exportName": "ScrollBar",
+    "kind": "FunctionDeclaration"
+  },
+  {
+    "file": "components/ui/select.tsx",
+    "exportName": "SelectGroup",
+    "kind": "FunctionDeclaration"
+  },
+  {
+    "file": "components/ui/select.tsx",
+    "exportName": "SelectLabel",
+    "kind": "FunctionDeclaration"
+  },
+  {
+    "file": "components/ui/select.tsx",
+    "exportName": "SelectScrollDownButton",
+    "kind": "FunctionDeclaration"
+  },
+  {
+    "file": "components/ui/select.tsx",
+    "exportName": "SelectScrollUpButton",
+    "kind": "FunctionDeclaration"
+  },
+  {
+    "file": "components/ui/select.tsx",
+    "exportName": "SelectSeparator",
+    "kind": "FunctionDeclaration"
+  },
+  {
+    "file": "components/ui/sheet.tsx",
+    "exportName": "SheetClose",
+    "kind": "FunctionDeclaration"
+  },
+  {
+    "file": "components/ui/sheet.tsx",
+    "exportName": "SheetFooter",
+    "kind": "FunctionDeclaration"
+  },
+  {
+    "file": "components/ui/tabbed-panel.tsx",
+    "exportName": "TabDefinition",
+    "kind": "InterfaceDeclaration"
+  },
+  {
+    "file": "components/ui/table.tsx",
+    "exportName": "TableFooter",
+    "kind": "FunctionDeclaration"
+  },
+  {
+    "file": "components/ui/table.tsx",
+    "exportName": "TableCaption",
+    "kind": "FunctionDeclaration"
+  },
+  {
+    "file": "lib/api/types.ts",
+    "exportName": "Singer",
+    "kind": "InterfaceDeclaration"
+  },
+  {
+    "file": "lib/api/types.ts",
+    "exportName": "Album",
+    "kind": "InterfaceDeclaration"
+  },
+  {
+    "file": "lib/api/types.ts",
+    "exportName": "SongSearchResult",
+    "kind": "InterfaceDeclaration"
+  },
+  {
+    "file": "lib/api/types.ts",
+    "exportName": "AlbumSearchResult",
+    "kind": "InterfaceDeclaration"
+  },
+  {
+    "file": "lib/api/types.ts",
+    "exportName": "PlaylistSearchResult",
+    "kind": "InterfaceDeclaration"
+  },
+  {
+    "file": "lib/api/types.ts",
+    "exportName": "Lyric",
+    "kind": "InterfaceDeclaration"
+  },
+  {
+    "file": "lib/api/types.ts",
+    "exportName": "QualityInfo",
+    "kind": "InterfaceDeclaration"
+  },
+  {
+    "file": "lib/api/types.ts",
+    "exportName": "DownloadStatus",
+    "kind": "TypeAliasDeclaration"
+  },
+  {
+    "file": "lib/api/types.ts",
+    "exportName": "ApiError",
+    "kind": "InterfaceDeclaration"
+  },
+  {
+    "file": "lib/api/types.ts",
+    "exportName": "UserSettings",
+    "kind": "InterfaceDeclaration"
+  },
+  {
+    "file": "lib/api/types.ts",
+    "exportName": "Word",
+    "kind": "TypeAliasDeclaration"
+  },
+  {
+    "file": "lib/api/types.ts",
+    "exportName": "ApiResponse",
+    "kind": "InterfaceDeclaration"
+  },
+  {
+    "file": "lib/constants/http-headers.ts",
+    "exportName": "CONTENT_TYPES",
+    "kind": "VariableDeclaration"
+  },
+  {
+    "file": "lib/styles/player-animations.ts",
+    "exportName": "dynamicStyles",
+    "kind": "VariableDeclaration"
+  },
+  {
+    "file": "lib/types/music.ts",
+    "exportName": "AudioQuality",
+    "kind": "EnumDeclaration"
+  },
+  {
+    "file": "lib/types/music.ts",
+    "exportName": "SearchResultItem",
+    "kind": "InterfaceDeclaration"
+  },
+  {
+    "file": "lib/types/music.ts",
+    "exportName": "PlayStats",
+    "kind": "InterfaceDeclaration"
+  },
+  {
+    "file": "lib/types/music.ts",
+    "exportName": "SearchResultConverter",
+    "kind": "TypeAliasDeclaration"
+  },
+  {
+    "file": "lib/types/music.ts",
+    "exportName": "PlayerEvents",
+    "kind": "InterfaceDeclaration"
+  },
+  {
+    "file": "lib/utils/audio-url.ts",
+    "exportName": "getQQCookie",
+    "kind": "FunctionDeclaration"
+  },
+  {
+    "file": "lib/utils/audio-url.ts",
+    "exportName": "getPlayInfo",
+    "kind": "FunctionDeclaration"
+  },
+  {
+    "file": "lib/utils/audio-url.ts",
+    "exportName": "getAudioUrlWithQuality",
+    "kind": "FunctionDeclaration"
+  },
+  {
+    "file": "lib/utils/audio-url.ts",
+    "exportName": "getAudioUrlsBatch",
+    "kind": "FunctionDeclaration"
+  },
+  {
+    "file": "lib/utils/audio-url.ts",
+    "exportName": "preloadAudioUrl",
+    "kind": "FunctionDeclaration"
+  },
+  {
+    "file": "lib/utils/audio-url.ts",
+    "exportName": "clearAudioUrlCache",
+    "kind": "FunctionDeclaration"
+  },
+  {
+    "file": "lib/utils/audio-url.ts",
+    "exportName": "checkApiHealth",
+    "kind": "FunctionDeclaration"
+  },
+  {
+    "file": "lib/utils/audio-url.ts",
+    "exportName": "validateAudioUrl",
+    "kind": "FunctionDeclaration"
+  },
+  {
+    "file": "lib/utils/audio-url.ts",
+    "exportName": "getPlayStats",
+    "kind": "FunctionDeclaration"
+  },
+  {
+    "file": "lib/utils/audio-url.ts",
+    "exportName": "getSupportedQualities",
+    "kind": "FunctionDeclaration"
+  },
+  {
+    "file": "lib/utils/audio-url.ts",
+    "exportName": "setQQCookie",
+    "kind": "FunctionDeclaration"
+  },
+  {
+    "file": "lib/utils/audio-url.ts",
+    "exportName": "QualityInfo",
+    "kind": "InterfaceDeclaration"
+  },
+  {
+    "file": "lib/utils/storage.ts",
+    "exportName": "playerStorage",
+    "kind": "VariableDeclaration"
+  },
+  {
+    "file": "lib/utils/storage.ts",
+    "exportName": "IndexedDBHelper",
+    "kind": "ClassDeclaration"
+  },
+  {
+    "file": "lib/utils/storage.ts",
+    "exportName": "LocalStorageHelper",
+    "kind": "ClassDeclaration"
+  },
+  {
+    "file": "lib/utils/storage.ts",
+    "exportName": "PlayerStorage",
+    "kind": "ClassDeclaration"
+  }
+]
