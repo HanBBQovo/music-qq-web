@@ -63,7 +63,8 @@ export default function HomePage() {
               搜索并下载高品质音乐资源，支持歌曲、专辑、歌单和链接解析
             </p>
             <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed px-2">
-              右上角设置好Cookie，即刻开撸音乐
+              右上角设置-{">"}Cookie设置-{">"}使用Cookie池-{">"}选择Cookie-{">"}
+              保存即可使用
             </p>
             <div className="flex flex-wrap items-center justify-center gap-4 md:gap-6 mt-4 md:mt-6">
               <div className="flex items-center gap-2 text-xs md:text-sm text-muted-foreground">
