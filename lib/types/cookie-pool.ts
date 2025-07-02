@@ -16,10 +16,6 @@ export interface CookiePoolItem {
 }
 
 // Cookie提交请求
-export interface SubmitCookieRequest {
-  cookie: string; // Cookie内容
-}
-
 // Cookie提交响应
 export interface SubmitCookieResponse {
   code: number;

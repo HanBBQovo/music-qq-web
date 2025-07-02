@@ -28,17 +28,6 @@ export enum PlayerStatus {
 
 // 音频质量枚举
 // 搜索结果类型（与现有系统兼容）
-export interface SearchResultItem {
-  id: string;
-  name: string;
-  artist: string;
-  album?: string;
-  cover?: string;
-  duration?: number;
-  url?: string;
-  [key: string]: any; // 兼容现有搜索结果的其他字段
-}
-
 // 播放错误类型
 export interface PlayError {
   code: string;

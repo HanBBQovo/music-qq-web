@@ -9,14 +9,6 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 /**
- * 生成唯一ID
- * @returns 唯一ID字符串
- */
-export function generateId(): string {
-  return Date.now().toString(36) + Math.random().toString(36).substring(2);
-}
-
-/**
  * 防抖函数
  * @param fn 要执行的函数
  * @param delay 延迟时间（毫秒）
@@ -37,28 +29,6 @@ export function debounce<T extends (...args: any[]) => any>(
       fn(...args);
       timeoutId = null;
     }, delay);
-  };
-}
-
-/**
- * 节流函数
- * @param fn 要执行的函数
- * @param limit 时间限制（毫秒）
- * @returns 节流后的函数
- */
-export function throttle<T extends (...args: any[]) => any>(
-  fn: T,
-  limit: number
-): (...args: Parameters<T>) => void {
-  let lastCall = 0;
-
-  return (...args: Parameters<T>) => {
-    const now = Date.now();
-
-    if (now - lastCall >= limit) {
-      fn(...args);
-      lastCall = now;
-    }
   };
 }
 
@@ -100,70 +70,6 @@ export function extractAlbumIdFromUrl(url: string): string | null {
   const match = url.match(regex);
 
   return match ? match[1] : null;
-}
-
-/**
- * 智能识别音乐链接类型和ID
- * @param url 音乐链接
- * @returns 解析结果
- */
-export function parseMusicLink(url: string): {
-  success: boolean;
-  type?: "song" | "album" | "playlist";
-  id?: string;
-  mid?: string;
-  needServerParsing?: boolean;
-} {
-  if (!url || typeof url !== "string") {
-    return { success: false };
-  }
-
-  const normalizedUrl = url.trim();
-
-  // 歌曲链接
-  const songMid = extractSongIdFromUrl(normalizedUrl);
-  if (songMid) {
-    return {
-      success: true,
-      type: "song",
-      mid: songMid,
-    };
-  }
-
-  // 专辑链接
-  const albumMid = extractAlbumIdFromUrl(normalizedUrl);
-  if (albumMid) {
-    return {
-      success: true,
-      type: "album",
-      mid: albumMid,
-    };
-  }
-
-  // 歌单链接
-  const playlistId = extractPlaylistIdFromUrl(normalizedUrl);
-  if (playlistId) {
-    return {
-      success: true,
-      type: "playlist",
-      id: playlistId,
-    };
-  }
-
-  // 检查是否是需要服务器解析的复杂格式
-  if (
-    normalizedUrl.includes("c6.y.qq.com") ||
-    normalizedUrl.includes("i.y.qq.com") ||
-    normalizedUrl.includes("y.qq.com/w/") ||
-    normalizedUrl.includes("y.qq.com/m/")
-  ) {
-    return {
-      success: false,
-      needServerParsing: true,
-    };
-  }
-
-  return { success: false };
 }
 
 /**
@@ -219,41 +125,6 @@ export async function parseMusicLinkServer(url: string): Promise<{
       error: error.message || "网络请求失败",
     };
   }
-}
-
-/**
- * 根据解析结果生成跳转URL
- * @param parseResult 解析结果
- * @returns 跳转URL或null
- */
-export function generateRedirectUrl(parseResult: {
-  type?: "song" | "album" | "playlist";
-  id?: string;
-  mid?: string;
-}): string | null {
-  if (!parseResult.type) {
-    return null;
-  }
-
-  switch (parseResult.type) {
-    case "song":
-      if (parseResult.mid) {
-        return `/song/${parseResult.mid}`;
-      }
-      break;
-    case "album":
-      if (parseResult.mid) {
-        return `/album/${parseResult.mid}`;
-      }
-      break;
-    case "playlist":
-      if (parseResult.id) {
-        return `/playlist/${parseResult.id}`;
-      }
-      break;
-  }
-
-  return null;
 }
 
 /**

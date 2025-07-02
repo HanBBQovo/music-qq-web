@@ -1,43 +1,13 @@
 [
   {
     "file": "lib/utils.ts",
-    "exportName": "formatDuration",
+    "exportName": "generateId",
     "kind": "FunctionDeclaration",
     "deletable": true
   },
   {
     "file": "lib/utils.ts",
-    "exportName": "formatFileSize",
-    "kind": "FunctionDeclaration",
-    "deletable": true
-  },
-  {
-    "file": "lib/utils.ts",
-    "exportName": "getCoverUrl",
-    "kind": "FunctionDeclaration",
-    "deletable": true
-  },
-  {
-    "file": "lib/utils.ts",
-    "exportName": "getSingerAvatarUrl",
-    "kind": "FunctionDeclaration",
-    "deletable": true
-  },
-  {
-    "file": "lib/utils.ts",
-    "exportName": "formatReleaseDate",
-    "kind": "FunctionDeclaration",
-    "deletable": true
-  },
-  {
-    "file": "lib/utils.ts",
-    "exportName": "cleanSongName",
-    "kind": "FunctionDeclaration",
-    "deletable": true
-  },
-  {
-    "file": "lib/utils.ts",
-    "exportName": "delay",
+    "exportName": "throttle",
     "kind": "FunctionDeclaration",
     "deletable": true
   },
@@ -60,16 +30,22 @@
     "deletable": false
   },
   {
+    "file": "lib/utils.ts",
+    "exportName": "parseMusicLink",
+    "kind": "FunctionDeclaration",
+    "deletable": true
+  },
+  {
+    "file": "lib/utils.ts",
+    "exportName": "generateRedirectUrl",
+    "kind": "FunctionDeclaration",
+    "deletable": true
+  },
+  {
     "file": "components/download/floating-download-progress.tsx",
     "exportName": "FloatingDownloadProgress",
     "kind": "VariableDeclaration",
     "deletable": false
-  },
-  {
-    "file": "components/parse/link-parser.tsx",
-    "exportName": "LinkParser",
-    "kind": "FunctionDeclaration",
-    "deletable": true
   },
   {
     "file": "components/ui/alert-dialog.tsx",
@@ -240,6 +216,18 @@
     "deletable": false
   },
   {
+    "file": "components/ui/form.tsx",
+    "exportName": "FormDescription",
+    "kind": "FunctionDeclaration",
+    "deletable": false
+  },
+  {
+    "file": "components/ui/scroll-area.tsx",
+    "exportName": "ScrollArea",
+    "kind": "FunctionDeclaration",
+    "deletable": false
+  },
+  {
     "file": "components/ui/scroll-area.tsx",
     "exportName": "ScrollBar",
     "kind": "FunctionDeclaration",
@@ -337,33 +325,9 @@
   },
   {
     "file": "lib/api/types.ts",
-    "exportName": "Lyric",
-    "kind": "InterfaceDeclaration",
-    "deletable": true
-  },
-  {
-    "file": "lib/api/types.ts",
-    "exportName": "QualityInfo",
-    "kind": "InterfaceDeclaration",
-    "deletable": true
-  },
-  {
-    "file": "lib/api/types.ts",
     "exportName": "DownloadStatus",
     "kind": "TypeAliasDeclaration",
     "deletable": false
-  },
-  {
-    "file": "lib/api/types.ts",
-    "exportName": "ApiError",
-    "kind": "InterfaceDeclaration",
-    "deletable": true
-  },
-  {
-    "file": "lib/api/types.ts",
-    "exportName": "UserSettings",
-    "kind": "InterfaceDeclaration",
-    "deletable": true
   },
   {
     "file": "lib/api/types.ts",
@@ -372,50 +336,20 @@
     "deletable": false
   },
   {
-    "file": "lib/api/types.ts",
-    "exportName": "ApiResponse",
-    "kind": "InterfaceDeclaration",
-    "deletable": true
-  },
-  {
-    "file": "lib/constants/http-headers.ts",
-    "exportName": "CONTENT_TYPES",
-    "kind": "VariableDeclaration",
-    "deletable": true
-  },
-  {
     "file": "lib/styles/player-animations.ts",
     "exportName": "dynamicStyles",
     "kind": "VariableDeclaration",
     "deletable": false
   },
   {
-    "file": "lib/types/music.ts",
-    "exportName": "AudioQuality",
-    "kind": "EnumDeclaration",
+    "file": "lib/types/cookie-pool.ts",
+    "exportName": "SubmitCookieRequest",
+    "kind": "InterfaceDeclaration",
     "deletable": true
   },
   {
     "file": "lib/types/music.ts",
     "exportName": "SearchResultItem",
-    "kind": "InterfaceDeclaration",
-    "deletable": false
-  },
-  {
-    "file": "lib/types/music.ts",
-    "exportName": "PlayStats",
-    "kind": "InterfaceDeclaration",
-    "deletable": true
-  },
-  {
-    "file": "lib/types/music.ts",
-    "exportName": "SearchResultConverter",
-    "kind": "TypeAliasDeclaration",
-    "deletable": true
-  },
-  {
-    "file": "lib/types/music.ts",
-    "exportName": "PlayerEvents",
     "kind": "InterfaceDeclaration",
     "deletable": true
   },
@@ -427,75 +361,15 @@
   },
   {
     "file": "lib/utils/audio-url.ts",
-    "exportName": "getPlayInfo",
+    "exportName": "parseQualityInfo",
     "kind": "FunctionDeclaration",
-    "deletable": true
-  },
-  {
-    "file": "lib/utils/audio-url.ts",
-    "exportName": "getAudioUrlWithQuality",
-    "kind": "FunctionDeclaration",
-    "deletable": true
-  },
-  {
-    "file": "lib/utils/audio-url.ts",
-    "exportName": "getAudioUrlsBatch",
-    "kind": "FunctionDeclaration",
-    "deletable": true
-  },
-  {
-    "file": "lib/utils/audio-url.ts",
-    "exportName": "preloadAudioUrl",
-    "kind": "FunctionDeclaration",
-    "deletable": true
-  },
-  {
-    "file": "lib/utils/audio-url.ts",
-    "exportName": "clearAudioUrlCache",
-    "kind": "FunctionDeclaration",
-    "deletable": true
-  },
-  {
-    "file": "lib/utils/audio-url.ts",
-    "exportName": "checkApiHealth",
-    "kind": "FunctionDeclaration",
-    "deletable": true
-  },
-  {
-    "file": "lib/utils/audio-url.ts",
-    "exportName": "validateAudioUrl",
-    "kind": "FunctionDeclaration",
-    "deletable": true
-  },
-  {
-    "file": "lib/utils/audio-url.ts",
-    "exportName": "getPlayStats",
-    "kind": "FunctionDeclaration",
-    "deletable": true
-  },
-  {
-    "file": "lib/utils/audio-url.ts",
-    "exportName": "getSupportedQualities",
-    "kind": "FunctionDeclaration",
-    "deletable": true
-  },
-  {
-    "file": "lib/utils/audio-url.ts",
-    "exportName": "setQQCookie",
-    "kind": "FunctionDeclaration",
-    "deletable": true
+    "deletable": false
   },
   {
     "file": "lib/utils/audio-url.ts",
     "exportName": "QualityInfo",
     "kind": "InterfaceDeclaration",
     "deletable": false
-  },
-  {
-    "file": "lib/utils/storage.ts",
-    "exportName": "playerStorage",
-    "kind": "VariableDeclaration",
-    "deletable": true
   },
   {
     "file": "lib/utils/storage.ts",
