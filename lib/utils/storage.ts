@@ -2,7 +2,6 @@ import {
   Song,
   PlaylistInfo,
   STORAGE_KEYS,
-  PLAYER_CONFIG,
 } from "../types/music";
 
 // IndexedDB 数据库配置

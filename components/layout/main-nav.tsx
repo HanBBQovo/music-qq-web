@@ -19,7 +19,6 @@ import {
   HomeIcon,
   DownloadIcon,
   SettingsIcon,
-  MusicIcon,
   MenuIcon,
   XIcon,
 } from "lucide-react";

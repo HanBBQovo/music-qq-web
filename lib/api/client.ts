@@ -1,4 +1,4 @@
-import axios, { AxiosRequestConfig, AxiosError } from "axios";
+import axios from "axios";
 import { toast } from "sonner";
 import type {
   SearchParams,
@@ -7,7 +7,6 @@ import type {
   SongDetailResponse,
   SongUrlParams,
   SongUrlResponse,
-  SongUrlInfo,
   LyricParams,
   LyricResponse,
   AlbumParams,
@@ -506,7 +505,7 @@ export const musicApi = {
     cookieId?: string
   ): string => {
     // 检查BASE_URL是否为相对路径
-    let baseUrl = BASE_URL;
+    const baseUrl = BASE_URL;
 
     // 构建音频流URL - 处理不同环境下的URL构造
     let streamUrlString = "";

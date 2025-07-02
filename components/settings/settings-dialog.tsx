@@ -15,7 +15,6 @@ import {
   Headphones,
 } from "lucide-react";
 
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -31,19 +30,14 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useTheme } from "next-themes";
 import { toast } from "sonner";
 import useSettingsStore from "@/lib/store/useSettingsStore";
 import { useDownloadStore } from "@/lib/store";
 import type { AudioQuality } from "@/lib/api/types";
-import {
-  FormField,
-  FormItem,
-  FormControl,
-  FormDescription,
-} from "@/components/ui/form";
+
+
 import CookiePoolSettings from "./cookie-pool-settings";
 
 interface SettingsDialogProps {

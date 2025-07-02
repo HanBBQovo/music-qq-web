@@ -45,7 +45,6 @@ import {
   UserIcon,
   ArrowLeft,
   PlayIcon,
-  PlayCircleIcon,
   Pause,
   ListMusic,
 } from "lucide-react";

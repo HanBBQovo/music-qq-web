@@ -4,9 +4,6 @@ import {
   useState,
   useEffect,
   useRef,
-  useMemo,
-  useCallback,
-  useLayoutEffect,
 } from "react";
 import { usePlayerStore } from "@/lib/store/usePlayerStore";
 import { useAudioPlayer } from "@/lib/hooks/use-audio-player";

@@ -1,4 +1,4 @@
-import { Project, Node, ts } from "ts-morph";
+import { Project, ts } from "ts-morph";
 import path from "path";
 
 /**

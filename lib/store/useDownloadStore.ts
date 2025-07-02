@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { Song, DownloadTask, AudioQuality, SongUrlInfo } from "../api/types";
 import musicApi from "../api/client";
-import { generateId, saveBlob } from "../utils";
+import { saveBlob } from "../utils";
 import { toast } from "sonner";
 import { useSettingsStore } from "./useSettingsStore";
 import { HTTP_HEADERS } from "@/lib/constants/http-headers";
@@ -1318,7 +1318,7 @@ async function downloadSong(task: DownloadTask): Promise<void> {
     }));
 
     // 验证URL格式是否有效
-    let validSongUrl = songUrl.url;
+    const validSongUrl = songUrl.url;
     try {
       // 测试URL是否有效
       new URL(validSongUrl);

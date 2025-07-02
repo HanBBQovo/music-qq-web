@@ -1,7 +1,6 @@
 import { useEffect, useRef, useCallback, useState } from "react";
 import { usePlayerStore } from "../store/usePlayerStore";
-import { Song, PlayerStatus, PlayError, PLAYER_CONFIG } from "../types/music";
-import { throttle } from "../utils";
+import { PlayerStatus, PlayError, PLAYER_CONFIG } from "../types/music";
 
 // 音频播放Hook
 export const useAudioPlayer = () => {

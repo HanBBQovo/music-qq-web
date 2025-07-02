@@ -15,7 +15,6 @@ import {
   DragEndEvent,
 } from "@dnd-kit/core";
 import {
-  arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
@@ -30,7 +29,6 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -55,13 +53,10 @@ import {
   ListX,
   Play,
   Pause,
-  Clock,
-  Disc3,
   Download,
   GripVertical,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { AudioQuality } from "@/lib/api/types";
 
 // 格式化时间显示
 const formatTime = (seconds: number = 0) => {

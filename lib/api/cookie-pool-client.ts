@@ -1,10 +1,7 @@
-import axios from "axios";
 import {
-  SubmitCookieRequest,
   SubmitCookieResponse,
   CookieListResponse,
   CookieStatsResponse,
-  CookiePoolItem,
 } from "../types/cookie-pool";
 
 // API基础URL，与主API使用相同的基础URL

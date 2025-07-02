@@ -12,6 +12,6 @@ export function useStableSelector<T extends object, S>(
   selector: (state: T) => S
 ): S {
   // 直接调用 store hook，并使用 shallow 比较，确保稳定引用
-  // eslint-disable-next-line react-hooks/rules-of-hooks
+   
   return store(selector, shallow);
 }
