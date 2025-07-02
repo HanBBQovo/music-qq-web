@@ -57,6 +57,7 @@ import {
   GripVertical,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import RemoteImage from "@/components/ui/remote-image";
 
 // 格式化时间显示
 const formatTime = (seconds: number = 0) => {
@@ -161,11 +162,10 @@ const SongItem = memo(
           <div className="relative">
             <div className="w-10 h-10 rounded-md overflow-hidden bg-muted">
               {song.cover ? (
-                <img
-                  src={song.cover}
+                <RemoteImage
+                  src={song.cover || ""}
                   alt={song.title}
-                  className="w-full h-full object-cover"
-                  loading="lazy"
+                  className=""
                 />
               ) : (
                 <div className="w-full h-full bg-muted flex items-center justify-center">
