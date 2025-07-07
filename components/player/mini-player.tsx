@@ -60,6 +60,7 @@ export function MiniPlayer() {
   const setShowPlayer = usePlayerStore((s) => s.setShowPlayer);
   const setShowPlaylist = usePlayerStore((s) => s.setShowPlaylist);
   const switchQuality = usePlayerStore((s) => s.switchQuality);
+  const playSong = usePlayerStore((s) => s.playSong);
 
   // 简化渲染追踪，只在开发时使用
   const renderCountRef = useRef(0);
@@ -188,6 +189,21 @@ export function MiniPlayer() {
       console.error("切换音质失败:", error);
       toast.dismiss(loadingToast);
       toast.error(`切换到${targetOption?.label}失败，请重试`);
+    }
+  };
+
+  const handlePlayPause = () => {
+    // 如果歌曲URL无效，并且当前未在播放，则强制调用playSong重新获取
+    if (currentSong && !currentSong.url && !isPlaying) {
+      playSong(currentSong);
+    } else {
+      // 否则，只切换播放/暂停状态
+      togglePlay();
+    }
+    // 在用户交互时尝试启动音频上下文
+    if (typeof window !== "undefined") {
+      const event = new CustomEvent("user-interaction-play");
+      window.dispatchEvent(event);
     }
   };
 
@@ -369,14 +385,7 @@ export function MiniPlayer() {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => {
-                  togglePlay();
-                  // 在用户交互时尝试启动音频上下文
-                  if (typeof window !== "undefined") {
-                    const event = new CustomEvent("user-interaction-play");
-                    window.dispatchEvent(event);
-                  }
-                }}
+                onClick={handlePlayPause}
                 disabled={isLoading}
                 className="h-10 w-10 p-0"
                 title={isLoading ? "正在加载..." : isPlaying ? "暂停" : "播放"}
@@ -581,28 +590,11 @@ export function MiniPlayer() {
               </div>
 
               {/* 核心播放控制 */}
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1 flex-shrink-0">
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={playPrevious}
-                  className="h-8 w-8 p-0"
-                  title="上一首"
-                >
-                  <SkipBack className="h-4 w-4" />
-                </Button>
-
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    togglePlay();
-                    // 在用户交互时尝试启动音频上下文
-                    if (typeof window !== "undefined") {
-                      const event = new CustomEvent("user-interaction-play");
-                      window.dispatchEvent(event);
-                    }
-                  }}
+                  onClick={handlePlayPause}
                   disabled={isLoading}
                   className="h-10 w-10 p-0"
                   title={
@@ -617,7 +609,6 @@ export function MiniPlayer() {
                     <Play className="h-5 w-5" />
                   )}
                 </Button>
-
                 <Button
                   variant="ghost"
                   size="sm"

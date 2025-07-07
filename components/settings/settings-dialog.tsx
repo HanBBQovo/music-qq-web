@@ -37,7 +37,6 @@ import useSettingsStore from "@/lib/store/useSettingsStore";
 import { useDownloadStore } from "@/lib/store";
 import type { AudioQuality } from "@/lib/api/types";
 
-
 import CookiePoolSettings from "./cookie-pool-settings";
 
 interface SettingsDialogProps {
@@ -94,7 +93,7 @@ export function SettingsDialog({
   onOpenChange,
   children,
 }: SettingsDialogProps) {
-  const { setTheme } = useTheme();
+  const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
   // 从设置store获取状态
@@ -125,9 +124,7 @@ export function SettingsDialog({
   } = useDownloadStore();
 
   // 本地状态
-  const [selectedTheme, setSelectedTheme] = useState<
-    "light" | "dark" | "system"
-  >("light");
+  const [selectedTheme, setSelectedTheme] = useState(theme);
   const [cookieValue, setCookieValue] = useState("");
 
   useEffect(() => {
@@ -147,10 +144,17 @@ export function SettingsDialog({
     }
   }, [cookie]);
 
+  // 当全局主题变化时，同步到本地UI状态
+  useEffect(() => {
+    if (theme) {
+      setSelectedTheme(theme);
+    }
+  }, [theme]);
+
   const handleSave = () => {
     // 保存设置
     setCookie(cookieValue || "");
-    setTheme(selectedTheme);
+    setTheme(selectedTheme as string);
 
     toast.success("设置已保存", {
       description: "您的偏好设置已成功保存。",
@@ -516,8 +520,8 @@ export function SettingsDialog({
 
                   <RadioGroup
                     value={selectedTheme}
-                    onValueChange={(value: "light" | "dark" | "system") =>
-                      setSelectedTheme(value)
+                    onValueChange={(value) =>
+                      setSelectedTheme(value as "light" | "dark" | "system")
                     }
                     className="space-y-3"
                   >
