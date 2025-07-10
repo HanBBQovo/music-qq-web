@@ -171,26 +171,26 @@ export type DownloadStatus =
 // 下载任务信息
 export interface DownloadTask {
   id: string;
-  songId: string;
+  songId: string; // 修正类型
   songMid: string;
   songName: string;
   artist: string;
   albumName: string;
-  albumMid?: string;
+  albumMid: string;
+  cover?: string;
   quality: AudioQuality;
-  actualQuality?: AudioQuality;
-  wasDowngraded?: boolean;
+  qualityName?: string;
   progress: number;
-  status: DownloadStatus;
-  filePath?: string;
+  status: "pending" | "downloading" | "paused" | "completed" | "error";
+  createdAt: Date;
+  updatedAt: Date;
+  completedAt?: Date; // 添加这个字段
+  chunks?: any[]; // 用于断点续传的临时数据块
   fileSize?: number;
-  bytesLoaded?: number;
   totalBytes?: number;
   error?: string;
-  createdAt: Date;
-  completedAt?: Date;
-  lastProgressUpdate?: number;
-  lastBytesLoaded?: number;
+  actualQuality?: AudioQuality;
+  wasDowngraded?: boolean;
 }
 
 // API错误

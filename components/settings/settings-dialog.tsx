@@ -113,15 +113,9 @@ export function SettingsDialog({
     showSaveNotification,
     setShowSaveNotification,
     useCookiePool,
+    concurrentDownloadCount,
+    setConcurrentDownloadCount,
   } = useSettingsStore();
-
-  // 从下载store获取状态
-  const {
-    maxConcurrentDownloads,
-    setMaxConcurrentDownloads,
-    adaptiveConcurrent,
-    setAdaptiveConcurrent,
-  } = useDownloadStore();
 
   // 本地状态
   const [selectedTheme, setSelectedTheme] = useState(theme);
@@ -170,8 +164,7 @@ export function SettingsDialog({
     setCookieValue("");
     setAutoAddMetadata(true);
     setAutoAddCover(true);
-    setMaxConcurrentDownloads(2);
-    setAdaptiveConcurrent(true);
+    setConcurrentDownloadCount(2);
     setSelectedTheme("light");
     setDownloadBehavior("auto");
     setShowSaveNotification(true);
@@ -345,41 +338,31 @@ export function SettingsDialog({
                         <div className="space-y-0.5">
                           <Label className="font-medium">最大同时下载数</Label>
                           <p className="text-xs text-muted-foreground">
-                            设置同时进行的下载任务数量，建议1-2个以获得最佳性能
+                            设置同时进行的下载任务数量
                           </p>
                         </div>
                         <div className="flex items-center gap-2">
                           <select
-                            value={maxConcurrentDownloads}
-                            onChange={(e) =>
-                              setMaxConcurrentDownloads(
-                                parseInt(e.target.value)
-                              )
-                            }
+                            value={concurrentDownloadCount}
+                            onChange={(e) => {
+                              const newCount = parseInt(e.target.value, 10);
+                              setConcurrentDownloadCount(newCount);
+                              useDownloadStore
+                                .getState()
+                                .updateConcurrentDownloads(newCount);
+                            }}
                             className="flex h-9 w-16 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring text-center"
                           >
-                            <option value={1}>1</option>
-                            <option value={2}>2</option>
-                            <option value={3}>3</option>
-                            <option value={4}>4</option>
+                            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
+                              <option key={n} value={n}>
+                                {n}
+                              </option>
+                            ))}
                           </select>
                           <span className="text-sm text-muted-foreground">
                             个
                           </span>
                         </div>
-                      </div>
-
-                      <div className="flex items-center justify-between p-3 rounded-lg border">
-                        <div className="space-y-0.5">
-                          <Label className="font-medium">自适应并发调整</Label>
-                          <p className="text-xs text-muted-foreground">
-                            根据网络状况和后端负载自动调整并发下载数量
-                          </p>
-                        </div>
-                        <Switch
-                          checked={adaptiveConcurrent}
-                          onCheckedChange={setAdaptiveConcurrent}
-                        />
                       </div>
                     </div>
                   </div>

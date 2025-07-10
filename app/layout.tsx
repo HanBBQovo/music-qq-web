@@ -9,6 +9,7 @@ import { MainNav } from "@/components/layout/main-nav";
 import { Footer } from "@/components/layout/footer";
 import { FloatingDownloadButton } from "@/components/download/floating-download-progress";
 import TopProgressClient from "@/components/ui/top-progress-client";
+import { StoreHydrationHandler } from "@/components/utils/store-hydration-handler";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -35,6 +36,7 @@ export default function RootLayout({
             <FloatingDownloadButton />
             <Toaster />
             <ClientKeyboardShortcuts />
+            <StoreHydrationHandler />
           </div>
         </Providers>
       </body>

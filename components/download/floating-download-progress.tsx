@@ -24,9 +24,6 @@ import {
 import { ProgressBar } from "@/components/ui/progress-bar";
 import { useStableSelector } from "@/lib/hooks/useStableSelector";
 
-// 全局标记：确保强制暂停逻辑只执行一次
-let hasCheckedDownloadingTasks = false;
-
 // Types
 interface FloatingDownloadProgressProps {
   className?: string;
@@ -57,30 +54,11 @@ export const FloatingDownloadProgress: React.FC<FloatingDownloadProgressProps> =
     // 分别订阅actions，避免创建新对象导致无限重渲染
     const pauseTask = useDownloadStore((state) => state.pauseTask);
     const resumeTask = useDownloadStore((state) => state.resumeTask);
-    const cancelTask = useDownloadStore((state) => state.cancelTask);
+    const cancelTask = useDownloadStore((state) => state.removeTask);
     const retryTask = useDownloadStore((state) => state.retryTask);
     const removeTask = useDownloadStore((state) => state.removeTask);
 
     const [isExpanded, setIsExpanded] = React.useState(true);
-
-    // 页面刷新后状态检查 - 全局只执行一次
-    React.useEffect(() => {
-      if (hasCheckedDownloadingTasks) return;
-      hasCheckedDownloadingTasks = true;
-
-      const downloadingTasks = tasks.filter(
-        (task) => task.status === "downloading"
-      );
-      if (downloadingTasks.length > 0) {
-        console.warn(
-          `[下载弹窗] 发现${downloadingTasks.length}个downloading状态的任务，强制恢复为paused`
-        );
-        downloadingTasks.forEach((task) => {
-          pauseTask(task.id);
-        });
-      }
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
 
     // 稳定化任务过滤，避免重复计算导致的渲染问题
     const downloadingItems = React.useMemo(() => {
@@ -97,7 +75,13 @@ export const FloatingDownloadProgress: React.FC<FloatingDownloadProgressProps> =
     }, [tasks]);
 
     const failedItems = React.useMemo(() => {
-      return tasks.filter((task) => task.status === "error");
+      // 增强的排序逻辑，兼容没有updatedAt的旧任务
+      const getSortTime = (task: any) =>
+        new Date(task.updatedAt || task.createdAt).getTime();
+
+      return tasks
+        .filter((task) => task.status === "error")
+        .sort((a, b) => getSortTime(b) - getSortTime(a));
     }, [tasks]);
 
     // 稳定化下载数量，添加防抖避免频繁变化
@@ -159,25 +143,14 @@ export const FloatingDownloadProgress: React.FC<FloatingDownloadProgressProps> =
           task.status === "paused" ||
           task.status === "pending";
 
-        // 使用独立的状态订阅，避免父组件传递频繁变化的状态
-        const taskSpeed = useStableSelector(useDownloadStore, (state) => {
-          const speed = state.downloadSpeeds[task.id] || 0;
-          // 量化到50KB/s，减少无意义更新
-          return Math.round(speed / (50 * 1024)) * (50 * 1024);
-        }) as number;
-
-        const taskTime = useStableSelector(useDownloadStore, (state) => {
-          const time = state.estimatedTimes[task.id] || 0;
-          // 量化到5秒，减少无意义更新
-          return Math.round(time / 5) * 5;
-        }) as number;
-
         // 独立订阅进度，避免tasks数组变化导致的重渲染
         const taskProgress = useStableSelector(useDownloadStore, (state) => {
           const progressInfo = state.taskProgress[task.id];
-          if (!progressInfo) return 0;
-          // 量化到整数，减少无意义更新
-          return Math.round(progressInfo.progress);
+          if (!progressInfo || !progressInfo.totalBytes) return 0;
+          // 动态计算进度
+          return Math.round(
+            (progressInfo.bytesLoaded / progressInfo.totalBytes) * 100
+          );
         }) as number;
 
         // 稳定的进度显示，只在整数变化时更新
@@ -271,9 +244,6 @@ export const FloatingDownloadProgress: React.FC<FloatingDownloadProgressProps> =
                       )}
                     </span>
                   )}
-                  {isActive &&
-                    taskTime > 0 &&
-                    ` • ${formatTimeRemaining(taskTime)}剩余`}
                 </div>
                 {/* 失败原因单独显示 */}
                 {task.status === "error" && task.error && (
@@ -337,7 +307,7 @@ export const FloatingDownloadProgress: React.FC<FloatingDownloadProgressProps> =
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
-                      onCancel(task.id);
+                      onRemove(task.id);
                     }}
                     className={getButtonClasses()}
                     aria-label="取消"
@@ -366,26 +336,22 @@ export const FloatingDownloadProgress: React.FC<FloatingDownloadProgressProps> =
 
             {isActive && (
               <div className="space-y-2 mt-3">
-                <ProgressBar
-                  value={stableProgress}
-                  color={task.status === "downloading" ? "primary" : "muted"}
-                />
-                <div className="flex justify-between text-xs text-muted-foreground">
-                  <span className="truncate max-w-[120px]">
-                    {task.status === "downloading"
-                      ? formatSpeed(taskSpeed)
-                      : task.status === "paused"
-                      ? "已暂停"
-                      : "等待中"}
-                  </span>
-                  <span className="flex-shrink-0">
-                    {stableProgress}%
-                    {taskTime > 0 && task.status === "downloading" && (
-                      <span className="ml-1 text-muted-foreground/70">
-                        · {formatTimeRemaining(taskTime)}剩余
-                      </span>
-                    )}
-                  </span>
+                {/* 进度条 */}
+                <div className="relative w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700 mt-2">
+                  <div
+                    className={`absolute top-0 left-0 h-full rounded-full transition-all duration-300 ease-out ${
+                      task.status === "error"
+                        ? "bg-red-400"
+                        : task.status === "completed"
+                        ? "bg-green-500"
+                        : "bg-primary"
+                    }`}
+                    style={{ width: `${stableProgress}%` }}
+                  >
+                    <div className="absolute inset-0 flex items-center justify-end pr-2 text-white text-[10px] font-bold">
+                      <span className="flex-shrink-0">{stableProgress}%</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}

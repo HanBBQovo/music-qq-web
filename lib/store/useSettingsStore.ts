@@ -36,6 +36,10 @@ interface SettingsState {
   showSaveNotification: boolean;
   setShowSaveNotification: (enabled: boolean) => void;
 
+  // 并发下载设置
+  concurrentDownloadCount: number;
+  setConcurrentDownloadCount: (count: number) => void;
+
   // 重置设置
   resetSettings: () => void;
 }
@@ -103,6 +107,11 @@ export const useSettingsStore = create<SettingsState>()(
       setShowSaveNotification: (enabled: boolean) =>
         set({ showSaveNotification: enabled }),
 
+      // 并发下载设置
+      concurrentDownloadCount: 2,
+      setConcurrentDownloadCount: (count: number) =>
+        set({ concurrentDownloadCount: count }),
+
       // 重置设置
       resetSettings: () => {
         try {
@@ -118,6 +127,7 @@ export const useSettingsStore = create<SettingsState>()(
             autoAddCover: true,
             downloadBehavior: "auto",
             showSaveNotification: true,
+            concurrentDownloadCount: 2,
           });
         } catch (error) {
           console.warn("重置设置失败:", error);
