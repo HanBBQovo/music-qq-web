@@ -1,5 +1,6 @@
 import type { Song, PlayMode } from "@/lib/types/music";
 import type { AudioQuality, LyricLine } from "@/lib/api/types";
+import type { NotificationSlice } from "../notification";
 
 // 单个 slice 的接口定义
 
@@ -50,9 +51,10 @@ export interface LyricSlice {
 
 export interface UISlice {
   showPlayer: boolean;
-  showPlaylist: boolean;
-  setShowPlayer: (show: boolean) => void;
-  setShowPlaylist: (show: boolean) => void;
+  isPlaylistPanelOpen: boolean;
+  isLyricsPanelOpen: boolean;
+  togglePlaylistPanel: () => void;
+  toggleLyricsPanel: () => void;
 }
 
 // 组合后的完整 State 接口
@@ -62,7 +64,8 @@ export interface PlayerStoreState
     PlaylistSlice,
     QualitySlice,
     LyricSlice,
-    UISlice {
+    UISlice,
+    NotificationSlice {
   // 复杂的、跨 slice 的 actions
   playSong: (song: Song, quality?: AudioQuality) => Promise<void>;
   playSongList: (songs: Song[], startIndex?: number) => Promise<void>;

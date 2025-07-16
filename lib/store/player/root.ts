@@ -15,6 +15,8 @@ import { createPlaylistSlice } from "./playlist";
 import { createQualitySlice } from "./quality";
 import { createLyricSlice } from "./lyric";
 import { createUISlice } from "./ui";
+import { createNotificationSlice } from "../notification";
+import { NotificationSlice } from "../notification";
 
 export const usePlayerStore = create<PlayerStoreState>()(
   subscribeWithSelector(
@@ -25,6 +27,7 @@ export const usePlayerStore = create<PlayerStoreState>()(
         ...createQualitySlice(set, get, api),
         ...createLyricSlice(set, get, api),
         ...createUISlice(set, get, api),
+        ...createNotificationSlice(set, get, api),
 
         playSongList: async (songs, startIndex = 0) => {
           if (songs.length === 0) return;
