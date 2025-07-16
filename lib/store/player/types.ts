@@ -51,10 +51,9 @@ export interface LyricSlice {
 
 export interface UISlice {
   showPlayer: boolean;
-  isPlaylistPanelOpen: boolean;
-  isLyricsPanelOpen: boolean;
-  togglePlaylistPanel: () => void;
-  toggleLyricsPanel: () => void;
+  showPlaylist: boolean;
+  setShowPlayer: (show: boolean) => void;
+  setShowPlaylist: (show: boolean) => void;
 }
 
 // 组合后的完整 State 接口
