@@ -76,6 +76,9 @@ export const usePlayerStore = create<PlayerStoreState>()(
             });
           }
 
+          // ★ 立即开始获取歌词，与获取播放URL并行
+          get().fetchKrcLyrics(true);
+
           // 2. 异步获取播放URL并处理结果
           await withErrorHandling({
             apiCall: () => getAudioUrl({ ...song, url: undefined }, useQuality),
@@ -102,7 +105,7 @@ export const usePlayerStore = create<PlayerStoreState>()(
                 };
               });
 
-              get().fetchKrcLyrics(true);
+              // get().fetchKrcLyrics(true); // ★ 从此处移动
             },
             onError: () => {
               // 错误toast由withErrorHandling处理
