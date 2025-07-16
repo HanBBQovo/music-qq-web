@@ -14,7 +14,7 @@ function getGitCommitInfo() {
 
   // Fallback to local git command
   try {
-    console.log("✅ 本地环境，使用Git命令。");
+    console.log("✅ 本地环境，使用Git命令");
     const version = execSync("git rev-parse --short HEAD").toString().trim();
     const changelog = execSync("git log -1 --pretty=%B").toString().trim();
     return { version, changelog };
