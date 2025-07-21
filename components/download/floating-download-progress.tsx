@@ -555,7 +555,7 @@ const FloatingDownloadButton = React.memo(function FloatingDownloadButton() {
   return (
     <>
       <button
-        className="btn-float md:bottom-26 bottom-47"
+        className="btn-float lg:bottom-26 md:bottom-50 bottom-47"
         onClick={() => setIsOpen(true)}
       >
         <Download className="h-6 w-6" />

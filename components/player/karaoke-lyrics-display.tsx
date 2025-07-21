@@ -248,23 +248,34 @@ export const KaraokeLyricsDisplay = React.memo(function KaraokeLyricsDisplay({
 
   if (isLoading) {
     return (
-      <p className={cn("text-sm text-muted-foreground", className)}>
-        歌词加载中...
-      </p>
+      <div className={cn("text-sm text-muted-foreground overflow-hidden", className)}
+           style={{ height: containerHeight, fontSize: `${lineFontSize}px` }}>
+        <div className="flex items-center justify-center h-full">
+          <p>歌词加载中...</p>
+        </div>
+      </div>
     );
   }
 
   if (error) {
     return (
-      <p className={cn("text-sm text-muted-foreground", className)}>{error}</p>
+      <div className={cn("text-sm text-red-500 dark:text-red-400 overflow-hidden", className)}
+           style={{ height: containerHeight, fontSize: `${lineFontSize}px` }}>
+        <div className="flex items-center justify-center h-full px-2">
+          <p className="line-clamp-2 text-center">{error}</p>
+        </div>
+      </div>
     );
   }
 
   if (!lyricLines || lyricLines.length === 0) {
     return (
-      <p className={cn("text-sm text-muted-foreground", className)}>
-        ♪ 暂无歌词 ♪
-      </p>
+      <div className={cn("text-sm text-muted-foreground overflow-hidden", className)}
+           style={{ height: containerHeight, fontSize: `${lineFontSize}px` }}>
+        <div className="flex items-center justify-center h-full">
+          <p>♪ 暂无歌词 ♪</p>
+        </div>
+      </div>
     );
   }
 
