@@ -7,7 +7,9 @@ export function StoreHydrationHandler() {
   useEffect(() => {
     // onFinishHydration is the correct API to listen for when hydration is complete
     const unsub = useDownloadStore.persist.onFinishHydration(() => {
-      console.log("[StoreHydrationHandler] Download store hydration finished.");
+      console.log(
+        "[StoreHydrationHandler] Download store hydration finished.."
+      );
       // Trigger a queue process to start any tasks that were pending before the page refresh
       useDownloadStore.getState().processQueue();
 
