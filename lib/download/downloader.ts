@@ -158,28 +158,29 @@ export async function downloadSong(
 
     console.log(`[下载] 发送请求到: ${finalUrl}`);
 
-    // 设置超时处理 - 为MASTER音质设置更长超时时间
-    const isMasterQuality = task.quality === "MASTER";
-    const downloadTimeout = isMasterQuality ? 600000 : 180000; // MASTER: 10分钟，其他: 3分钟
-    const timeoutLabel = isMasterQuality ? "10分钟" : "3分钟";
+  // 设置超时处理 - 为MASTER音质设置更长超时时间
+  const isMasterQuality = task.quality === "MASTER";
+  const downloadTimeout = isMasterQuality ? 600000 : 180000; // MASTER: 10分钟，其他: 3分钟
+  const timeoutLabel = isMasterQuality ? "10分钟" : "3分钟";
 
-    let timeoutId: NodeJS.Timeout | null = null;
-    const setupTimeout = () => {
-      timeoutId = setTimeout(() => {
-        abortController.abort();
-        const errorMsg = `下载超时 (${timeoutLabel})`;
-        console.error(`[下载] ${errorMsg}: ${task.songName}`);
-        get().updateTaskStatus(task.id, "error", errorMsg);
-        get().processQueue();
-      }, downloadTimeout);
-    };
-    const clearTimeoutIfExists = () => {
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-        timeoutId = null;
-      }
-    };
+  let timeoutId: NodeJS.Timeout | null = null;
+  const setupTimeout = () => {
+    timeoutId = setTimeout(() => {
+      abortController.abort();
+      const errorMsg = `下载超时 (${timeoutLabel})`;
+      console.error(`[下载] ${errorMsg}: ${task.songName}`);
+      get().updateTaskStatus(task.id, "error", errorMsg);
+      get().processQueue();
+    }, downloadTimeout);
+  };
+  const clearTimeoutIfExists = () => {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+      timeoutId = null;
+    }
+  };
 
+  try {
     setupTimeout();
 
     // 发起下载请求
