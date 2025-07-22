@@ -1,43 +1,27 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback, lazy, Suspense } from "react";
 import { usePlayerStore } from "@/lib/store/player";
 import { useAudioPlayer } from "@/lib/hooks/use-audio-player";
 import { Button } from "@/components/ui/button";
-import { Slider } from "@/components/ui/slider";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  Play,
-  Pause,
-  SkipBack,
-  SkipForward,
-  Volume2,
-  VolumeX,
-  List,
-  Repeat,
-  Shuffle,
-  RotateCcw,
-  ChevronUp,
-  ChevronDown,
-  LoaderIcon,
-} from "lucide-react";
+import { ChevronUp, ChevronDown, List } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { PlaylistPanel } from "./playlist-panel";
 import type { AudioQuality } from "@/lib/api/types";
 import { toast } from "sonner";
-import { formatFileSize } from "@/lib/utils/audio-url";
 import React from "react";
 import { resetGlobalAudioAnalyser } from "@/lib/audio/audio-analyzer";
-import { DynamicCover } from "./dynamic-cover";
-import { KaraokeLyricsDisplay } from "./karaoke-lyrics-display";
+
+// 懒加载大型组件
+const PlaylistPanel = lazy(() => import("./playlist-panel").then(module => ({ default: module.PlaylistPanel })));
+const DesktopPlayerLayout = lazy(() => import("./sub-components/desktop-player-layout").then(module => ({ default: module.DesktopPlayerLayout })));
+const TabletPlayerLayout = lazy(() => import("./sub-components/tablet-player-layout").then(module => ({ default: module.TabletPlayerLayout })));
+const MobilePlayerLayout = lazy(() => import("./sub-components/mobile-player-layout").then(module => ({ default: module.MobilePlayerLayout })));
+
+// 加载状态组件
+const LoadingFallback = () => <div className="animate-pulse bg-muted h-16 w-full rounded" />;
 
 export function MiniPlayer() {
-  // 单字段选择，避免快照重建
+  // 单字段选择，避免快照重建 - 保持原来的模式但使用 useCallback 优化
   const currentSong = usePlayerStore((s) => s.currentSong);
   const isPlaying = usePlayerStore((s) => s.isPlaying);
   const volume = usePlayerStore((s) => s.volume);
@@ -53,7 +37,6 @@ export function MiniPlayer() {
 
   const togglePlay = usePlayerStore((s) => s.togglePlay);
   const setVolume = usePlayerStore((s) => s.setVolume);
-  const setCurrentTime = usePlayerStore((s) => s.setCurrentTime);
   const playNext = usePlayerStore((s) => s.playNext);
   const playPrevious = usePlayerStore((s) => s.playPrevious);
   const setPlayMode = usePlayerStore((s) => s.setPlayMode);
@@ -95,104 +78,24 @@ export function MiniPlayer() {
     }
   }, [currentSong?.id]);
 
-  // 生成动态音质选项
-  const generateQualityOptions = () => {
-    // 所有可能的音质选项（作为fallback）
-    const allQualityOptions: Array<{
-      value: AudioQuality;
-      label: string;
-      description: string;
-      badge: string;
-    }> = [
-      {
-        value: "128",
-        label: "标准音质",
-        description: "MP3 128K",
-        badge: "128K",
-      },
-      { value: "320", label: "高品质", description: "MP3 320K", badge: "320K" },
-      {
-        value: "flac",
-        label: "无损音质",
-        description: "FLAC 格式",
-        badge: "FLAC",
-      },
-      {
-        value: "ATMOS_2",
-        label: "杜比全景声",
-        description: "ATMOS 2.0 声道",
-        badge: "ATMOS",
-      },
-      {
-        value: "ATMOS_51",
-        label: "杜比全景声",
-        description: "ATMOS 5.1 声道",
-        badge: "ATMOS 5.1",
-      },
-      {
-        value: "MASTER",
-        label: "母带音质",
-        description: "Hi-Res 母带",
-        badge: "MASTER",
-      },
-    ];
-
-    // 如果有可用音质列表，则基于此生成选项
-    if (availableQualities.length > 0) {
-      return allQualityOptions.map((option) => {
-        const isAvailable = availableQualities.includes(option.value);
-        const isRecommended = recommendedQuality === option.value;
-        const fileSize = qualitySizes[option.value];
-
-        return {
-          ...option,
-          isAvailable,
-          isRecommended,
-          fileSize,
-          sizeText: fileSize ? formatFileSize(fileSize) : "未知大小",
-        };
-      });
-    }
-
-    // Fallback: 返回所有选项
-    return allQualityOptions.map((option) => ({
-      ...option,
-      isAvailable: true,
-      isRecommended: false,
-      fileSize: 0,
-      sizeText: "未知大小",
-    }));
-  };
-
-  const qualityOptions = generateQualityOptions();
-
-  // 获取当前音质的显示标签
-  const getCurrentQualityLabel = () => {
-    const current = qualityOptions.find((q) => q.value === currentQuality);
-    return current?.badge || currentQuality.toUpperCase();
-  };
-
-  // 处理音质切换
-  const handleQualityChange = async (quality: AudioQuality) => {
+  // 处理音质切换 - 使用 useCallback 优化
+  const handleQualityChange = useCallback(async (quality: AudioQuality) => {
     if (quality === currentQuality) return;
 
-    const targetOption = qualityOptions.find((q) => q.value === quality);
-    const loadingToast = toast.loading(`正在切换到${targetOption?.label}...`);
+    const loadingToast = toast.loading(`正在切换音质...`);
 
     try {
-      // console.log(`🎵 用户切换音质: ${currentQuality} -> ${quality}`);
       await switchQuality(quality);
-
       toast.dismiss(loadingToast);
-      toast.success(`已切换到${targetOption?.label} (${targetOption?.badge})`);
+      toast.success(`已切换音质`);
     } catch (error) {
       console.error("切换音质失败:", error);
       toast.dismiss(loadingToast);
-      toast.error(`切换到${targetOption?.label}失败，请重试`);
+      toast.error(`切换音质失败，请重试`);
     }
-  };
+  }, [currentQuality, switchQuality]);
 
-  const handlePlayPause = () => {
+  const handlePlayPause = useCallback(() => {
     // 如果歌曲URL无效，并且当前未在播放，则强制调用playSong重新获取
     if (currentSong && !currentSong.url && !isPlaying) {
       playSong(currentSong);
@@ -205,7 +108,53 @@ export function MiniPlayer() {
       const event = new CustomEvent("user-interaction-play");
       window.dispatchEvent(event);
     }
-  };
+  }, [currentSong, isPlaying, playSong, togglePlay]);
+
+  const handleVolumeChange = useCallback((value: number[]) => {
+    const newVolume = value[0] / 100;
+    setLocalVolume(newVolume);
+    setVolume(newVolume);
+  }, [setVolume]);
+
+  const toggleMute = useCallback(() => {
+    setVolume(volume > 0 ? 0 : 0.8);
+  }, [volume, setVolume]);
+
+  const handleProgressStart = useCallback(() => {
+    setIsDragging(true);
+  }, []);
+
+  const handleProgressChange = useCallback((value: number[]) => {
+    const progress = value[0];
+    setLocalProgress(progress);
+    // 计算拖动时对应的时间
+    const newTime = (progress / 100) * duration;
+    setDraggingTime(newTime);
+  }, [duration]);
+
+  const handleProgressCommit = useCallback((value: number[]) => {
+    const progress = value[0];
+    const newTime = (progress / 100) * duration;
+    seekTo(newTime);
+    setIsDragging(false);
+    setDraggingTime(0);
+  }, [duration, seekTo]);
+
+  const handlePlayModeClick = useCallback(() => {
+    const modes = ["order", "random", "loop"] as const;
+    const currentIndex = modes.indexOf(playMode);
+    const nextIndex = (currentIndex + 1) % modes.length;
+    setPlayMode(modes[nextIndex]);
+  }, [playMode, setPlayMode]);
+
+  // 优化的播放列表和播放器切换回调
+  const handleTogglePlaylist = useCallback(() => {
+    setShowPlaylist(!showPlaylist);
+  }, [showPlaylist, setShowPlaylist]);
+
+  const handleTogglePlayer = useCallback(() => {
+    setShowPlayer(!showPlayer);
+  }, [showPlayer, setShowPlayer]);
 
   // 如果没有当前歌曲，显示空状态
   if (!currentSong) {
@@ -268,71 +217,6 @@ export function MiniPlayer() {
     );
   }
 
-  const handleVolumeChange = (value: number[]) => {
-    const newVolume = value[0] / 100;
-    setLocalVolume(newVolume);
-    setVolume(newVolume);
-  };
-
-  const toggleMute = () => {
-    setVolume(volume > 0 ? 0 : 0.8);
-  };
-
-  const handleProgressStart = () => {
-    setIsDragging(true);
-  };
-
-  const handleProgressChange = (value: number[]) => {
-    const progress = value[0];
-    setLocalProgress(progress);
-    // 计算拖动时对应的时间
-    const newTime = (progress / 100) * duration;
-    setDraggingTime(newTime);
-  };
-
-  const handleProgressCommit = (value: number[]) => {
-    const progress = value[0];
-    const newTime = (progress / 100) * duration;
-    seekTo(newTime);
-    setIsDragging(false);
-    setDraggingTime(0);
-  };
-
-  const handlePlayModeClick = () => {
-    const modes = ["order", "random", "loop"] as const;
-    const currentIndex = modes.indexOf(playMode);
-    const nextIndex = (currentIndex + 1) % modes.length;
-    setPlayMode(modes[nextIndex]);
-  };
-
-  const formatTime = (seconds: number) => {
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = Math.floor(seconds % 60);
-    return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
-  };
-
-  const getPlayModeIcon = () => {
-    switch (playMode) {
-      case "random":
-        return <Shuffle className="h-4 w-4" />;
-      case "loop":
-        return <RotateCcw className="h-4 w-4" />;
-      default:
-        return <Repeat className="h-4 w-4" />;
-    }
-  };
-
-  const getPlayModeTitle = () => {
-    switch (playMode) {
-      case "random":
-        return "随机播放";
-      case "loop":
-        return "单曲循环";
-      default:
-        return "顺序播放";
-    }
-  };
-
   return (
     <>
       <div
@@ -342,668 +226,117 @@ export function MiniPlayer() {
         )}
       >
         <div className="container mx-auto px-4 py-4">
-          {/* 桌面端单行布局 - 只在1024px以上显示 */}
-          <div className="hidden lg:flex items-center gap-4">
-            {/* 歌曲信息 */}
-            <div className="flex items-center gap-3 min-w-0 flex-shrink-0 w-48">
-              <div className="flex-shrink-0">
-                <DynamicCover
-                  src={currentSong.cover}
-                  alt={currentSong.title}
-                  size="large"
-                  isPlaying={isPlaying}
-                  audioElement={audioElement}
-                />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium truncate">
-                  {currentSong.title}
-                </p>
-                <p className="text-xs text-muted-foreground truncate">
-                  {currentSong.artist}
-                </p>
-              </div>
-            </div>
+          {/* 桌面端布局 */}
+          <Suspense fallback={<LoadingFallback />}>
+            <DesktopPlayerLayout
+              currentSong={currentSong}
+              isPlaying={isPlaying}
+              isLoading={isLoading}
+              volume={volume}
+              localVolume={localVolume}
+              currentTime={currentTime}
+              duration={duration}
+              localProgress={localProgress}
+              isDragging={isDragging}
+              draggingTime={draggingTime}
+              playMode={playMode}
+              currentQuality={currentQuality}
+              showPlayer={showPlayer}
+              availableQualities={availableQualities}
+              qualitySizes={qualitySizes}
+              recommendedQuality={recommendedQuality}
+              audioElement={audioElement}
+              onPlayPause={handlePlayPause}
+              onPrevious={playPrevious}
+              onNext={playNext}
+              onVolumeChange={handleVolumeChange}
+              onToggleMute={toggleMute}
+              onProgressStart={handleProgressStart}
+              onProgressChange={handleProgressChange}
+              onProgressCommit={handleProgressCommit}
+              onPlayModeChange={handlePlayModeClick}
+              onQualityChange={handleQualityChange}
+              onTogglePlaylist={handleTogglePlaylist}
+              onTogglePlayer={handleTogglePlayer}
+            />
+          </Suspense>
 
-            {/* 歌词显示区域 */}
-            <div className="flex-1 min-w-0 max-w-md mr-4">
-              <KaraokeLyricsDisplay className="text-left" mode="dual" />
-            </div>
-
-            {/* 播放控制 */}
-            <div className="flex items-center gap-2 flex-shrink-0">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={playPrevious}
-                className="h-8 w-8 p-0"
-                title="上一首"
-              >
-                <SkipBack className="h-4 w-4" />
-              </Button>
-
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handlePlayPause}
-                disabled={isLoading}
-                className="h-10 w-10 p-0"
-                title={isLoading ? "正在加载..." : isPlaying ? "暂停" : "播放"}
-              >
-                {isLoading ? (
-                  <LoaderIcon className="h-5 w-5 animate-spin" />
-                ) : isPlaying ? (
-                  <Pause className="h-5 w-5" />
-                ) : (
-                  <Play className="h-5 w-5" />
-                )}
-              </Button>
-
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={playNext}
-                className="h-8 w-8 p-0"
-                title="下一首"
-              >
-                <SkipForward className="h-4 w-4" />
-              </Button>
-            </div>
-
-            {/* 进度条 */}
-            <div className="flex items-center gap-2 flex-1 max-w-md">
-              <span className="text-xs text-muted-foreground w-10 text-right">
-                {formatTime(isDragging ? draggingTime : currentTime)}
-              </span>
-              <Slider
-                value={[localProgress]}
-                onValueChange={handleProgressChange}
-                onValueCommit={handleProgressCommit}
-                onPointerDown={handleProgressStart}
-                max={100}
-                step={0.1}
-                className="flex-1"
-              />
-              <span className="text-xs text-muted-foreground w-10">
-                {formatTime(duration)}
-              </span>
-            </div>
-
-            {/* 右侧控制 */}
-            <div className="flex items-center gap-2 flex-shrink-0">
-              {/* 播放模式 */}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handlePlayModeClick}
-                className="h-8 w-8 p-0"
-                title={getPlayModeTitle()}
-              >
-                {getPlayModeIcon()}
-              </Button>
-
-              {/* 音量控制 */}
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={toggleMute}
-                  className="h-8 w-8 p-0"
-                  title={volume > 0 ? "静音" : "取消静音"}
-                >
-                  {volume > 0 ? (
-                    <Volume2 className="h-4 w-4" />
-                  ) : (
-                    <VolumeX className="h-4 w-4" />
-                  )}
-                </Button>
-                <Slider
-                  value={[localVolume * 100]}
-                  onValueChange={handleVolumeChange}
-                  max={100}
-                  step={1}
-                  className="w-20"
-                />
-              </div>
-
-              {/* 音质选择器 */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 px-2 py-1 text-xs font-medium text-muted-foreground hover:text-foreground"
-                    title={`点击切换音质，当前: ${
-                      qualityOptions.find((q) => q.value === currentQuality)
-                        ?.label
-                    }`}
-                  >
-                    {getCurrentQualityLabel()}
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  {qualityOptions.map((option) => (
-                    <DropdownMenuItem
-                      key={option.value}
-                      onClick={() =>
-                        option.isAvailable
-                          ? handleQualityChange(option.value)
-                          : undefined
-                      }
-                      disabled={!option.isAvailable}
-                      className={cn(
-                        "flex flex-col items-start gap-1 py-3 cursor-pointer relative",
-                        currentQuality === option.value &&
-                          "bg-accent text-accent-foreground",
-                        !option.isAvailable && "opacity-50 cursor-not-allowed"
-                      )}
-                    >
-                      <div className="flex items-center justify-between w-full">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium">{option.label}</span>
-                          {option.isRecommended && (
-                            <span className="text-xs px-1.5 py-0.5 rounded bg-green-500/20 text-green-700 dark:text-green-400">
-                              推荐
-                            </span>
-                          )}
-                        </div>
-                        <span
-                          className={cn(
-                            "text-xs px-2 py-0.5 rounded",
-                            currentQuality === option.value
-                              ? "bg-primary text-primary-foreground"
-                              : "bg-muted text-muted-foreground"
-                          )}
-                        >
-                          {option.badge}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between w-full">
-                        <span className="text-xs text-muted-foreground">
-                          {option.description}
-                        </span>
-                        <span className="text-xs text-muted-foreground">
-                          {option.sizeText}
-                        </span>
-                      </div>
-                      {!option.isAvailable && (
-                        <span className="text-xs text-red-500 dark:text-red-400">
-                          此音质不可用
-                        </span>
-                      )}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-
-              {/* 播放列表 */}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowPlaylist(!showPlaylist)}
-                className="h-8 w-8 p-0"
-                title="播放列表"
-              >
-                <List className="h-4 w-4" />
-              </Button>
-
-              {/* 展开/收缩按钮 */}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowPlayer(!showPlayer)}
-                className="h-8 w-8 p-0"
-                title={showPlayer ? "收起播放器" : "展开播放器"}
-              >
-                {showPlayer ? (
-                  <ChevronDown className="h-4 w-4" />
-                ) : (
-                  <ChevronUp className="h-4 w-4" />
-                )}
-              </Button>
-            </div>
-          </div>
-
-          {/* 中等屏幕多行布局 - 768px-1024px */}
-          <div className="hidden md:block lg:hidden space-y-2">
-            {/* 第一排：歌曲信息 + 核心播放控制 */}
-            <div className="flex items-center gap-3">
-              {/* 歌曲信息 */}
-              <div className="flex items-center gap-2 min-w-0 flex-1">
-                <div className="flex-shrink-0">
-                  <DynamicCover
-                    src={currentSong.cover}
-                    alt={currentSong.title}
-                    size="large"
-                    isPlaying={isPlaying}
-                    audioElement={audioElement}
-                  />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium truncate">
-                    {currentSong.title}
-                  </p>
-                  <p className="text-xs text-muted-foreground truncate">
-                    {currentSong.artist}
-                  </p>
-                </div>
-              </div>
-
-              {/* 核心播放控制 */}
-              <div className="flex items-center gap-1 flex-shrink-0">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={playPrevious}
-                  className="h-8 w-8 p-0"
-                  title="上一首"
-                >
-                  <SkipBack className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handlePlayPause}
-                  disabled={isLoading}
-                  className="h-10 w-10 p-0"
-                  title={
-                    isLoading ? "正在加载..." : isPlaying ? "暂停" : "播放"
-                  }
-                >
-                  {isLoading ? (
-                    <LoaderIcon className="h-5 w-5 animate-spin" />
-                  ) : isPlaying ? (
-                    <Pause className="h-5 w-5" />
-                  ) : (
-                    <Play className="h-5 w-5" />
-                  )}
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={playNext}
-                  className="h-8 w-8 p-0"
-                  title="下一首"
-                >
-                  <SkipForward className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-
-            {/* 第二排：歌词显示 */}
-            <div className="px-1">
-              <KaraokeLyricsDisplay className="text-center" mode="compact" />
-            </div>
-
-            {/* 第三排：辅助功能按钮 */}
-            <div className="flex items-center justify-center gap-2">
-              {/* 播放模式 */}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handlePlayModeClick}
-                className="h-8 w-8 p-0"
-                title={getPlayModeTitle()}
-              >
-                {getPlayModeIcon()}
-              </Button>
-
-              {/* 音量控制 */}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={toggleMute}
-                className="h-8 w-8 p-0"
-                title={volume > 0 ? "静音" : "取消静音"}
-              >
-                {volume > 0 ? (
-                  <Volume2 className="h-4 w-4" />
-                ) : (
-                  <VolumeX className="h-4 w-4" />
-                )}
-              </Button>
-
-              {/* 音质选择器 */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 px-2 py-1 text-xs font-medium text-muted-foreground hover:text-foreground"
-                    title={`点击切换音质，当前: ${
-                      qualityOptions.find((q) => q.value === currentQuality)
-                        ?.label
-                    }`}
-                  >
-                    {getCurrentQualityLabel()}
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  {qualityOptions.map((option) => (
-                    <DropdownMenuItem
-                      key={option.value}
-                      onClick={() =>
-                        option.isAvailable
-                          ? handleQualityChange(option.value)
-                          : undefined
-                      }
-                      disabled={!option.isAvailable}
-                      className={cn(
-                        "flex flex-col items-start gap-1 py-3 cursor-pointer relative",
-                        currentQuality === option.value &&
-                          "bg-accent text-accent-foreground",
-                        !option.isAvailable && "opacity-50 cursor-not-allowed"
-                      )}
-                    >
-                      <div className="flex items-center justify-between w-full">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium">{option.label}</span>
-                          {option.isRecommended && (
-                            <span className="text-xs px-1.5 py-0.5 rounded bg-green-500/20 text-green-700 dark:text-green-400">
-                              推荐
-                            </span>
-                          )}
-                        </div>
-                        <span
-                          className={cn(
-                            "text-xs px-2 py-0.5 rounded",
-                            currentQuality === option.value
-                              ? "bg-primary text-primary-foreground"
-                              : "bg-muted text-muted-foreground"
-                          )}
-                        >
-                          {option.badge}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between w-full">
-                        <span className="text-xs text-muted-foreground">
-                          {option.description}
-                        </span>
-                        <span className="text-xs text-muted-foreground">
-                          {option.sizeText}
-                        </span>
-                      </div>
-                      {!option.isAvailable && (
-                        <span className="text-xs text-red-500 dark:text-red-400">
-                          此音质不可用
-                        </span>
-                      )}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-
-              {/* 播放列表 */}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowPlaylist(!showPlaylist)}
-                className="h-8 w-8 p-0"
-                title="播放列表"
-              >
-                <List className="h-4 w-4" />
-              </Button>
-
-              {/* 展开/收缩按钮 */}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowPlayer(!showPlayer)}
-                className="h-8 w-8 p-0"
-                title={showPlayer ? "收起播放器" : "展开播放器"}
-              >
-                {showPlayer ? (
-                  <ChevronDown className="h-4 w-4" />
-                ) : (
-                  <ChevronUp className="h-4 w-4" />
-                )}
-              </Button>
-            </div>
-
-            {/* 第四排：进度条 */}
-            <div className="px-1">
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground w-10 text-right">
-                  {formatTime(isDragging ? draggingTime : currentTime)}
-                </span>
-                <Slider
-                  value={[localProgress]}
-                  onValueChange={handleProgressChange}
-                  onValueCommit={handleProgressCommit}
-                  onPointerDown={handleProgressStart}
-                  max={100}
-                  step={0.1}
-                  className="flex-1"
-                />
-                <span className="text-xs text-muted-foreground w-10">
-                  {formatTime(duration)}
-                </span>
-              </div>
-            </div>
-          </div>
+          {/* 平板端布局 */}
+          <Suspense fallback={<LoadingFallback />}>
+            <TabletPlayerLayout
+              currentSong={currentSong}
+              isPlaying={isPlaying}
+              isLoading={isLoading}
+              volume={volume}
+              localVolume={localVolume}
+              currentTime={currentTime}
+              duration={duration}
+              localProgress={localProgress}
+              isDragging={isDragging}
+              draggingTime={draggingTime}
+              playMode={playMode}
+              currentQuality={currentQuality}
+              showPlayer={showPlayer}
+              availableQualities={availableQualities}
+              qualitySizes={qualitySizes}
+              recommendedQuality={recommendedQuality}
+              audioElement={audioElement}
+              onPlayPause={handlePlayPause}
+              onPrevious={playPrevious}
+              onNext={playNext}
+              onVolumeChange={handleVolumeChange}
+              onToggleMute={toggleMute}
+              onProgressStart={handleProgressStart}
+              onProgressChange={handleProgressChange}
+              onProgressCommit={handleProgressCommit}
+              onPlayModeChange={handlePlayModeClick}
+              onQualityChange={handleQualityChange}
+              onTogglePlaylist={handleTogglePlaylist}
+              onTogglePlayer={handleTogglePlayer}
+            />
+          </Suspense>
 
           {/* 手机端布局 */}
-          <div className="md:hidden space-y-2">
-            {/* 第一排：歌曲信息 + 核心播放控制 */}
-            <div className="flex items-center gap-3">
-              {/* 歌曲信息 */}
-              <div className="flex items-center gap-2 min-w-0 flex-1">
-                <div className="flex-shrink-0">
-                  <DynamicCover
-                    src={currentSong.cover}
-                    alt={currentSong.title}
-                    size="small"
-                    isPlaying={isPlaying}
-                    audioElement={audioElement}
-                  />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium truncate">
-                    {currentSong.title}
-                  </p>
-                  <p className="text-xs text-muted-foreground truncate">
-                    {currentSong.artist}
-                  </p>
-                </div>
-              </div>
-
-              {/* 核心播放控制 */}
-              <div className="flex items-center gap-1 flex-shrink-0">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={playPrevious}
-                  className="h-8 w-8 p-0"
-                  title="上一首"
-                >
-                  <SkipBack className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handlePlayPause}
-                  disabled={isLoading}
-                  className="h-10 w-10 p-0"
-                  title={
-                    isLoading ? "正在加载..." : isPlaying ? "暂停" : "播放"
-                  }
-                >
-                  {isLoading ? (
-                    <LoaderIcon className="h-5 w-5 animate-spin" />
-                  ) : isPlaying ? (
-                    <Pause className="h-5 w-5" />
-                  ) : (
-                    <Play className="h-5 w-5" />
-                  )}
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={playNext}
-                  className="h-8 w-8 p-0"
-                  title="下一首"
-                >
-                  <SkipForward className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-
-            {/* 第二排：歌词显示 - 独立行 */}
-            <div className="px-1">
-              <KaraokeLyricsDisplay className="text-center" mode="compact" />
-            </div>
-
-            {/* 第三排：辅助功能按钮 */}
-            <div className="flex items-center justify-center gap-2">
-              {/* 播放模式 */}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handlePlayModeClick}
-                className="h-8 w-8 p-0"
-                title={getPlayModeTitle()}
-              >
-                {getPlayModeIcon()}
-              </Button>
-
-              {/* 音量控制 */}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={toggleMute}
-                className="h-8 w-8 p-0"
-                title={volume > 0 ? "静音" : "取消静音"}
-              >
-                {volume > 0 ? (
-                  <Volume2 className="h-4 w-4" />
-                ) : (
-                  <VolumeX className="h-4 w-4" />
-                )}
-              </Button>
-
-              {/* 音质选择器 */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 px-2 py-1 text-xs font-medium text-muted-foreground hover:text-foreground"
-                    title={`点击切换音质，当前: ${
-                      qualityOptions.find((q) => q.value === currentQuality)
-                        ?.label
-                    }`}
-                  >
-                    {getCurrentQualityLabel()}
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  {qualityOptions.map((option) => (
-                    <DropdownMenuItem
-                      key={option.value}
-                      onClick={() =>
-                        option.isAvailable
-                          ? handleQualityChange(option.value)
-                          : undefined
-                      }
-                      disabled={!option.isAvailable}
-                      className={cn(
-                        "flex flex-col items-start gap-1 py-3 cursor-pointer relative",
-                        currentQuality === option.value &&
-                          "bg-accent text-accent-foreground",
-                        !option.isAvailable && "opacity-50 cursor-not-allowed"
-                      )}
-                    >
-                      <div className="flex items-center justify-between w-full">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium">{option.label}</span>
-                          {option.isRecommended && (
-                            <span className="text-xs px-1.5 py-0.5 rounded bg-green-500/20 text-green-700 dark:text-green-400">
-                              推荐
-                            </span>
-                          )}
-                        </div>
-                        <span
-                          className={cn(
-                            "text-xs px-2 py-0.5 rounded",
-                            currentQuality === option.value
-                              ? "bg-primary text-primary-foreground"
-                              : "bg-muted text-muted-foreground"
-                          )}
-                        >
-                          {option.badge}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between w-full">
-                        <span className="text-xs text-muted-foreground">
-                          {option.description}
-                        </span>
-                        <span className="text-xs text-muted-foreground">
-                          {option.sizeText}
-                        </span>
-                      </div>
-                      {!option.isAvailable && (
-                        <span className="text-xs text-red-500 dark:text-red-400">
-                          此音质不可用
-                        </span>
-                      )}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-
-              {/* 播放列表 */}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowPlaylist(!showPlaylist)}
-                className="h-8 w-8 p-0"
-                title="播放列表"
-              >
-                <List className="h-4 w-4" />
-              </Button>
-
-              {/* 展开/收缩按钮 */}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowPlayer(!showPlayer)}
-                className="h-8 w-8 p-0"
-                title={showPlayer ? "收起播放器" : "展开播放器"}
-              >
-                {showPlayer ? (
-                  <ChevronDown className="h-4 w-4" />
-                ) : (
-                  <ChevronUp className="h-4 w-4" />
-                )}
-              </Button>
-            </div>
-
-            {/* 第四排：进度条 */}
-            <div className="px-1">
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground w-8 text-right">
-                  {formatTime(isDragging ? draggingTime : currentTime)}
-                </span>
-                <Slider
-                  value={[localProgress]}
-                  onValueChange={handleProgressChange}
-                  onValueCommit={handleProgressCommit}
-                  onPointerDown={handleProgressStart}
-                  max={100}
-                  step={0.1}
-                  className="flex-1"
-                />
-                <span className="text-xs text-muted-foreground w-8">
-                  {formatTime(duration)}
-                </span>
-              </div>
-            </div>
-          </div>
+          <Suspense fallback={<LoadingFallback />}>
+            <MobilePlayerLayout
+              currentSong={currentSong}
+              isPlaying={isPlaying}
+              isLoading={isLoading}
+              volume={volume}
+              localVolume={localVolume}
+              currentTime={currentTime}
+              duration={duration}
+              localProgress={localProgress}
+              isDragging={isDragging}
+              draggingTime={draggingTime}
+              playMode={playMode}
+              currentQuality={currentQuality}
+              showPlayer={showPlayer}
+              availableQualities={availableQualities}
+              qualitySizes={qualitySizes}
+              recommendedQuality={recommendedQuality}
+              audioElement={audioElement}
+              onPlayPause={handlePlayPause}
+              onPrevious={playPrevious}
+              onNext={playNext}
+              onVolumeChange={handleVolumeChange}
+              onToggleMute={toggleMute}
+              onProgressStart={handleProgressStart}
+              onProgressChange={handleProgressChange}
+              onProgressCommit={handleProgressCommit}
+              onPlayModeChange={handlePlayModeClick}
+              onQualityChange={handleQualityChange}
+              onTogglePlaylist={handleTogglePlaylist}
+              onTogglePlayer={handleTogglePlayer}
+            />
+          </Suspense>
         </div>
       </div>
 
       {/* 播放列表面板 */}
-      <PlaylistPanel />
+      <Suspense fallback={null}>
+        <PlaylistPanel />
+      </Suspense>
 
       {/* 当播放器隐藏时显示的悬浮展开按钮 */}
       {!showPlayer && (
