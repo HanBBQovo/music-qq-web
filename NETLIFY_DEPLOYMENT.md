@@ -1,25 +1,21 @@
 # Netlify 部署配置
 
-## 1. 环境变量配置
+## 环境变量配置
 
 在 Netlify 项目的 **Site configuration** 或 **Site settings** → **Environment variables** 中设置：
 
 - `NEXT_PUBLIC_API_URL` = `/music-api`
 - `BACKEND_API_URL` = `你的后端服务器地址`
 
-## 2. 重定向文件配置
-
-复制 `public/_redirects.example` 为 `public/_redirects`，并将 `YOUR_BACKEND_URL` 替换为你的实际后端地址。
-
-## 3. 部署步骤
+## 部署说明
 
 1. 在 Netlify 上导入 GitHub 仓库
-2. 配置环境变量（见步骤1）
-3. 创建 `public/_redirects` 文件（见步骤2）
+2. 配置上述环境变量
+3. 部署时，构建命令会自动将 `public/_redirects` 文件中的 `BACKEND_URL_PLACEHOLDER` 替换为 `BACKEND_API_URL` 环境变量的值
 4. 触发部署
 
-## 注意事项
+## 工作原理
 
-- `_redirects` 文件已加入 `.gitignore`，避免敏感信息泄露
-- 每次部署前需要确保 `_redirects` 文件存在且配置正确
-- API 代理规则必须放在 SPA 路由规则前面
+- `public/_redirects` 文件使用占位符 `BACKEND_URL_PLACEHOLDER`，可以安全地提交到 Git
+- 构建时通过 `sed` 命令将占位符替换为 `BACKEND_API_URL` 环境变量的值
+- 这样既避免了敏感信息泄露，又让 Netlify 能正确读取配置

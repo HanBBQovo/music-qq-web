@@ -1,5 +1,5 @@
 [build]
-  command = "npm run build"
+  command = "sed -i 's|BACKEND_URL_PLACEHOLDER|'$BACKEND_API_URL'|g' public/_redirects && npm run build"
   publish = ".next"
 
 [[plugins]]
@@ -8,4 +8,4 @@
 [build.environment]
   NODE_VERSION = "18"
 
-# 重定向规则在 Netlify 仪表板中配置，不在此处
+# 重定向规则在 public/_redirects 文件中配置

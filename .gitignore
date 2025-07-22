@@ -44,6 +44,3 @@ next-env.d.ts
 public/version.json
 
 .claude/
-
-# deployment configs with sensitive data
-public/_redirects
