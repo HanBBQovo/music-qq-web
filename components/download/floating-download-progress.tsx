@@ -121,6 +121,139 @@ export const FloatingDownloadProgress: React.FC<FloatingDownloadProgressProps> =
       return "h-8 w-8 rounded-full flex items-center justify-center transition-colors duration-200 hover:bg-muted";
     };
 
+    // 单独的按钮组件，避免进度更新时重渲染
+    const ActionButtons = React.memo(
+      function ActionButtons({
+        taskId,
+        status,
+        onPause,
+        onResume,
+        onCancel,
+        onRetry,
+        onRemove,
+      }: {
+        taskId: string;
+        status: string;
+        onPause: (id: string) => void;
+        onResume: (id: string) => void;
+        onCancel: (id: string) => void;
+        onRetry: (id: string) => void;
+        onRemove: (id: string) => void;
+      }) {
+        const getButtonClasses = React.useCallback(() => {
+          return "h-7 w-7 rounded-md hover:bg-muted/70 transition-colors duration-150 flex items-center justify-center text-muted-foreground hover:text-foreground border border-border/50 hover:border-border";
+        }, []);
+
+        const handlePause = React.useCallback((e: React.MouseEvent) => {
+          e.preventDefault();
+          e.stopPropagation();
+          onPause(taskId);
+        }, [taskId, onPause]);
+
+        const handleResume = React.useCallback((e: React.MouseEvent) => {
+          e.preventDefault();
+          e.stopPropagation();
+          onResume(taskId);
+        }, [taskId, onResume]);
+
+        const handleCancel = React.useCallback((e: React.MouseEvent) => {
+          e.preventDefault();
+          e.stopPropagation();
+          onCancel(taskId);
+        }, [taskId, onCancel]);
+
+        const handleRetry = React.useCallback((e: React.MouseEvent) => {
+          e.preventDefault();
+          e.stopPropagation();
+          onRetry(taskId);
+        }, [taskId, onRetry]);
+
+        const handleRemove = React.useCallback((e: React.MouseEvent) => {
+          e.preventDefault();
+          e.stopPropagation();
+          onRemove(taskId);
+        }, [taskId, onRemove]);
+
+        return (
+          <div className="flex gap-2 ml-2">
+            {status === "downloading" && (
+              <>
+                <button
+                  onClick={handlePause}
+                  className={getButtonClasses()}
+                  aria-label="暂停"
+                  type="button"
+                >
+                  <Pause className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  onClick={handleCancel}
+                  className={getButtonClasses()}
+                  aria-label="取消"
+                  type="button"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </>
+            )}
+
+            {status === "paused" && (
+              <>
+                <button
+                  onClick={handleResume}
+                  className={getButtonClasses()}
+                  aria-label="继续"
+                  type="button"
+                >
+                  <Play className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  onClick={handleCancel}
+                  className={getButtonClasses()}
+                  aria-label="取消"
+                  type="button"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </>
+            )}
+
+            {status === "error" && (
+              <>
+                <button
+                  onClick={handleRetry}
+                  className={getButtonClasses()}
+                  aria-label="重试"
+                  type="button"
+                >
+                  <RotateCcw className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  onClick={handleRemove}
+                  className={getButtonClasses()}
+                  aria-label="移除"
+                  type="button"
+                >
+                  <Trash className="h-3.5 w-3.5" />
+                </button>
+              </>
+            )}
+
+            {(status === "completed" || status === "pending") && (
+              <button
+                onClick={handleRemove}
+                className={getButtonClasses()}
+                aria-label="移除"
+                type="button"
+              >
+                <Trash className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
+        );
+      }
+    );
+
     // Download item component - 高度优化版本，防止频繁重渲染
     const DownloadItem = React.memo(
       function DownloadItem({
@@ -254,84 +387,15 @@ export const FloatingDownloadProgress: React.FC<FloatingDownloadProgressProps> =
                 )}
               </div>
 
-              <div className="flex space-x-1">
-                {task.status === "downloading" && (
-                  <button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      onPause(task.id);
-                    }}
-                    className={getButtonClasses()}
-                    aria-label="暂停"
-                    type="button"
-                  >
-                    <Pause className="h-3.5 w-3.5" />
-                  </button>
-                )}
-
-                {task.status === "paused" && (
-                  <button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      onResume(task.id);
-                    }}
-                    className={getButtonClasses()}
-                    aria-label="继续"
-                    type="button"
-                  >
-                    <Play className="h-3.5 w-3.5" />
-                  </button>
-                )}
-
-                {task.status === "error" && (
-                  <button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      onRetry(task.id);
-                    }}
-                    className={getButtonClasses()}
-                    aria-label="重试"
-                    type="button"
-                  >
-                    <RotateCcw className="h-3.5 w-3.5" />
-                  </button>
-                )}
-
-                {(task.status === "downloading" ||
-                  task.status === "paused" ||
-                  task.status === "pending") && (
-                  <button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      onRemove(task.id);
-                    }}
-                    className={getButtonClasses()}
-                    aria-label="取消"
-                    type="button"
-                  >
-                    <X className="h-3.5 w-3.5" />
-                  </button>
-                )}
-
-                {(task.status === "completed" || task.status === "error") && (
-                  <button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      onRemove(task.id);
-                    }}
-                    className={getButtonClasses()}
-                    aria-label="删除"
-                    type="button"
-                  >
-                    <Trash className="h-3.5 w-3.5" />
-                  </button>
-                )}
-              </div>
+              <ActionButtons
+                taskId={task.id}
+                status={task.status}
+                onPause={onPause}
+                onResume={onResume}
+                onCancel={onRemove}
+                onRetry={onRetry}
+                onRemove={onRemove}
+              />
             </div>
 
             {isActive && (
