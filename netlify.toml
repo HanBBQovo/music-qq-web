@@ -8,6 +8,13 @@
 [build.environment]
   NODE_VERSION = "18"
 
+# 处理音乐 API 代理
+[[redirects]]
+  from = "/music-api/*"
+  to = "http://110.40.141.196:18880/:splat"
+  status = 200
+  force = true
+
 # 处理客户端路由
 [[redirects]]
   from = "/*"
