@@ -1,0 +1,22 @@
+[build]
+  command = "npm run build && cp -r public/* .next/static/"
+  publish = ".next"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+[build.environment]
+  NODE_VERSION = "18"
+
+# 处理音乐 API 代理
+[[redirects]]
+  from = "/music-api/*"
+  to = "YOUR_BACKEND_URL_HERE/:splat"
+  status = 200
+  force = true
+
+# 处理客户端路由
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
