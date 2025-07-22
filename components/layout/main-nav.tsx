@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -51,7 +50,7 @@ export function MainNav() {
       <div className="flex h-16 items-center px-4 lg:px-6">
         <div className="mr-6 flex items-center">
           <Link href="/" className="mr-8 flex items-center space-x-3 group">
-            <Image
+            <img
               src="/logo.webp"
               alt="MusicHub Logo"
               width={40}
@@ -112,7 +111,7 @@ export function MainNav() {
                     <SheetHeader className="border-b">
                       <div className="flex items-center justify-between w-full">
                         <div className="flex items-center space-x-3">
-                          <Image
+                          <img
                             src="/logo.webp"
                             alt="MusicHub Logo"
                             width={32}
