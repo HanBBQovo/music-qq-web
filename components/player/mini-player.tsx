@@ -258,7 +258,7 @@ export function MiniPlayer() {
         {!showPlayer && (
           <button
             onClick={() => setShowPlayer(true)}
-            className="btn-float lg:bottom-12 md:bottom-20 bottom-24"
+            className="btn-float lg:bottom-12 md:bottom-30 bottom-24"
             title="展开播放器"
           >
             <ChevronUp className="h-6 w-6" />
@@ -1009,7 +1009,7 @@ export function MiniPlayer() {
       {!showPlayer && (
         <button
           onClick={() => setShowPlayer(true)}
-          className="btn-float lg:bottom-12 md:bottom-24 bottom-31"
+          className="btn-float lg:bottom-12 md:bottom-34 bottom-31"
           title="展开播放器"
         >
           <ChevronUp className="h-6 w-6" />
