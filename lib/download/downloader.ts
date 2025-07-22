@@ -353,6 +353,9 @@ export async function downloadSong(
     // 继续处理队列中的下一个任务
     setTimeout(() => get().processQueue(), 50);
   } finally {
+    // 清理超时定时器，避免任务取消后仍然触发超时
+    clearTimeoutIfExists();
+    
     // 确保从活跃下载中移除
     set((state: DownloadState) => {
       const newActiveDownloads = { ...state.activeDownloads };
