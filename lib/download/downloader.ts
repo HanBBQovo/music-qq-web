@@ -15,9 +15,8 @@ export async function downloadSong(
       | ((state: DownloadState) => Partial<DownloadState>)
   ) => void
 ): Promise<void> {
-  try {
-    // 创建中止控制器
-    const abortController = new AbortController();
+  // 创建中止控制器
+  const abortController = new AbortController();
 
     // 将中止控制器添加到活跃下载中
     set((state: DownloadState) => ({
