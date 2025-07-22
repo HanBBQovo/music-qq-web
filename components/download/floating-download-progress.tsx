@@ -15,14 +15,7 @@ import {
 import { TabbedPanel } from "@/components/ui/tabbed-panel";
 import { Badge } from "@/components/ui/badge";
 import { useDownloadStore } from "@/lib/store";
-import {
-  formatFileSize,
-  formatSpeed,
-  formatTimeRemaining,
-  getQualityDisplayName,
-} from "@/lib/utils/format";
-import { ProgressBar } from "@/components/ui/progress-bar";
-import { useStableSelector } from "@/lib/hooks/useStableSelector";
+import { formatFileSize, getQualityDisplayName } from "@/lib/utils/format";
 
 // Types
 interface FloatingDownloadProgressProps {
@@ -31,84 +24,350 @@ interface FloatingDownloadProgressProps {
   onClose: () => void;
 }
 
-interface DownloadTask {
-  id: string;
-  songName: string;
-  artist: string;
-  status: "downloading" | "paused" | "pending" | "completed" | "error";
-  progress: number;
-  totalBytes?: number;
-  fileSize?: number;
-  error?: string;
-  wasDowngraded?: boolean;
-  quality: string;
-  actualQuality?: string;
-}
+// 单个任务组件 - 完全独立，类似 DownloadTaskRow
+const TaskItem = React.memo(function TaskItem({ taskId }: { taskId: string }) {
+  // 独立订阅单个任务的所有数据
+  const task = useDownloadStore((state) =>
+    state.tasks.find((t) => t.id === taskId)
+  );
 
-// Component
+  // 独立订阅进度信息
+  const taskProgress = useDownloadStore(
+    React.useCallback(
+      (state) => {
+        const progressInfo = state.taskProgress[taskId];
+        if (!progressInfo || !progressInfo.totalBytes) return 0;
+        return Math.round(
+          (progressInfo.bytesLoaded / progressInfo.totalBytes) * 100
+        );
+      },
+      [taskId]
+    )
+  );
+
+  // 独立订阅 actions
+  const pauseTask = useDownloadStore((state) => state.pauseTask);
+  const resumeTask = useDownloadStore((state) => state.resumeTask);
+  const retryTask = useDownloadStore((state) => state.retryTask);
+  const removeTask = useDownloadStore((state) => state.removeTask);
+
+  // 如果任务不存在，不渲染
+  if (!task) return null;
+
+  const isActive =
+    task.status === "downloading" ||
+    task.status === "paused" ||
+    task.status === "pending";
+
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case "downloading":
+        return "下载中";
+      case "paused":
+        return "已暂停";
+      case "pending":
+        return "等待中";
+      case "completed":
+        return "已完成";
+      case "error":
+        return "失败";
+      default:
+        return status;
+    }
+  };
+
+  const handleAction = (action: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    switch (action) {
+      case "pause":
+        pauseTask(taskId);
+        break;
+      case "resume":
+        resumeTask(taskId);
+        break;
+      case "retry":
+        retryTask(taskId);
+        break;
+      case "remove":
+        removeTask(taskId);
+        break;
+    }
+  };
+
+  return (
+    <div className="p-4 border-b border-border/30 last:border-0 hover:bg-muted/30 transition-colors duration-200">
+      <div className="flex justify-between items-start mb-2">
+        <div className="flex-1 mr-3">
+          <div className="flex items-center gap-2 mb-1">
+            {/* 状态指示器 */}
+            <div className="flex-shrink-0">
+              <div
+                className={`w-2 h-2 rounded-full ${
+                  task.status === "downloading"
+                    ? "bg-primary"
+                    : task.status === "paused"
+                    ? "bg-yellow-500"
+                    : task.status === "completed"
+                    ? "bg-green-500"
+                    : task.status === "error"
+                    ? "bg-red-500"
+                    : "bg-gray-400"
+                }`}
+              />
+            </div>
+            <span className="font-medium text-sm truncate max-w-[160px]">
+              {task.songName}
+            </span>
+            <div
+              className={`ml-auto text-xs font-medium px-2 py-1 rounded-md border ${
+                task.status === "completed"
+                  ? "bg-green-100 text-green-800 border-green-300 dark:bg-green-900/30 dark:text-green-300 dark:border-green-700"
+                  : task.status === "error"
+                  ? "bg-red-100 text-red-800 border-red-300 dark:bg-red-900/30 dark:text-red-300 dark:border-red-700"
+                  : task.status === "downloading"
+                  ? "bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-700"
+                  : task.status === "paused"
+                  ? "bg-yellow-100 text-yellow-800 border-yellow-300 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-700"
+                  : "bg-gray-100 text-gray-800 border-gray-300 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600"
+              }`}
+            >
+              {getStatusText(task.status)}
+            </div>
+          </div>
+          <div className="text-xs text-muted-foreground">
+            {task.artist} •{" "}
+            {task.status === "error"
+              ? "-"
+              : formatFileSize(task.totalBytes || task.fileSize || 0)}
+            {/* 添加音质显示和降级提示 */}
+            {task.wasDowngraded ? (
+              <span className="ml-2 inline-flex items-center gap-1">
+                <span
+                  className={`${
+                    task.status === "error"
+                      ? "text-red-600 dark:text-red-400"
+                      : task.status === "completed"
+                      ? "text-green-600 dark:text-green-400"
+                      : "text-orange-600 dark:text-orange-400"
+                  }`}
+                  title={
+                    task.status === "error"
+                      ? "音质降级后仍下载失败"
+                      : task.status === "completed"
+                      ? "音质已降级但下载成功"
+                      : "音质已降级"
+                  }
+                >
+                  {task.status === "error"
+                    ? "✗⚠️"
+                    : task.status === "completed"
+                    ? "✓⚠️"
+                    : "⚠️"}
+                </span>
+                <span className="line-through">
+                  {getQualityDisplayName(task.quality)}
+                </span>
+                <span>→</span>
+                <span className="font-medium">
+                  {getQualityDisplayName(task.actualQuality || task.quality)}
+                </span>
+              </span>
+            ) : (
+              <span className="ml-2">
+                • {getQualityDisplayName(task.actualQuality || task.quality)}
+              </span>
+            )}
+          </div>
+          {/* 失败原因单独显示 */}
+          {task.status === "error" && task.error && (
+            <div className="text-xs text-red-600 mt-2 p-2 bg-red-50 rounded border border-red-200">
+              <span className="font-medium">失败原因：</span>
+              {task.error}
+            </div>
+          )}
+        </div>
+
+        {/* 操作按钮 */}
+        <div className="flex gap-2 ml-2">
+          {task.status === "downloading" && (
+            <>
+              <button
+                onClick={(e) => handleAction("pause", e)}
+                className="h-7 w-7 rounded-md hover:bg-muted/70 transition-colors duration-150 flex items-center justify-center text-muted-foreground hover:text-foreground border border-border/50 hover:border-border"
+                aria-label="暂停"
+                type="button"
+              >
+                <Pause className="h-3.5 w-3.5" />
+              </button>
+              <button
+                onClick={(e) => handleAction("remove", e)}
+                className="h-7 w-7 rounded-md hover:bg-muted/70 transition-colors duration-150 flex items-center justify-center text-muted-foreground hover:text-foreground border border-border/50 hover:border-border"
+                aria-label="取消"
+                type="button"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </>
+          )}
+
+          {task.status === "paused" && (
+            <>
+              <button
+                onClick={(e) => handleAction("resume", e)}
+                className="h-7 w-7 rounded-md hover:bg-muted/70 transition-colors duration-150 flex items-center justify-center text-muted-foreground hover:text-foreground border border-border/50 hover:border-border"
+                aria-label="继续"
+                type="button"
+              >
+                <Play className="h-3.5 w-3.5" />
+              </button>
+              <button
+                onClick={(e) => handleAction("remove", e)}
+                className="h-7 w-7 rounded-md hover:bg-muted/70 transition-colors duration-150 flex items-center justify-center text-muted-foreground hover:text-foreground border border-border/50 hover:border-border"
+                aria-label="取消"
+                type="button"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </>
+          )}
+
+          {task.status === "error" && (
+            <>
+              <button
+                onClick={(e) => handleAction("retry", e)}
+                className="h-7 w-7 rounded-md hover:bg-muted/70 transition-colors duration-150 flex items-center justify-center text-muted-foreground hover:text-foreground border border-border/50 hover:border-border"
+                aria-label="重试"
+                type="button"
+              >
+                <RotateCcw className="h-3.5 w-3.5" />
+              </button>
+              <button
+                onClick={(e) => handleAction("remove", e)}
+                className="h-7 w-7 rounded-md hover:bg-muted/70 transition-colors duration-150 flex items-center justify-center text-muted-foreground hover:text-foreground border border-border/50 hover:border-border"
+                aria-label="移除"
+                type="button"
+              >
+                <Trash className="h-3.5 w-3.5" />
+              </button>
+            </>
+          )}
+
+          {(task.status === "completed" || task.status === "pending") && (
+            <button
+              onClick={(e) => handleAction("remove", e)}
+              className="h-7 w-7 rounded-md hover:bg-muted/70 transition-colors duration-150 flex items-center justify-center text-muted-foreground hover:text-foreground border border-border/50 hover:border-border"
+              aria-label="移除"
+              type="button"
+            >
+              <Trash className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {isActive && (
+        <div className="space-y-2 mt-3">
+          {/* 进度条 */}
+          <div className="relative w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700 mt-2">
+            <div
+              className={`absolute top-0 left-0 h-full rounded-full transition-all duration-300 ease-out ${
+                task.status === "error"
+                  ? "bg-red-400"
+                  : task.status === "completed"
+                  ? "bg-green-500"
+                  : "bg-primary"
+              }`}
+              style={{ width: `${Math.max(taskProgress, 15)}%` }}
+            >
+              <div className="absolute inset-0 flex items-center justify-end pr-2 text-gray-800 dark:text-black text-[10px] font-bold">
+                <span className="flex-shrink-0">{taskProgress}%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+});
+
+// 任务列表组件
+const TaskList = React.memo(function TaskList({
+  taskIds,
+  emptyMessage,
+}: {
+  taskIds: string[];
+  emptyMessage: string;
+}) {
+  if (taskIds.length === 0) {
+    return (
+      <div className="p-8 text-center text-muted-foreground text-sm">
+        {emptyMessage}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-0">
+      {taskIds.map((taskId) => (
+        <TaskItem key={taskId} taskId={taskId} />
+      ))}
+    </div>
+  );
+});
+
+// 主组件
 export const FloatingDownloadProgress: React.FC<FloatingDownloadProgressProps> =
-  React.memo(function FloatingDownloadProgress({ className, onClose }) {
-    // 优化状态订阅，分离频繁变化的状态
-    const tasks = useDownloadStore((state) => state.tasks);
-
-    // 分别订阅actions，避免创建新对象导致无限重渲染
-    const pauseTask = useDownloadStore((state) => state.pauseTask);
-    const resumeTask = useDownloadStore((state) => state.resumeTask);
-    const cancelTask = useDownloadStore((state) => state.removeTask);
-    const retryTask = useDownloadStore((state) => state.retryTask);
-    const removeTask = useDownloadStore((state) => state.removeTask);
-
+  React.memo(function FloatingDownloadProgress({ onClose }) {
     const [isExpanded, setIsExpanded] = React.useState(true);
 
-    // 稳定化任务过滤，避免重复计算导致的渲染问题
-    const downloadingItems = React.useMemo(() => {
-      return tasks.filter(
-        (task) =>
+    // 直接订阅tasks，使用useMemo进行分组
+    const tasks = useDownloadStore((state) => state.tasks);
+
+    // 使用 useMemo 进行任务分组
+    const taskGroups = React.useMemo(() => {
+      const downloading: string[] = [];
+      const completed: string[] = [];
+      const failed: string[] = [];
+
+      tasks.forEach((task) => {
+        if (
           task.status === "downloading" ||
           task.status === "paused" ||
           task.status === "pending"
-      );
+        ) {
+          downloading.push(task.id);
+        } else if (task.status === "completed") {
+          completed.push(task.id);
+        } else if (task.status === "error") {
+          failed.push(task.id);
+        }
+      });
+
+      // 对失败任务按时间排序
+      failed.sort((a, b) => {
+        const taskA = tasks.find((t) => t.id === a);
+        const taskB = tasks.find((t) => t.id === b);
+        if (!taskA || !taskB) return 0;
+        const timeA = new Date(
+          taskA.updatedAt || taskA.createdAt || 0
+        ).getTime();
+        const timeB = new Date(
+          taskB.updatedAt || taskB.createdAt || 0
+        ).getTime();
+        return timeB - timeA;
+      });
+
+      return { downloading, completed, failed };
     }, [tasks]);
 
-    const completedItems = React.useMemo(() => {
-      return tasks.filter((task) => task.status === "completed");
-    }, [tasks]);
+    const downloadCount = taskGroups.downloading.length;
 
-    const failedItems = React.useMemo(() => {
-      // 增强的排序逻辑，兼容没有updatedAt的旧任务
-      const getSortTime = (task: any) =>
-        new Date(task.updatedAt || task.createdAt).getTime();
+    const getButtonClasses = () => {
+      return "h-8 w-8 rounded-full flex items-center justify-center transition-colors duration-200 hover:bg-muted";
+    };
 
-      return tasks
-        .filter((task) => task.status === "error")
-        .sort((a, b) => getSortTime(b) - getSortTime(a));
-    }, [tasks]);
-
-    // 稳定化下载数量，添加防抖避免频繁变化
-    const downloadCount = React.useMemo(() => {
-      const count = downloadingItems.length;
-      return count;
-    }, [downloadingItems.length]);
-
-    // 获取状态显示名称
-    const getStatusText = React.useCallback((status: string) => {
-      switch (status) {
-        case "downloading":
-          return "下载中";
-        case "paused":
-          return "已暂停";
-        case "pending":
-          return "等待中";
-        case "completed":
-          return "已完成";
-        case "error":
-          return "失败";
-        default:
-          return status;
-      }
-    }, []);
-
-    // 简洁优化的样式类
     const getContainerClasses = () => {
       return "fixed bottom-20 right-6 z-50 overflow-hidden rounded-lg shadow-lg bg-background border border-border/80 hover:shadow-xl transition-all duration-300";
     };
@@ -117,488 +376,113 @@ export const FloatingDownloadProgress: React.FC<FloatingDownloadProgressProps> =
       return "flex items-center justify-between p-3 border-b border-border/50";
     };
 
-    const getButtonClasses = () => {
-      return "h-8 w-8 rounded-full flex items-center justify-center transition-colors duration-200 hover:bg-muted";
-    };
-
-    // 单独的按钮组件，避免进度更新时重渲染
-    const ActionButtons = React.memo(
-      function ActionButtons({
-        taskId,
-        status,
-        onPause,
-        onResume,
-        onCancel,
-        onRetry,
-        onRemove,
-      }: {
-        taskId: string;
-        status: string;
-        onPause: (id: string) => void;
-        onResume: (id: string) => void;
-        onCancel: (id: string) => void;
-        onRetry: (id: string) => void;
-        onRemove: (id: string) => void;
-      }) {
-        const getButtonClasses = React.useCallback(() => {
-          return "h-7 w-7 rounded-md hover:bg-muted/70 transition-colors duration-150 flex items-center justify-center text-muted-foreground hover:text-foreground border border-border/50 hover:border-border";
-        }, []);
-
-        const handlePause = React.useCallback((e: React.MouseEvent) => {
-          e.preventDefault();
-          e.stopPropagation();
-          onPause(taskId);
-        }, [taskId, onPause]);
-
-        const handleResume = React.useCallback((e: React.MouseEvent) => {
-          e.preventDefault();
-          e.stopPropagation();
-          onResume(taskId);
-        }, [taskId, onResume]);
-
-        const handleCancel = React.useCallback((e: React.MouseEvent) => {
-          e.preventDefault();
-          e.stopPropagation();
-          onCancel(taskId);
-        }, [taskId, onCancel]);
-
-        const handleRetry = React.useCallback((e: React.MouseEvent) => {
-          e.preventDefault();
-          e.stopPropagation();
-          onRetry(taskId);
-        }, [taskId, onRetry]);
-
-        const handleRemove = React.useCallback((e: React.MouseEvent) => {
-          e.preventDefault();
-          e.stopPropagation();
-          onRemove(taskId);
-        }, [taskId, onRemove]);
-
-        return (
-          <div className="flex gap-2 ml-2">
-            {status === "downloading" && (
-              <>
-                <button
-                  onClick={handlePause}
-                  className={getButtonClasses()}
-                  aria-label="暂停"
-                  type="button"
-                >
-                  <Pause className="h-3.5 w-3.5" />
-                </button>
-                <button
-                  onClick={handleCancel}
-                  className={getButtonClasses()}
-                  aria-label="取消"
-                  type="button"
-                >
-                  <X className="h-3.5 w-3.5" />
-                </button>
-              </>
-            )}
-
-            {status === "paused" && (
-              <>
-                <button
-                  onClick={handleResume}
-                  className={getButtonClasses()}
-                  aria-label="继续"
-                  type="button"
-                >
-                  <Play className="h-3.5 w-3.5" />
-                </button>
-                <button
-                  onClick={handleCancel}
-                  className={getButtonClasses()}
-                  aria-label="取消"
-                  type="button"
-                >
-                  <X className="h-3.5 w-3.5" />
-                </button>
-              </>
-            )}
-
-            {status === "error" && (
-              <>
-                <button
-                  onClick={handleRetry}
-                  className={getButtonClasses()}
-                  aria-label="重试"
-                  type="button"
-                >
-                  <RotateCcw className="h-3.5 w-3.5" />
-                </button>
-                <button
-                  onClick={handleRemove}
-                  className={getButtonClasses()}
-                  aria-label="移除"
-                  type="button"
-                >
-                  <Trash className="h-3.5 w-3.5" />
-                </button>
-              </>
-            )}
-
-            {(status === "completed" || status === "pending") && (
-              <button
-                onClick={handleRemove}
-                className={getButtonClasses()}
-                aria-label="移除"
-                type="button"
-              >
-                <Trash className="h-3.5 w-3.5" />
-              </button>
-            )}
-          </div>
-        );
-      }
-    );
-
-    // Download item component - 高度优化版本，防止频繁重渲染
-    const DownloadItem = React.memo(
-      function DownloadItem({
-        task,
-        onPause,
-        onResume,
-        onCancel,
-        onRetry,
-        onRemove,
-      }: {
-        task: DownloadTask;
-        onPause: (id: string) => void;
-        onResume: (id: string) => void;
-        onCancel: (id: string) => void;
-        onRetry: (id: string) => void;
-        onRemove: (id: string) => void;
-      }) {
-        const isActive =
-          task.status === "downloading" ||
-          task.status === "paused" ||
-          task.status === "pending";
-
-        // 独立订阅进度，避免tasks数组变化导致的重渲染
-        const taskProgress = useStableSelector(useDownloadStore, (state) => {
-          const progressInfo = state.taskProgress[task.id];
-          if (!progressInfo || !progressInfo.totalBytes) return 0;
-          // 动态计算进度
-          return Math.round(
-            (progressInfo.bytesLoaded / progressInfo.totalBytes) * 100
-          );
-        }) as number;
-
-        // 稳定的进度显示，只在整数变化时更新
-        const stableProgress = taskProgress;
-
-        return (
-          <div className="p-4 border-b border-border/30 last:border-0 hover:bg-muted/30 transition-colors duration-200">
-            <div className="flex justify-between items-start mb-2">
-              <div className="flex-1 mr-3">
-                <div className="flex items-center gap-2 mb-1">
-                  {/* 状态指示器 */}
-                  <div className="flex-shrink-0">
-                    <div
-                      className={`w-2 h-2 rounded-full ${
-                        task.status === "downloading"
-                          ? "bg-primary"
-                          : task.status === "paused"
-                          ? "bg-yellow-500"
-                          : task.status === "completed"
-                          ? "bg-green-500"
-                          : task.status === "error"
-                          ? "bg-red-500"
-                          : "bg-gray-400"
-                      }`}
-                    />
-                  </div>
-                  <span className="font-medium text-sm truncate max-w-[160px]">
-                    {task.songName}
-                  </span>
-                  <div
-                    className={`ml-auto text-xs font-medium px-2 py-1 rounded-md border ${
-                      task.status === "completed"
-                        ? "bg-green-100 text-green-800 border-green-300 dark:bg-green-900/30 dark:text-green-300 dark:border-green-700"
-                        : task.status === "error"
-                        ? "bg-red-100 text-red-800 border-red-300 dark:bg-red-900/30 dark:text-red-300 dark:border-red-700"
-                        : task.status === "downloading"
-                        ? "bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-700"
-                        : task.status === "paused"
-                        ? "bg-yellow-100 text-yellow-800 border-yellow-300 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-700"
-                        : "bg-gray-100 text-gray-800 border-gray-300 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600"
-                    }`}
-                  >
-                    {getStatusText(task.status)}
-                  </div>
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  {task.artist} •{" "}
-                  {task.status === "error"
-                    ? "-"
-                    : formatFileSize(task.totalBytes || task.fileSize || 0)}
-                  {/* 添加音质显示和降级提示 */}
-                  {task.wasDowngraded ? (
-                    <span className="ml-2 inline-flex items-center gap-1">
-                      <span
-                        className={`${
-                          task.status === "error"
-                            ? "text-red-600 dark:text-red-400"
-                            : task.status === "completed"
-                            ? "text-green-600 dark:text-green-400"
-                            : "text-orange-600 dark:text-orange-400"
-                        }`}
-                        title={
-                          task.status === "error"
-                            ? "音质降级后仍下载失败"
-                            : task.status === "completed"
-                            ? "音质已降级但下载成功"
-                            : "音质已降级"
-                        }
-                      >
-                        {task.status === "error"
-                          ? "✗⚠️"
-                          : task.status === "completed"
-                          ? "✓⚠️"
-                          : "⚠️"}
-                      </span>
-                      <span className="line-through">
-                        {getQualityDisplayName(task.quality)}
-                      </span>
-                      <span>→</span>
-                      <span className="font-medium">
-                        {getQualityDisplayName(
-                          task.actualQuality || task.quality
-                        )}
-                      </span>
-                    </span>
-                  ) : (
-                    <span className="ml-2">
-                      •{" "}
-                      {getQualityDisplayName(
-                        task.actualQuality || task.quality
-                      )}
-                    </span>
-                  )}
-                </div>
-                {/* 失败原因单独显示 */}
-                {task.status === "error" && task.error && (
-                  <div className="text-xs text-red-600 mt-2 p-2 bg-red-50 rounded border border-red-200">
-                    <span className="font-medium">失败原因：</span>
-                    {task.error}
-                  </div>
-                )}
-              </div>
-
-              <ActionButtons
-                taskId={task.id}
-                status={task.status}
-                onPause={onPause}
-                onResume={onResume}
-                onCancel={onRemove}
-                onRetry={onRetry}
-                onRemove={onRemove}
-              />
-            </div>
-
-            {isActive && (
-              <div className="space-y-2 mt-3">
-                {/* 进度条 */}
-                <div className="relative w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700 mt-2">
-                  <div
-                    className={`absolute top-0 left-0 h-full rounded-full transition-all duration-300 ease-out ${
-                      task.status === "error"
-                        ? "bg-red-400"
-                        : task.status === "completed"
-                        ? "bg-green-500"
-                        : "bg-primary"
-                    }`}
-                    style={{ width: `${stableProgress}%` }}
-                  >
-                    <div className="absolute inset-0 flex items-center justify-end pr-2 text-white text-[10px] font-bold">
-                      <span className="flex-shrink-0">{stableProgress}%</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        );
-      },
-      (prevProps, nextProps) => {
-        // 更精确的比较函数 - 减少不必要的重渲染
-        const prev = prevProps.task;
-        const next = nextProps.task;
-
-        // 只比较关键属性，不比较progress（进度通过独立订阅获取）
-        if (
-          prev.id !== next.id ||
-          prev.songName !== next.songName ||
-          prev.status !== next.status ||
-          prev.artist !== next.artist ||
-          prev.wasDowngraded !== next.wasDowngraded ||
-          prev.error !== next.error ||
-          prev.totalBytes !== next.totalBytes ||
-          prev.fileSize !== next.fileSize ||
-          prev.actualQuality !== next.actualQuality
-        ) {
-          return false;
-        }
-
-        // 其他属性相同，不重渲染
-        return true;
-      }
-    );
-
     return (
-      <>
-        <AnimatePresence>
-          {/*始终渲染弹窗，父组件控制挂载*/}
-          <motion.div
-            className={getContainerClasses()}
-            style={{ width: 350 }}
-            initial={{ opacity: 0, y: 50, scale: 0.9 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 50, scale: 0.9 }}
-            transition={{ duration: 0.2 }}
-          >
-            <div className={getHeaderClasses()}>
-              <div className="flex items-center">
-                <Download className="h-4 w-4 mr-2" />
-                <h3 className="font-medium text-sm">下载管理</h3>
-                <Badge className="ml-2" variant="outline">
-                  {downloadCount}
-                </Badge>
-              </div>
-
-              <div className="flex items-center space-x-1">
-                <button
-                  onClick={() => setIsExpanded(!isExpanded)}
-                  className={getButtonClasses()}
-                  aria-label={isExpanded ? "收起" : "展开"}
-                >
-                  {isExpanded ? (
-                    <ChevronDown className="h-4 w-4" />
-                  ) : (
-                    <ChevronUp className="h-4 w-4" />
-                  )}
-                </button>
-                <button
-                  onClick={onClose}
-                  className={getButtonClasses()}
-                  aria-label="关闭"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
+      <AnimatePresence>
+        <motion.div
+          className={getContainerClasses()}
+          style={{ width: 350 }}
+          initial={{ opacity: 0, y: 50, scale: 0.9 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: 50, scale: 0.9 }}
+          transition={{ duration: 0.2 }}
+        >
+          <div className={getHeaderClasses()}>
+            <div className="flex items-center">
+              <Download className="h-4 w-4 mr-2" />
+              <h3 className="font-medium text-sm">下载管理</h3>
+              <Badge className="ml-2" variant="outline">
+                {downloadCount}
+              </Badge>
             </div>
 
-            {isExpanded && (
-              <TabbedPanel
-                tabs={[
-                  {
-                    key: "downloading",
-                    label: `队列 (${downloadCount})`,
-                    render: () =>
-                      downloadCount === 0 ? (
-                        <div className="p-8 text-center text-muted-foreground text-sm">
-                          暂无下载任务
-                        </div>
-                      ) : (
-                        <div className="space-y-0">
-                          {downloadingItems.map((task) => (
-                            <DownloadItem
-                              key={task.id}
-                              task={task}
-                              onPause={pauseTask}
-                              onResume={resumeTask}
-                              onCancel={cancelTask}
-                              onRetry={retryTask}
-                              onRemove={removeTask}
-                            />
-                          ))}
-                        </div>
-                      ),
-                  },
-                  {
-                    key: "completed",
-                    label: `已完成 (${completedItems.length})`,
-                    render: () =>
-                      completedItems.length === 0 ? (
-                        <div className="p-8 text-center text-muted-foreground text-sm">
-                          暂无已完成的下载
-                        </div>
-                      ) : (
-                        <div className="space-y-0">
-                          {completedItems.map((task) => (
-                            <DownloadItem
-                              key={task.id}
-                              task={task}
-                              onPause={pauseTask}
-                              onResume={resumeTask}
-                              onCancel={cancelTask}
-                              onRetry={retryTask}
-                              onRemove={removeTask}
-                            />
-                          ))}
-                        </div>
-                      ),
-                  },
-                  {
-                    key: "failed",
-                    label: `失败 (${failedItems.length})`,
-                    render: () =>
-                      failedItems.length === 0 ? (
-                        <div className="p-8 text-center text-muted-foreground text-sm">
-                          暂无失败的下载
-                        </div>
-                      ) : (
-                        <div className="space-y-0">
-                          {failedItems.map((task) => (
-                            <DownloadItem
-                              key={task.id}
-                              task={task}
-                              onPause={pauseTask}
-                              onResume={resumeTask}
-                              onCancel={cancelTask}
-                              onRetry={retryTask}
-                              onRemove={removeTask}
-                            />
-                          ))}
-                        </div>
-                      ),
-                  },
-                ]}
-                defaultKey="downloading"
-              />
-            )}
+            <div className="flex items-center space-x-1">
+              <button
+                onClick={() => setIsExpanded(!isExpanded)}
+                className={getButtonClasses()}
+                aria-label={isExpanded ? "收起" : "展开"}
+              >
+                {isExpanded ? (
+                  <ChevronDown className="h-4 w-4" />
+                ) : (
+                  <ChevronUp className="h-4 w-4" />
+                )}
+              </button>
+              <button
+                onClick={onClose}
+                className={getButtonClasses()}
+                aria-label="关闭"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
 
-            {isExpanded && (
-              <div className="p-3 border-t border-border/30">
-                <div className="flex justify-center items-center w-full">
-                  <div className="text-xs flex items-center gap-4">
-                    <span className="flex items-center gap-1.5">
-                      <div className="w-3 h-3 bg-blue-500 rounded-full shadow-md animate-pulse"></div>
-                      <span className="text-blue-700 dark:text-blue-300 font-bold">
-                        {downloadCount} 进行中
-                      </span>
+          {isExpanded && (
+            <TabbedPanel
+              tabs={[
+                {
+                  key: "downloading",
+                  label: `队列 (${downloadCount})`,
+                  render: () => (
+                    <TaskList
+                      taskIds={taskGroups.downloading}
+                      emptyMessage="暂无下载任务"
+                    />
+                  ),
+                },
+                {
+                  key: "completed",
+                  label: `已完成 (${taskGroups.completed.length})`,
+                  render: () => (
+                    <TaskList
+                      taskIds={taskGroups.completed}
+                      emptyMessage="暂无已完成的下载"
+                    />
+                  ),
+                },
+                {
+                  key: "failed",
+                  label: `失败 (${taskGroups.failed.length})`,
+                  render: () => (
+                    <TaskList
+                      taskIds={taskGroups.failed}
+                      emptyMessage="暂无失败的下载"
+                    />
+                  ),
+                },
+              ]}
+              defaultKey="downloading"
+            />
+          )}
+
+          {isExpanded && (
+            <div className="p-3 border-t border-border/30">
+              <div className="flex justify-center items-center w-full">
+                <div className="text-xs flex items-center gap-4">
+                  <span className="flex items-center gap-1.5">
+                    <div className="w-3 h-3 bg-blue-500 rounded-full shadow-md animate-pulse"></div>
+                    <span className="text-blue-700 dark:text-blue-300 font-bold">
+                      {downloadCount} 进行中
                     </span>
-                    <span className="flex items-center gap-1.5">
-                      <div className="w-3 h-3 bg-green-500 rounded-full shadow-md"></div>
-                      <span className="text-green-700 dark:text-green-300 font-bold">
-                        {completedItems.length} 已完成
-                      </span>
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <div className="w-3 h-3 bg-green-500 rounded-full shadow-md"></div>
+                    <span className="text-green-700 dark:text-green-300 font-bold">
+                      {taskGroups.completed.length} 已完成
                     </span>
-                    <span className="flex items-center gap-1.5">
-                      <div className="w-3 h-3 bg-red-500 rounded-full shadow-md"></div>
-                      <span className="text-red-700 dark:text-red-300 font-bold">
-                        {failedItems.length} 失败
-                      </span>
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <div className="w-3 h-3 bg-red-500 rounded-full shadow-md"></div>
+                    <span className="text-red-700 dark:text-red-300 font-bold">
+                      {taskGroups.failed.length} 失败
                     </span>
-                  </div>
+                  </span>
                 </div>
               </div>
-            )}
-          </motion.div>
-        </AnimatePresence>
-      </>
+            </div>
+          )}
+        </motion.div>
+      </AnimatePresence>
     );
   });
 
