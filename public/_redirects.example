@@ -1,0 +1,5 @@
+# API 代理 - 将 YOUR_BACKEND_URL 替换为实际后端地址
+/music-api/*  YOUR_BACKEND_URL/:splat  200
+
+# SPA 路由 - 必须放在最后
+/*  /index.html  200
