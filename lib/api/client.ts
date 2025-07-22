@@ -27,13 +27,14 @@ const MAX_RETRIES = 2;
 // 重试延迟（毫秒）
 const RETRY_DELAY = 1000;
 
-// 创建axios实例 - 最简配置，避免并发问题
+// 创建axios实例
 const apiClient = axios.create({
   baseURL: BASE_URL,
-  timeout: 30000,
+  timeout: 30000, // 30秒超时
   headers: {
     "Content-Type": "application/json",
   },
+  withCredentials: true, // 自动处理cookie
 });
 
 // 请求拦截器
