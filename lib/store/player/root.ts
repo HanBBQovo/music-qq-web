@@ -18,6 +18,13 @@ import { createUISlice } from "./ui";
 import { createNotificationSlice } from "../notification";
 import { NotificationSlice } from "../notification";
 
+// 用于取消歌词请求的控制器
+let currentLyricAbortController: AbortController | null = null;
+// 用于取消音频URL请求的控制器
+let currentAudioAbortController: AbortController | null = null;
+// 当前正在播放的歌曲ID，用于防止竞态条件
+let currentPlayingSongId: string | null = null;
+
 export const usePlayerStore = create<PlayerStoreState>()(
   subscribeWithSelector(
     persist(
@@ -46,6 +53,23 @@ export const usePlayerStore = create<PlayerStoreState>()(
         },
 
         playSong: async (song, quality) => {
+          // 生成当前歌曲的唯一ID
+          const songId = song.mid || song.id;
+          currentPlayingSongId = songId;
+
+          // 取消任何正在进行的请求
+          if (currentLyricAbortController) {
+            currentLyricAbortController.abort();
+            currentLyricAbortController = null;
+          }
+          if (currentAudioAbortController) {
+            currentAudioAbortController.abort();
+            currentAudioAbortController = null;
+          }
+
+          // 创建新的音频请求控制器
+          currentAudioAbortController = new AbortController();
+
           // 1. 立即更新UI，显示歌曲信息，准备播放
           const state = get();
           const useQuality = quality || state.currentQuality;
@@ -66,6 +90,10 @@ export const usePlayerStore = create<PlayerStoreState>()(
               showPlayer: true,
               currentTime: 0,
               duration: song.duration || 0,
+              // 立即清空歌词状态，避免显示上一首歌的歌词
+              krcLyrics: null,
+              krcLyricsError: null,
+              isKrcLyricsLoading: false,
             });
           } else {
             set({
@@ -76,6 +104,10 @@ export const usePlayerStore = create<PlayerStoreState>()(
               showPlayer: true,
               currentTime: 0,
               duration: song.duration || 0,
+              // 立即清空歌词状态，避免显示上一首歌的歌词
+              krcLyrics: null,
+              krcLyricsError: null,
+              isKrcLyricsLoading: false,
             });
           }
 
@@ -86,8 +118,21 @@ export const usePlayerStore = create<PlayerStoreState>()(
           await withErrorHandling({
             apiCall: () => getAudioUrl({ ...song, url: undefined }, useQuality),
             onSuccess: (url) => {
+              // 检查歌曲是否已经切换，如果已切换则忽略这个响应
+              if (currentPlayingSongId !== songId) {
+                console.log('歌曲已切换，忽略音频URL响应:', songId, '->', currentPlayingSongId);
+                return;
+              }
+
               const songWithUrl = { ...song, url };
               set((currentState) => {
+                // 再次检查当前歌曲是否匹配
+                const currentSongId = currentState.currentSong?.mid || currentState.currentSong?.id;
+                if (currentSongId !== songId) {
+                  console.log('状态中的歌曲已变化，忽略URL设置');
+                  return currentState; // 不更新状态
+                }
+
                 const newPlaylist = [...currentState.playlist];
                 let currentIndex = currentState.playlist.findIndex(
                   (s) => s.mid === song.mid || s.id === song.id
@@ -107,10 +152,13 @@ export const usePlayerStore = create<PlayerStoreState>()(
                   isPlaying: true, // 获取到URL后才真正开始播放
                 };
               });
-
-              // get().fetchKrcLyrics(true); // ★ 从此处移动
             },
             onError: () => {
+              // 检查歌曲是否已经切换
+              if (currentPlayingSongId !== songId) {
+                return; // 歌曲已切换，忽略错误
+              }
+
               // 错误toast由withErrorHandling处理
               set({
                 // 可以选择在这里设置一个错误状态，或者让播放器停留在isPlaing: false的状态
@@ -181,11 +229,24 @@ export const usePlayerStore = create<PlayerStoreState>()(
 
           if (
             !currentSong ||
-            isKrcLyricsLoading ||
             (!force && krcLyrics && krcLyrics.length > 0)
           ) {
             return;
           }
+
+          // 如果已经在加载中且不是强制刷新，就不重复请求
+          if (isKrcLyricsLoading && !force) {
+            return;
+          }
+
+          // 取消之前的歌词请求，避免竞态条件
+          if (currentLyricAbortController) {
+            currentLyricAbortController.abort();
+          }
+          
+          // 创建新的 AbortController
+          currentLyricAbortController = new AbortController();
+          const currentRequestSongId = currentSong.mid || currentSong.id;
 
           set({ isKrcLyricsLoading: true, krcLyricsError: null });
 
@@ -197,6 +258,20 @@ export const usePlayerStore = create<PlayerStoreState>()(
                 format: "krc",
               }),
             onSuccess: (res) => {
+              // 检查当前歌曲是否已经改变，如果改变了则忽略这个响应
+              const { currentSong: latestSong } = get();
+              const latestSongId = latestSong?.mid || latestSong?.id;
+              
+              if (latestSongId !== currentRequestSongId) {
+                // 歌曲已经切换，忽略这个歌词响应
+                console.log('歌曲已切换，忽略歌词响应:', currentRequestSongId, '->', latestSongId);
+                // 如果当前没有歌词在加载，则关闭加载状态
+                if (get().isKrcLyricsLoading && get().currentSong?.mid !== currentRequestSongId && get().currentSong?.id !== currentRequestSongId) {
+                  set({ isKrcLyricsLoading: false });
+                }
+                return;
+              }
+
               if (res.data.krcData && res.data.krcData.lines) {
                 const processedLines = res.data.krcData.lines.map((line) => ({
                   ...line,
@@ -215,6 +290,23 @@ export const usePlayerStore = create<PlayerStoreState>()(
               }
             },
             onError: () => {
+              // 检查是否是因为请求被取消
+              if (currentLyricAbortController?.signal.aborted) {
+                return; // 请求被取消，不处理错误
+              }
+              
+              // 再次检查当前歌曲是否已经改变
+              const { currentSong: latestSong } = get();
+              const latestSongId = latestSong?.mid || latestSong?.id;
+              
+              if (latestSongId !== currentRequestSongId) {
+                // 如果当前没有歌词在加载，则关闭加载状态
+                if (get().isKrcLyricsLoading && get().currentSong?.mid !== currentRequestSongId && get().currentSong?.id !== currentRequestSongId) {
+                  set({ isKrcLyricsLoading: false });
+                }
+                return; // 歌曲已经切换，忽略错误
+              }
+
               set({
                 krcLyricsError: "无法加载歌词",
                 isKrcLyricsLoading: false,
