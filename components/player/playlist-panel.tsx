@@ -406,8 +406,13 @@ export function PlaylistPanel() {
 
   // 清空播放列表
   const handleClearPlaylist = () => {
-    clearPlaylist();
+    // 先关闭对话框，避免同时更新多个状态导致闪烁
     setShowClearDialog(false);
+    
+    // 使用 setTimeout 延迟执行清空操作，让对话框先完成关闭动画
+    setTimeout(() => {
+      clearPlaylist();
+    }, 100);
   };
 
   // 处理拖拽结束
@@ -519,7 +524,7 @@ export function PlaylistPanel() {
                   </Button>
                 </div>
 
-                {/* 歌曲列表 */}
+                {/* 歌曲列表 - 保持DOM结构稳定 */}
                 <div className="flex-1 min-h-0 overflow-hidden">
                   <div className="h-full overflow-y-auto overscroll-contain">
                     <div className="p-2 space-y-1">
