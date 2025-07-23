@@ -148,7 +148,11 @@ export async function getAudioUrl(
 
       const response = await fetch(streamUrl, {
         method: "HEAD",
-        headers: headers,
+        headers: {
+          ...headers,
+          // 明确告诉后端我们需要元数据，不需要重定向
+          'X-Request-Type': 'metadata',
+        },
       });
 
       // 检查是否是302重定向（在Netlify部署环境中常见）
