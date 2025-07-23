@@ -1,4 +1,5 @@
 # API 代理 - BACKEND_URL_PLACEHOLDER 将在构建时替换
+# 需要保持原始状态码，允许302重定向透传
 /music-api/*  BACKEND_URL_PLACEHOLDER/:splat  200
 
 # SPA 路由 - 必须放在最后
