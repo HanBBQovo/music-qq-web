@@ -148,61 +148,8 @@ export async function getAudioUrl(
 
       const response = await fetch(streamUrl, {
         method: "HEAD",
-        headers: {
-          ...headers,
-          // 明确告诉后端我们需要元数据，不需要重定向
-          'X-Request-Type': 'metadata',
-        },
+        headers: headers,
       });
-
-      // 检查是否是302重定向（在Netlify部署环境中常见）
-      if (response.status === 302) {
-        const location = response.headers.get('location');
-        if (location) {
-          console.log(`✅ 音质 ${currentQuality} 可用（重定向），URL: ${location}`);
-          
-          // 对于重定向的情况，尝试获取元数据信息
-          try {
-            // 修改URL参数，请求元数据而不是重定向
-            const metadataUrl = streamUrl.replace('redirect=true', 'redirect=false');
-            const metadataResponse = await fetch(metadataUrl, {
-              method: "HEAD",
-              headers: headers,
-            });
-            
-            if (metadataResponse.ok) {
-              const qualityInfo = parseQualityInfo(metadataResponse);
-              
-              if (typeof window !== "undefined") {
-                if (currentQuality !== requestedQuality) {
-                  window.dispatchEvent(
-                    new CustomEvent("quality-fallback", {
-                      detail: {
-                        songId: mid,
-                        requestedQuality,
-                        actualQuality: currentQuality,
-                        fallbackReason: metadataResponse.headers.get("X-Fallback-Reason") || `音质 ${requestedQuality} 不可用`,
-                      },
-                    })
-                  );
-                }
-                window.dispatchEvent(
-                  new CustomEvent("quality-info-updated", {
-                    detail: {
-                      songId: mid,
-                      qualityInfo,
-                    },
-                  })
-                );
-              }
-            }
-          } catch (metadataError) {
-            console.warn('获取音质元数据失败:', metadataError);
-          }
-          
-          return location;
-        }
-      }
 
       if (response.ok) {
         console.log(`✅ 音质 ${currentQuality} 可用，URL: ${streamUrl}`);

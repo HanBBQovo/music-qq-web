@@ -1,6 +1,5 @@
 # API 代理 - BACKEND_URL_PLACEHOLDER 将在构建时替换
-# 使用200状态码进行代理，保持响应体和头部
-/music-api/*  BACKEND_URL_PLACEHOLDER/:splat  200!
+/music-api/*  BACKEND_URL_PLACEHOLDER/:splat  200
 
 # SPA 路由 - 必须放在最后
 /*  /index.html  200
