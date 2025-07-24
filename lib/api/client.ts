@@ -16,6 +16,8 @@ import {
   SubmitCookieResponse,
   CookieListResponse,
   CookieStatsResponse,
+  StreamInfoParams,
+  StreamInfoResponse,
 } from "./types";
 import { HTTP_HEADERS } from "@/lib/constants/http-headers";
 
@@ -458,6 +460,25 @@ export const musicApi = {
         return response as unknown as CookieListResponse;
       } catch (error) {
         console.error("[API] 获取Cookie列表失败:", error);
+        throw error;
+      }
+    });
+  },
+
+  // 获取音频流信息
+  getStreamInfo: async (params: StreamInfoParams): Promise<StreamInfoResponse> => {
+    return requestWithRetry(async () => {
+      try {
+        const preparedParams = _prepareRequestParams(params);
+        const response = await apiClient.get<StreamInfoResponse>(
+          "/api/play/stream/info",
+          {
+            params: preparedParams,
+          }
+        );
+        return response as unknown as StreamInfoResponse;
+      } catch (error) {
+        console.error("[API] 获取音频流信息失败:", error);
         throw error;
       }
     });

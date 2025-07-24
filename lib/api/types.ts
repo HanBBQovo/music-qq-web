@@ -354,4 +354,59 @@ export interface CookieStatsResponse {
   };
 }
 
+// 音频流信息请求参数
+export interface StreamInfoParams {
+  mid: string; // 歌曲MID
+  quality?: AudioQuality; // 请求的音质（可选）
+  cookie_id?: string; // Cookie ID (可选)
+}
+
+// 音频流质量详情
+export interface QualityDetail {
+  quality: string;
+  displayName: string;
+  bitrate: string;
+  format: string;
+  fileSize: number;
+  available: boolean;
+  vipRequired: boolean;
+  url: string;
+}
+
+// 音频流质量信息
+export interface QualitiesData {
+  available: string;
+  details: string;
+  qualities: QualityDetail[];
+  recommended: string;
+  sizes: string;
+  totalCount: number;
+}
+
+// 音频流信息数据
+export interface StreamInfoData {
+  acceptRanges: string;
+  contentLength: number;
+  contentType: string;
+  filename: string;
+  playService: boolean;
+  qualities: QualitiesData;
+  quality: string;
+  qualityFallback: boolean;
+  requestedQuality: string;
+  songInfo: {
+    mid: string;
+    name: string;
+    singer: string;
+  };
+  songMid: string;
+}
+
+// 音频流信息响应
+export interface StreamInfoResponse {
+  code: number;
+  data: StreamInfoData;
+  message: string;
+}
+
 // 通用API响应接口
