@@ -37,9 +37,14 @@ export const ProgressBar = React.memo(function ProgressBar({
       </span>
       <Slider
         value={[localProgress]}
-        onValueChange={onProgressChange}
+        onValueChange={(value) => {
+          // 第一次change时开始拖拽
+          if (!isDragging) {
+            onProgressStart();
+          }
+          onProgressChange(value);
+        }}
         onValueCommit={onProgressCommit}
-        onPointerDown={onProgressStart}
         max={100}
         step={0.1}
         className="flex-1"
