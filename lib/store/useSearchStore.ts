@@ -68,6 +68,7 @@ interface SearchState {
   setPage: (page: number) => void;
   setPageSize: (pageSize: number) => void;
   search: () => Promise<void>;
+  forceSearch: () => Promise<void>; // 强制搜索，跳过缓存
   loadMore: () => Promise<void>;
   reset: () => void;
   clearCache: () => void;
@@ -84,8 +85,8 @@ const SEARCH_DEBOUNCE_DELAY = 300;
 export const useSearchStore = create<SearchState>()(
   persist(
     (set, get) => {
-      // 创建防抖搜索函数
-      const debouncedSearch = debounce(async () => {
+      // 实际的搜索执行函数
+      const executeSearch = async (skipCache = false) => {
         const state = get();
         // 如果搜索关键词为空，则不执行搜索
         if (!state.searchParams.key) {
@@ -102,18 +103,25 @@ export const useSearchStore = create<SearchState>()(
         const cachedData = state.cache[cacheKey];
         const now = Date.now();
 
-        // 如果缓存存在且未过期，使用缓存数据
+        // 如果不跳过缓存且缓存存在且未过期，使用缓存数据
         if (
+          !skipCache &&
           cachedData &&
           now - cachedData.timestamp < state.cacheExpiry &&
           state.searchParams.page === 1
         ) {
-          console.log("[搜索] 使用缓存数据:", cacheKey);
+          console.log("[搜索] 使用缓存数据:", cacheKey, cachedData);
           set({
             searchResult: cachedData.result,
             isLoading: false,
           });
           return;
+        }
+
+        if (skipCache) {
+          console.log("[搜索] 强制搜索，跳过缓存:", state.searchParams);
+        } else {
+          console.log("[搜索] 发起新的搜索请求:", state.searchParams);
         }
 
         toast.success(`正在搜索"${state.searchParams.key}"`, {
@@ -227,7 +235,10 @@ export const useSearchStore = create<SearchState>()(
           },
           errorMessage: "搜索失败",
         });
-      }, SEARCH_DEBOUNCE_DELAY);
+      };
+
+      // 创建防抖搜索函数
+      const debouncedSearch = debounce(executeSearch, SEARCH_DEBOUNCE_DELAY);
 
       return {
         // 初始状态
@@ -333,6 +344,11 @@ export const useSearchStore = create<SearchState>()(
         // 执行搜索
         search: async () => {
           debouncedSearch();
+        },
+
+        // 强制搜索，跳过缓存
+        forceSearch: async () => {
+          await executeSearch(true);
         },
 
         // 加载更多结果 (支持所有搜索类型)

@@ -82,7 +82,7 @@ export function SearchForm() {
   const searchParams = useSearchParams();
 
   // 使用Zustand store
-  const { isLoading, setSearchKey, setSearchType, search } = useSearchStore();
+  const { isLoading, setSearchKey, setSearchType, search, forceSearch } = useSearchStore();
 
   const form = useForm<SearchFormValues>({
     resolver: zodResolver(searchFormSchema),
@@ -116,7 +116,7 @@ export function SearchForm() {
       setSearchKey(q);
       search();
     }
-  }, [searchParams, setSearchKey, setSearchType, search, form]);
+  }, [searchParams, setSearchKey, setSearchType, search, forceSearch, form]);
 
   const selectedType = form.watch("type");
   const currentType = searchTypes.find((type) => type.value === selectedType);
@@ -161,7 +161,7 @@ export function SearchForm() {
 
             if (redirectUrl) {
               toast.success(
-                `链接解析成功，正在跳转到${currentType?.label}详情页`
+                `链接解析成功，正在跳转到详情页`
               );
               router.push(redirectUrl);
               return;
@@ -174,18 +174,29 @@ export function SearchForm() {
         return;
       }
 
-      // 执行正常搜索 - 只更新URL和状态，让useEffect触发搜索
+      // 执行正常搜索
       const urlSearchParams = new URLSearchParams({
         q: data.query,
         type: data.type,
       });
 
-      router.push(`/?${urlSearchParams.toString()}`, { scroll: false });
+      // 检查是否是相同的搜索参数
+      const currentQ = searchParams.get("q");
+      const currentType = searchParams.get("type");
+      const isSameSearch = currentQ === data.query && currentType === data.type;
 
-      // 更新搜索关键词和搜索类型，但不直接调用search()
-      // useEffect会监听到URL变化并自动触发搜索
+      // 更新搜索状态
       setSearchKey(data.query);
       setSearchType(data.type);
+
+      if (isSameSearch) {
+        // 如果是相同的搜索参数，强制触发搜索（跳过缓存）
+        console.log("[搜索表单] 检测到重复搜索，强制执行");
+        await forceSearch();
+      } else {
+        // 不同的搜索参数，更新URL让useEffect触发搜索
+        router.push(`/?${urlSearchParams.toString()}`, { scroll: false });
+      }
 
       // 不再显示toast，让store中的搜索逻辑处理所有提示
     } catch (error) {
