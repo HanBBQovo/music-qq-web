@@ -389,7 +389,7 @@ export default function AlbumDetailPage() {
           <CardContent className="p-6">
             <div className="flex flex-col md:flex-row gap-6">
               {/* 专辑封面 */}
-              <div className="w-full md:w-48 h-48 flex-shrink-0">
+              <div className="w-full md:w-48 h-48 flex-shrink-0 relative">
                 {coverFromUrl || album.cover ? (
                   <RemoteImage
                     src={coverFromUrl || album.cover || ""}
