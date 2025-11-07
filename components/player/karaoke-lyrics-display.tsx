@@ -214,35 +214,68 @@ export const KaraokeLyricsDisplay = React.memo(function KaraokeLyricsDisplay({
     }
 
     if (lyricLines && lyricLines.length > 0) {
-      // Set initial visible line without triggering animation yet
-      const now = usePlayerStore.getState().currentTime * 1000;
-      let initialIndex = -1;
-      for (let i = lyricLines.length - 1; i >= 0; i--) {
-        if (now > lyricLines[i].startTime) {
-          initialIndex = i;
-          break;
-        }
-      }
-      if (initialIndex === -1 && lyricLines.length > 0) initialIndex = 0;
+      // Use requestAnimationFrame instead of setTimeout to ensure DOM is ready
+      // This prevents lyrics from getting stuck when they load after playback starts
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          const now = usePlayerStore.getState().currentTime * 1000;
+          const viewportEl = viewportRef.current;
+          const tickerEl = tickerRef.current;
 
-      // Force a small timeout to allow React to render the lines so we can calculate offset
-      setTimeout(() => {
-        const viewportEl = viewportRef.current;
-        const tickerEl = tickerRef.current;
-        const activeLineEl = lineRefs.current[initialIndex];
+          // Find initial line index based on current playback time
+          let initialIndex = -1;
+          for (let i = lyricLines.length - 1; i >= 0; i--) {
+            if (now >= lyricLines[i].startTime) {
+              initialIndex = i;
+              break;
+            }
+          }
+          if (initialIndex === -1 && lyricLines.length > 0) initialIndex = 0;
 
-        if (activeLineEl) {
-          activeLineEl.style.opacity = "1";
-          activeLineEl.style.fontWeight = "600";
-        }
+          const activeLineEl = lineRefs.current[initialIndex];
 
-        if (viewportEl && tickerEl && activeLineEl) {
-          // New offset calculation for top alignment
-          const offset = -activeLineEl.offsetTop;
-          tickerEl.style.transform = `translateY(${offset}px)`;
-        }
-        currentLineIndexRef.current = initialIndex;
-      }, 50);
+          if (activeLineEl) {
+            activeLineEl.style.opacity = "1";
+            activeLineEl.style.fontWeight = "600";
+          }
+
+          if (viewportEl && tickerEl && activeLineEl) {
+            const offset = -activeLineEl.offsetTop;
+            tickerEl.style.transform = `translateY(${offset}px)`;
+          }
+
+          // Initialize word progress based on current time to prevent "stuck" lyrics
+          if (initialIndex >= 0 && wordSpanRefs.current[initialIndex]) {
+            const line = lyricLines[initialIndex];
+            const wordSpans = wordSpanRefs.current[initialIndex] || [];
+
+            line.words.forEach((word, j) => {
+              const el = wordSpans[j];
+              if (!el) return;
+
+              const wordEndTime = word.startTime + word.duration;
+              let prog;
+
+              if (now >= wordEndTime) {
+                prog = 1;
+              } else if (now < word.startTime) {
+                prog = 0;
+              } else {
+                prog = word.duration > 0 ? (now - word.startTime) / word.duration : 0;
+              }
+              prog = Math.max(0, Math.min(1, prog));
+
+              const pct = prog * 100;
+              const clipPathSpan = el.querySelector('[data-role="fg"]') as HTMLSpanElement;
+              if (clipPathSpan) {
+                clipPathSpan.style.clipPath = `polygon(0 0, ${pct}% 0, ${pct}% 100%, 0 100%)`;
+              }
+            });
+          }
+
+          currentLineIndexRef.current = initialIndex;
+        });
+      });
     }
   }, [lyricLines]);
 
@@ -279,7 +312,7 @@ export const KaraokeLyricsDisplay = React.memo(function KaraokeLyricsDisplay({
     );
   }
 
-  const getLineStyle = (isCurrent: boolean) => {
+  const getLineStyle = () => {
     // These styles are now the base, dynamic changes happen via refs
     return {
       fontSize: mode === "compact" ? 12 : 14,
@@ -295,7 +328,7 @@ export const KaraokeLyricsDisplay = React.memo(function KaraokeLyricsDisplay({
     <div
       key={line.startTime}
       ref={(el) => setLineRef(el, lineIndex)}
-      style={getLineStyle(lineIndex === -1)} // Pass dummy value
+      style={getLineStyle()}
     >
       {line.words.map((w, j) => (
         <span
