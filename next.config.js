@@ -4,6 +4,9 @@ const withBundleAnalyzer = require("@next/bundle-analyzer")({
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  ...(process.env.NEXT_OUTPUT_STANDALONE === "true"
+    ? { output: "standalone" }
+    : {}),
   eslint: {
     ignoreDuringBuilds: true,
   },

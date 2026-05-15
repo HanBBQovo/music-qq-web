@@ -47,6 +47,31 @@ npm run build
 npm start
 ```
 
+## Docker 部署
+
+镜像默认发布到 GitHub Container Registry：
+
+```bash
+docker pull ghcr.io/hanbbqovo/music-qq-web:latest
+docker run -d --name music-web -p 3000:3000 ghcr.io/hanbbqovo/music-qq-web:latest
+```
+
+本地构建：
+
+```bash
+docker compose build
+docker compose up -d
+```
+
+容器构建默认把前端 API 地址设为 `/music-api`，并把该路径代理到 `http://music-api:18880`。如果后端容器地址不同，构建时传入：
+
+```bash
+docker build \
+  --build-arg NEXT_PUBLIC_API_URL=/music-api \
+  --build-arg BACKEND_API_URL=http://your-api:18880 \
+  -t music-qq-web .
+```
+
 ## 部署到 Vercel
 
 1. **克隆项目**：
