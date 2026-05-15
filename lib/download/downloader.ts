@@ -17,7 +17,28 @@ export async function downloadSong(
 ): Promise<void> {
   // 创建中止控制器
   const abortController = new AbortController();
+  const isMasterQuality = task.quality === "MASTER";
+  const downloadTimeout = isMasterQuality ? 600000 : 180000; // MASTER: 10分钟，其他: 3分钟
+  const timeoutLabel = isMasterQuality ? "10分钟" : "3分钟";
+  let timeoutId: NodeJS.Timeout | null = null;
+  let didTimeout = false;
 
+  const setupTimeout = () => {
+    timeoutId = setTimeout(() => {
+      didTimeout = true;
+      abortController.abort();
+      console.error(`[下载] 下载超时 (${timeoutLabel}): ${task.songName}`);
+    }, downloadTimeout);
+  };
+
+  const clearTimeoutIfExists = () => {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+      timeoutId = null;
+    }
+  };
+
+  try {
     // 将中止控制器添加到活跃下载中
     set((state: DownloadState) => ({
       activeDownloads: {
@@ -157,29 +178,6 @@ export async function downloadSong(
 
     console.log(`[下载] 发送请求到: ${finalUrl}`);
 
-  // 设置超时处理 - 为MASTER音质设置更长超时时间
-  const isMasterQuality = task.quality === "MASTER";
-  const downloadTimeout = isMasterQuality ? 600000 : 180000; // MASTER: 10分钟，其他: 3分钟
-  const timeoutLabel = isMasterQuality ? "10分钟" : "3分钟";
-
-  let timeoutId: NodeJS.Timeout | null = null;
-  const setupTimeout = () => {
-    timeoutId = setTimeout(() => {
-      abortController.abort();
-      const errorMsg = `下载超时 (${timeoutLabel})`;
-      console.error(`[下载] ${errorMsg}: ${task.songName}`);
-      get().updateTaskStatus(task.id, "error", errorMsg);
-      get().processQueue();
-    }, downloadTimeout);
-  };
-  const clearTimeoutIfExists = () => {
-    if (timeoutId) {
-      clearTimeout(timeoutId);
-      timeoutId = null;
-    }
-  };
-
-  try {
     setupTimeout();
 
     // 发起下载请求
@@ -320,6 +318,9 @@ export async function downloadSong(
             receivedBytes,
             finalTotalBytes
           );
+          if (didTimeout) {
+            throw error;
+          }
         } else {
           console.error(`[下载] 读取流时出错: ${task.songName}`, error);
           throw error; // 抛出以触发外部的catch块
@@ -340,12 +341,14 @@ export async function downloadSong(
   } catch (error: any) {
     // 确定错误原因
     let errorMsg = "下载失败";
-    if (error.name === "AbortError") {
+    if (error.name === "AbortError" && !didTimeout) {
       errorMsg = "任务已中止";
       console.log(`[下载] ${errorMsg}: ${task.songName}`);
       get().updateTaskStatus(task.id, "paused", errorMsg); // 任务被用户暂停
     } else {
-      errorMsg = extractApiErrorMessage(error);
+      errorMsg = didTimeout
+        ? `下载超时 (${timeoutLabel})`
+        : extractApiErrorMessage(error);
       console.error(`[下载] 任务失败: ${task.songName}`, error);
       get().updateTaskStatus(task.id, "error", errorMsg); // 任务失败
     }
@@ -355,7 +358,7 @@ export async function downloadSong(
   } finally {
     // 清理超时定时器，避免任务取消后仍然触发超时
     clearTimeoutIfExists();
-    
+
     // 确保从活跃下载中移除
     set((state: DownloadState) => {
       const newActiveDownloads = { ...state.activeDownloads };
